@@ -1,0 +1,6 @@
+node_modules/
+admin/dist/
+*.log
+.DS_Store
+scratchpad/*.php
+!scratchpad/.gitkeep

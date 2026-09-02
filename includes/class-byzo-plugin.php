@@ -1,0 +1,76 @@
+<?php
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Central bootstrap. Loads includes and wires up admin/REST/cron on
+ * `plugins_loaded`, so Pro (loaded as a separate plugin, hooking its own
+ * `plugins_loaded` callback) can rely on Free's classes already existing.
+ */
+class BYZO_Plugin {
+
+	/** @var BYZO_Plugin|null */
+	private static $instance = null;
+
+	public static function instance() {
+		if ( null === self::$instance ) {
+			self::$instance = new self();
+		}
+		return self::$instance;
+	}
+
+	private function __construct() {}
+
+	public function init() {
+		$this->maybe_upgrade_db();
+		$this->load_includes();
+		$this->register_hooks();
+
+		do_action( 'byzo_loaded' );
+	}
+
+	/**
+	 * Re-runs dbDelta if BYZO_DB_VERSION has moved on since the stored
+	 * option — covers plugin updates, not just fresh activation (dbDelta
+	 * is idempotent/additive so this is safe to call opportunistically).
+	 */
+	private function maybe_upgrade_db() {
+		if ( get_option( 'byzo_db_version' ) !== BYZO_DB_VERSION ) {
+			BYZO_Activator::create_tables();
+			update_option( 'byzo_db_version', BYZO_DB_VERSION );
+		}
+	}
+
+	private function load_includes() {
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-capabilities.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-install-redirect.php';
+	}
+
+	private function register_hooks() {
+		load_plugin_textdomain( 'bookyzo', false, dirname( BYZO_PLUGIN_BASENAME ) . '/languages' );
+
+		BYZO_Install_Redirect::init();
+
+		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
+	}
+
+	/**
+	 * Top-level admin menu placeholder — the Vue admin shell mounts here
+	 * starting Phase 0 step 7. Step 1 only needs the page to exist so
+	 * activation/menu registration can be smoke-tested.
+	 */
+	public function register_admin_menu() {
+		add_menu_page(
+			__( 'Bookyzo – Booking & Appointments', 'bookyzo' ),
+			__( 'Bookyzo', 'bookyzo' ),
+			'manage_options',
+			'bookyzo',
+			array( $this, 'render_admin_root' ),
+			'dashicons-calendar-alt',
+			30
+		);
+	}
+
+	public function render_admin_root() {
+		echo '<div id="byzo-admin-app">' . esc_html__( 'Loading…', 'bookyzo' ) . '</div>';
+	}
+}

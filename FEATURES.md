@@ -181,7 +181,8 @@ This keeps each release shippable and testable instead of trying to launch the f
 
 ## Naming
 
-- **Plugin name:** Bookyzo
+- **Plugin name (brand):** Bookyzo
+- **Display name (WP.org listing / plugin header):** "Bookyzo – Booking & Appointments" — descriptive suffix decided 2026-09-02 so the listing surfaces for generic "booking"/"appointment" searches on WordPress.org; kept generic (not "Appointment Booking") since Table/Event/Slot types are on the roadmap and would otherwise force a rename later.
 - WP.org slug and .com domain both confirmed clear via DNS/API checks on 2026-09-02 (not registrar-confirmed yet — do that before public announcement)
 - Convention: `bookyzo` for Free, `bookyzo-pro` for Pro (matching the `codeholt-bundles-for-woocommerce` / `codeholt-bundles-for-woocommerce-pro` pattern used on other Codeholt plugins)
 
