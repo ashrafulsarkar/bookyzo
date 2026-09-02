@@ -7,7 +7,6 @@
     <CardContent>
       <div v-if="loading" class="py-8 text-center text-sm text-muted-foreground">Loading…</div>
       <ByzoWeeklyScheduleGrid v-else v-model="schedules" />
-      <p v-if="error" class="mt-4 text-sm text-destructive">{{ error }}</p>
     </CardContent>
     <CardFooter class="justify-end">
       <Button :disabled="loading || saving" @click="save">{{ saving ? 'Saving…' : 'Save availability' }}</Button>
@@ -17,6 +16,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { toast } from 'vue-sonner';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import ByzoWeeklyScheduleGrid from '@/components/base/ByzoWeeklyScheduleGrid.vue';
@@ -29,11 +29,9 @@ const props = defineProps({
 const schedules = ref([]);
 const loading = ref(true);
 const saving = ref(false);
-const error = ref('');
 
 async function load() {
   loading.value = true;
-  error.value = '';
   try {
     const availability = await api.get(`/resources/${props.resourceId}/availability`);
     schedules.value = availability.schedules.map((s) => ({
@@ -43,19 +41,19 @@ async function load() {
       shift_group: s.shift_group,
     }));
   } catch (e) {
-    error.value = e.message || 'Could not load availability.';
+    toast.error(e.message || 'Could not load availability.');
   } finally {
     loading.value = false;
   }
 }
 
 async function save() {
-  error.value = '';
   saving.value = true;
   try {
     await api.put(`/resources/${props.resourceId}/availability`, { schedules: schedules.value });
+    toast.success('Availability saved.');
   } catch (e) {
-    error.value = e.message || 'Could not save availability.';
+    toast.error(e.message || 'Could not save availability.');
   } finally {
     saving.value = false;
   }

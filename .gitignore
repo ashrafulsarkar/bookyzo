@@ -1,6 +1,6 @@
 node_modules/
-/admin/
-/public/
+/assets/admin/
+/assets/widget/
 /release/
 /.dev-server-running
 *.log

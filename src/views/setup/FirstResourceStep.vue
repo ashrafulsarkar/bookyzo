@@ -6,38 +6,18 @@
     </CardHeader>
     <CardContent class="flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium" for="resource_name">Name</label>
-        <input
-          id="resource_name"
-          v-model="form.name"
-          type="text"
-          class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        />
+        <Label for="resource_name">Name</Label>
+        <Input id="resource_name" v-model="form.name" type="text" />
       </div>
 
       <div class="grid grid-cols-2 gap-4">
         <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-medium" for="duration">Appointment length (minutes)</label>
-          <input
-            id="duration"
-            v-model.number="form.duration_minutes"
-            type="number"
-            min="5"
-            step="5"
-            class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
+          <Label for="duration">Appointment length (minutes)</Label>
+          <Input id="duration" v-model.number="form.duration_minutes" type="number" min="5" step="5" />
         </div>
         <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-medium" for="price">Price (optional)</label>
-          <input
-            id="price"
-            v-model="form.price"
-            type="number"
-            min="0"
-            step="0.01"
-            placeholder="0.00"
-            class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
+          <Label for="price">Price (optional)</Label>
+          <Input id="price" v-model="form.price" type="number" min="0" step="0.01" placeholder="0.00" />
         </div>
       </div>
 
@@ -59,6 +39,8 @@
 import { ref } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { api } from '../../api/client';
 
 const emit = defineEmits(['finish', 'back']);

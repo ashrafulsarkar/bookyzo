@@ -91,10 +91,10 @@ class BYZO_Public_Widget {
 		}
 
 		$entry = $manifest[ self::ENTRY ];
-		$base  = BYZO_PLUGIN_URL . 'public/';
+		$base  = BYZO_PLUGIN_URL . 'assets/widget/';
 
 		wp_enqueue_script( 'byzo-widget', $base . $entry['file'], array(), BYZO_VERSION, true );
-		wp_script_add_data( 'byzo-widget', 'type', 'module' );
+		add_filter( 'wp_script_attributes', array( __CLASS__, 'add_module_type' ) );
 
 		if ( ! empty( $entry['css'] ) ) {
 			foreach ( $entry['css'] as $index => $css_file ) {
@@ -125,8 +125,28 @@ class BYZO_Public_Widget {
 		);
 	}
 
+	/**
+	 * Marks the widget bundle as an ES module — same mechanism, and same
+	 * reasoning, as BYZO_Admin_Assets::add_module_type(); see that method
+	 * for why wp_script_add_data( 'type', 'module' ) and
+	 * script_loader_tag both fail to do this on WP 7.1.
+	 *
+	 * Without it the Vite bundle's top-level `import` throws in the
+	 * browser and the shortcode/block renders its mount div with nothing
+	 * inside — the "inert mount div" that render() deliberately tolerates
+	 * when the build is MISSING, except here the build is present and the
+	 * tag is simply wrong.
+	 */
+	public static function add_module_type( $attributes ) {
+		if ( isset( $attributes['id'] ) && 'byzo-widget-js' === $attributes['id'] ) {
+			$attributes['type'] = 'module';
+		}
+
+		return $attributes;
+	}
+
 	private static function read_manifest() {
-		$path = BYZO_PLUGIN_DIR . 'public/.vite/manifest.json';
+		$path = BYZO_PLUGIN_DIR . 'assets/widget/.vite/manifest.json';
 
 		if ( ! file_exists( $path ) ) {
 			return null;

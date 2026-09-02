@@ -6,46 +6,24 @@
     </CardHeader>
     <CardContent class="flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium" for="business_name">Business name</label>
-        <input
-          id="business_name"
-          v-model="form.business_name"
-          type="text"
-          class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        />
+        <Label for="business_name">Business name</Label>
+        <Input id="business_name" v-model="form.business_name" type="text" />
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <label class="text-sm font-medium" for="currency">Currency</label>
-        <input
-          id="currency"
-          v-model="form.currency"
-          type="text"
-          maxlength="3"
-          placeholder="USD"
-          class="h-9 w-24 rounded-md border border-input bg-background px-3 text-sm uppercase shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        />
+        <Label for="currency">Currency</Label>
+        <Input id="currency" v-model="form.currency" type="text" maxlength="3" placeholder="USD" class="w-24 uppercase" />
         <p class="text-xs text-muted-foreground">3-letter code, e.g. USD, BDT, GBP.</p>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
         <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-medium" for="start_time">Default opening time</label>
-          <input
-            id="start_time"
-            v-model="form.default_start_time"
-            type="time"
-            class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
+          <Label for="start_time">Default opening time</Label>
+          <Input id="start_time" v-model="form.default_start_time" type="time" />
         </div>
         <div class="flex flex-col gap-1.5">
-          <label class="text-sm font-medium" for="end_time">Default closing time</label>
-          <input
-            id="end_time"
-            v-model="form.default_end_time"
-            type="time"
-            class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
+          <Label for="end_time">Default closing time</Label>
+          <Input id="end_time" v-model="form.default_end_time" type="time" />
         </div>
       </div>
 
@@ -62,6 +40,8 @@
 import { ref, onMounted } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { api } from '../../api/client';
 
 const emit = defineEmits(['next', 'back']);

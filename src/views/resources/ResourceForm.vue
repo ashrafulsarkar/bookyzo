@@ -13,33 +13,37 @@
       <!-- Availability/Exceptions need a saved resource id (DETAILED-SPEC.md
            §A2/A3's Details/Availability/Exceptions tabs) — only shown once
            editing an existing resource, not while creating a new one. -->
-      <div v-if="isEdit" class="mb-4 flex gap-1 border-b border-border">
-        <button
-          v-for="tab in tabs"
-          :key="tab.id"
-          type="button"
-          class="border-b-2 px-3 py-2 text-sm font-medium transition-colors"
-          :class="activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'"
-          @click="activeTab = tab.id"
-        >
-          {{ tab.label }}
-        </button>
-      </div>
-
       <div v-if="loading" class="py-12 text-center text-sm text-muted-foreground">Loading…</div>
 
-      <template v-else>
-        <ResourceDetailsTab
-          v-if="activeTab === 'details'"
-          :form="form"
-          :saving="saving"
-          :error="error"
-          @save="save"
-          @cancel="router.push({ name: 'resources' })"
-        />
-        <ResourceAvailabilityTab v-else-if="activeTab === 'availability'" :resource-id="route.params.id" />
-        <ResourceExceptionsTab v-else-if="activeTab === 'exceptions'" :resource-id="route.params.id" />
-      </template>
+      <Tabs v-else-if="isEdit" v-model="activeTab">
+        <TabsList class="mb-4">
+          <TabsTrigger v-for="tab in tabs" :key="tab.id" :value="tab.id">{{ tab.label }}</TabsTrigger>
+        </TabsList>
+        <TabsContent value="details">
+          <ResourceDetailsTab
+            :form="form"
+            :saving="saving"
+            :error="error"
+            @save="save"
+            @cancel="router.push({ name: 'resources' })"
+          />
+        </TabsContent>
+        <TabsContent value="availability">
+          <ResourceAvailabilityTab :resource-id="route.params.id" />
+        </TabsContent>
+        <TabsContent value="exceptions">
+          <ResourceExceptionsTab :resource-id="route.params.id" />
+        </TabsContent>
+      </Tabs>
+
+      <ResourceDetailsTab
+        v-else
+        :form="form"
+        :saving="saving"
+        :error="error"
+        @save="save"
+        @cancel="router.push({ name: 'resources' })"
+      />
     </div>
   </div>
 </template>
@@ -47,6 +51,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ResourceDetailsTab from './ResourceDetailsTab.vue';
 import ResourceAvailabilityTab from './ResourceAvailabilityTab.vue';

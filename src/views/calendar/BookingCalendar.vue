@@ -8,13 +8,13 @@
         </svg>
       </template>
       <template #actions>
-        <select
-          v-model="resourceFilter"
-          class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-        >
-          <option value="">All resources</option>
-          <option v-for="resource in resources" :key="resource.id" :value="resource.id">{{ resource.name }}</option>
-        </select>
+        <Select v-model="resourceFilter">
+          <SelectTrigger class="h-9 w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All resources</SelectItem>
+            <SelectItem v-for="resource in resources" :key="resource.id" :value="String(resource.id)">{{ resource.name }}</SelectItem>
+          </SelectContent>
+        </Select>
         <Button @click="showManualBooking = true">+ New booking</Button>
       </template>
     </ByzoPageHeader>
@@ -29,7 +29,7 @@
     <BookingDetailModal v-if="activeBooking" :booking="activeBooking" @close="activeBooking = null" @updated="onBookingUpdated" />
     <ManualBookingModal
       v-if="showManualBooking"
-      :initial-resource-id="resourceFilter || null"
+      :initial-resource-id="resourceFilter !== '__all__' ? resourceFilter : null"
       @close="showManualBooking = false"
       @created="onBookingCreated"
     />
@@ -40,6 +40,7 @@
 import { ref, onMounted } from 'vue';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoCalendar from '@/components/base/ByzoCalendar.vue';
 import BookingDetailModal from './BookingDetailModal.vue';
@@ -48,7 +49,7 @@ import { api } from '@/api/client';
 import { toDateKey } from '@/lib/date';
 
 const resources = ref([]);
-const resourceFilter = ref('');
+const resourceFilter = ref('__all__');
 const bookings = ref([]);
 const error = ref('');
 const activeBooking = ref(null);
@@ -75,7 +76,7 @@ async function loadBookings() {
       to: toDateKey(currentRange.to),
       per_page: '100',
     });
-    if (resourceFilter.value) {
+    if (resourceFilter.value !== '__all__') {
       params.set('resource_id', resourceFilter.value);
     }
     bookings.value = await api.get(`/bookings?${params.toString()}`);

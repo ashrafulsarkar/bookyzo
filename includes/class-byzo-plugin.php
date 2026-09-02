@@ -8,6 +8,8 @@ defined( 'ABSPATH' ) || exit;
  */
 class BYZO_Plugin {
 
+	const MENU_SLUG = 'bookyzo';
+
 	/** @var BYZO_Plugin|null */
 	private static $instance = null;
 
@@ -116,19 +118,108 @@ class BYZO_Plugin {
 
 	/**
 	 * Top-level admin menu — the Vue admin shell (source in the plugin
-	 * root's src/, built by Vite straight into admin/) mounts into
-	 * #byzo-admin-app below. See
-	 * BYZO_Admin_Assets for the enqueue/manifest-reading side.
+	 * root's src/, built by Vite into assets/admin/) mounts into
+	 * #byzo-admin-app. See BYZO_Admin_Assets for the
+	 * enqueue/manifest-reading side.
+	 *
+	 * Each entry gets its OWN page slug (`bookyzo-bookings`, …) rather
+	 * than all sharing `page=bookyzo` with a `view` query parameter. The
+	 * slug is the route: BYZO_Admin_Assets maps it back to a Vue route
+	 * via routes() below and hands the app its boot route in
+	 * `window.byzoAdmin.initialRoute`, so PHP decides the starting screen
+	 * and the Vue Router takes over from there. This mirrors the
+	 * `backreload` plugin's admin routing, which is the precedent asked
+	 * for here.
+	 *
+	 * Why it beats the `bookyzo&view=/…` scheme it replaces:
+	 * - WordPress highlights the current submenu row by matching the
+	 *   `page` parameter, so real slugs make the left nav track the app
+	 *   for free — with one shared slug, every row pointed at the same
+	 *   page and WP could not tell them apart.
+	 * - Each screen gets a clean, bookmarkable URL with no route encoded
+	 *   in a second parameter.
+	 * - `$hook` becomes distinct per screen, so anything hooking a single
+	 *   Bookyzo screen later can target it precisely.
+	 *
+	 * The dashboard row is registered explicitly, first, on the bare
+	 * `bookyzo` slug. That also suppresses the row core would otherwise
+	 * auto-insert at index 0: add_submenu_page() only injects that parent
+	 * link while `$menu_slug !== $parent_slug` holds for the first
+	 * submenu added, so a first entry whose slug IS the parent slug takes
+	 * its place — keeping the top-level menu free to read "Bookyzo"
+	 * without the first submenu row repeating it.
 	 */
 	public function register_admin_menu() {
 		add_menu_page(
 			__( 'Bookyzo – Booking & Appointments', 'bookyzo' ),
 			__( 'Bookyzo', 'bookyzo' ),
 			'manage_options',
-			'bookyzo',
+			self::MENU_SLUG,
 			array( $this, 'render_admin_root' ),
 			'dashicons-calendar-alt',
 			30
+		);
+
+		foreach ( self::routes() as $slug => $route ) {
+			add_submenu_page(
+				self::MENU_SLUG,
+				$route['title'],
+				$route['label'],
+				'manage_options',
+				$slug,
+				array( $this, 'render_admin_root' )
+			);
+		}
+	}
+
+	/**
+	 * Admin page slug → Vue route. The single source of truth for
+	 * Bookyzo's admin routing: register_admin_menu() builds the WP menu
+	 * from it, and BYZO_Admin_Assets::initial_route() reads it to tell
+	 * the booting app which screen to open.
+	 *
+	 * Matches src/components/base/ByzoSidebar.vue's item list exactly —
+	 * keep the two in sync if a route is added/renamed/removed there.
+	 *
+	 * Routes the sidebar does not link to (`/setup`, `/resources/new`,
+	 * `/resources/:id/edit`) deliberately have no slug here: they are
+	 * reached from inside the app, not from the WP menu, and the Vue
+	 * Router still owns them.
+	 *
+	 * @return array<string,array{route:string,label:string,title:string}>
+	 */
+	public static function routes() {
+		return array(
+			self::MENU_SLUG => array(
+				'route' => '/',
+				'label' => __( 'Dashboard', 'bookyzo' ),
+				'title' => __( 'Bookyzo Dashboard', 'bookyzo' ),
+			),
+			'bookyzo-calendar' => array(
+				'route' => '/calendar',
+				'label' => __( 'Calendar', 'bookyzo' ),
+				'title' => __( 'Bookyzo Calendar', 'bookyzo' ),
+			),
+			'bookyzo-bookings' => array(
+				'route' => '/bookings',
+				'label' => __( 'Bookings', 'bookyzo' ),
+				'title' => __( 'Bookyzo Bookings', 'bookyzo' ),
+			),
+			'bookyzo-resources' => array(
+				'route' => '/resources',
+				'label' => __( 'Resources', 'bookyzo' ),
+				'title' => __( 'Bookyzo Resources', 'bookyzo' ),
+			),
+			'bookyzo-emails' => array(
+				'route' => '/settings/email-templates',
+				'label' => __( 'Emails', 'bookyzo' ),
+				'title' => __( 'Bookyzo Email Templates', 'bookyzo' ),
+			),
+			'bookyzo-payments' => array(
+				'route' => '/settings/payments',
+				'label' => __( 'Payments', 'bookyzo' ),
+				'title' => __( 'Bookyzo Payment Settings', 'bookyzo' ),
+			),
 		);
 	}
 

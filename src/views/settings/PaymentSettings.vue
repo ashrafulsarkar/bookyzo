@@ -18,50 +18,29 @@
       <Card v-else class="max-w-xl">
         <CardContent class="flex flex-col gap-4 pt-6">
           <label class="flex items-center gap-2 text-sm font-medium">
-            <input type="checkbox" v-model="form.stripe_enabled" />
+            <Switch v-model="form.stripe_enabled" />
             Accept card payments via Stripe
           </label>
 
           <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium" for="pk">Publishable key</label>
-            <input
-              id="pk"
-              v-model="form.stripe_publishable_key"
-              type="text"
-              placeholder="pk_test_..."
-              class="h-9 rounded-md border border-input bg-background px-3 font-mono text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
+            <Label for="pk">Publishable key</Label>
+            <Input id="pk" v-model="form.stripe_publishable_key" type="text" placeholder="pk_test_..." class="font-mono" />
           </div>
 
           <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium" for="sk">Secret key</label>
-            <input
-              id="sk"
-              v-model="form.stripe_secret_key"
-              type="password"
-              placeholder="sk_test_..."
-              class="h-9 rounded-md border border-input bg-background px-3 font-mono text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
+            <Label for="sk">Secret key</Label>
+            <Input id="sk" v-model="form.stripe_secret_key" type="password" placeholder="sk_test_..." class="font-mono" />
           </div>
 
           <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium" for="wh">Webhook signing secret</label>
-            <input
-              id="wh"
-              v-model="form.stripe_webhook_secret"
-              type="password"
-              placeholder="whsec_..."
-              class="h-9 rounded-md border border-input bg-background px-3 font-mono text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
+            <Label for="wh">Webhook signing secret</Label>
+            <Input id="wh" v-model="form.stripe_webhook_secret" type="password" placeholder="whsec_..." class="font-mono" />
             <p class="text-xs text-muted-foreground">
               Add a webhook endpoint in your Stripe dashboard pointing to
               <code class="rounded bg-muted px-1 py-0.5">{{ webhookUrl }}</code>
               listening for the <code class="rounded bg-muted px-1 py-0.5">payment_intent.succeeded</code> event, then paste its signing secret here.
             </p>
           </div>
-
-          <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
-          <p v-if="saved" class="text-sm" style="color: var(--byzo-success)">Saved.</p>
         </CardContent>
       </Card>
     </div>
@@ -70,8 +49,12 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
+import { toast } from 'vue-sonner';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import { api } from '@/api/client';
 
@@ -83,8 +66,6 @@ const form = ref({
 });
 const loading = ref(true);
 const saving = ref(false);
-const error = ref('');
-const saved = ref(false);
 
 const webhookUrl = computed(() => `${window.location.origin}/wp-json/bookyzo/v1/stripe-webhook`);
 
@@ -92,21 +73,19 @@ async function load() {
   try {
     form.value = await api.get('/payment-settings');
   } catch (e) {
-    error.value = e.message || 'Could not load payment settings.';
+    toast.error(e.message || 'Could not load payment settings.');
   } finally {
     loading.value = false;
   }
 }
 
 async function save() {
-  error.value = '';
-  saved.value = false;
   saving.value = true;
   try {
     form.value = await api.put('/payment-settings', form.value);
-    saved.value = true;
+    toast.success('Payment settings saved.');
   } catch (e) {
-    error.value = e.message || 'Could not save payment settings.';
+    toast.error(e.message || 'Could not save payment settings.');
   } finally {
     saving.value = false;
   }

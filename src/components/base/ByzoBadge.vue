@@ -1,14 +1,16 @@
 <template>
-  <span
-    class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+  <Badge
+    variant="outline"
+    class="border-transparent font-medium"
     :style="{ color, backgroundColor: bg }"
   >
     <slot />
-  </span>
+  </Badge>
 </template>
 
 <script setup>
 import { computed } from 'vue';
+import { Badge } from '@/components/ui/badge';
 
 // bookyzo-design skill's ByzoBadge: status pills using the shared color
 // tokens via a `status` prop, never ad hoc colors per usage site. Covers

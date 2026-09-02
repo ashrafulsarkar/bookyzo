@@ -26,45 +26,61 @@
       </Card>
 
       <Card v-else class="overflow-hidden">
-        <table class="w-full text-sm">
-          <thead class="border-b border-border bg-muted/50 text-left text-xs uppercase text-muted-foreground">
-            <tr>
-              <th class="px-4 py-3 font-medium">Name</th>
-              <th class="px-4 py-3 font-medium">Duration</th>
-              <th class="px-4 py-3 font-medium">Price</th>
-              <th class="px-4 py-3 font-medium">Status</th>
-              <th class="px-4 py-3 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="resource in resources" :key="resource.id" class="border-b border-border last:border-0">
-              <td class="px-4 py-3 font-medium">{{ resource.name }}</td>
-              <td class="px-4 py-3 text-muted-foreground">{{ resource.duration_minutes }} min</td>
-              <td class="px-4 py-3 text-muted-foreground">{{ formatPrice(resource.price) }}</td>
-              <td class="px-4 py-3"><ByzoBadge :status="resource.status">{{ resource.status }}</ByzoBadge></td>
-              <td class="px-4 py-3 text-right">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Name</TableHead>
+              <TableHead>Duration</TableHead>
+              <TableHead>Price</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="resource in resources" :key="resource.id">
+              <TableCell class="font-medium">{{ resource.name }}</TableCell>
+              <TableCell class="text-muted-foreground">{{ resource.duration_minutes }} min</TableCell>
+              <TableCell class="text-muted-foreground">{{ formatPrice(resource.price) }}</TableCell>
+              <TableCell><ByzoBadge :status="resource.status">{{ resource.status }}</ByzoBadge></TableCell>
+              <TableCell class="text-right">
                 <Button variant="ghost" size="sm" @click="router.push({ name: 'resources.edit', params: { id: resource.id } })">
                   Edit
                 </Button>
-                <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="confirmDelete(resource)">
+                <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="askDelete(resource)">
                   Delete
                 </Button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </Card>
-
-      <p v-if="error" class="mt-4 text-sm text-destructive">{{ error }}</p>
     </div>
+
+    <Dialog :open="!!deleteTarget" @update:open="(v) => { if (!v) deleteTarget = null; }">
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Delete resource</DialogTitle>
+          <DialogDescription>
+            Delete "{{ deleteTarget?.name }}"? This cannot be undone.
+          </DialogDescription>
+        </DialogHeader>
+        <DialogFooter>
+          <Button variant="outline" @click="deleteTarget = null">Cancel</Button>
+          <Button variant="destructive" @click="confirmDelete">Delete</Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
+import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
 import { api } from '@/api/client';
@@ -72,15 +88,14 @@ import { api } from '@/api/client';
 const router = useRouter();
 const resources = ref([]);
 const loading = ref(true);
-const error = ref('');
+const deleteTarget = ref(null);
 
 async function load() {
   loading.value = true;
-  error.value = '';
   try {
     resources.value = await api.get('/resources?per_page=100');
   } catch (e) {
-    error.value = e.message || 'Could not load resources.';
+    toast.error(e.message || 'Could not load resources.');
   } finally {
     loading.value = false;
   }
@@ -90,15 +105,21 @@ function formatPrice(price) {
   return price === null || price === undefined ? '—' : Number(price).toFixed(2);
 }
 
-async function confirmDelete(resource) {
-  if (!window.confirm(`Delete "${resource.name}"? This cannot be undone.`)) {
-    return;
-  }
+function askDelete(resource) {
+  deleteTarget.value = resource;
+}
+
+async function confirmDelete() {
+  const resource = deleteTarget.value;
+  if (!resource) return;
   try {
     await api.delete(`/resources/${resource.id}`);
     resources.value = resources.value.filter((r) => r.id !== resource.id);
+    toast.success(`"${resource.name}" deleted.`);
   } catch (e) {
-    error.value = e.message || 'Could not delete this resource.';
+    toast.error(e.message || 'Could not delete this resource.');
+  } finally {
+    deleteTarget.value = null;
   }
 }
 

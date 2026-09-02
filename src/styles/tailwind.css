@@ -87,3 +87,41 @@
   --byzo-status-cancelled: #9ca3af;
   --byzo-status-no-show: #dc2626;
 }
+
+/*
+ * wp-admin chrome reset, scoped to Bookyzo's own screen (body class comes
+ * from add_menu_page's 'bookyzo' slug). wp-admin wraps #wpbody-content in
+ * padding and pins a footer below it, which boxes the app in and stops the
+ * sidebar short of the page edges. Zeroing those lets the shell run
+ * edge-to-edge and full height. Deliberately narrow: only this screen is
+ * touched, and only the wrappers between #wpcontent and our mount point.
+ */
+.toplevel_page_bookyzo #wpcontent {
+  padding-left: 0;
+}
+
+.toplevel_page_bookyzo #wpbody-content {
+  padding-bottom: 0;
+}
+
+.toplevel_page_bookyzo #wpfooter {
+  display: none;
+}
+
+.toplevel_page_bookyzo #byzo-admin-app {
+  /* The mount point is the shell's height source — without this the
+     100vh-based min-height on .byzo-shell has nothing to stretch inside. */
+  display: flex;
+  flex-direction: column;
+}
+
+.toplevel_page_bookyzo #byzo-admin-app > .byzo-app {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.toplevel_page_bookyzo #byzo-admin-app > .byzo-app > .byzo-shell {
+  flex: 1 1 auto;
+}

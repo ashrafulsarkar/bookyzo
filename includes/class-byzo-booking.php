@@ -173,6 +173,60 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * Daily booking counts over [from, to) — the Dashboard trend chart's
+	 * data source. Same INNER JOIN onto wp_byzo_slots as get_status_counts()
+	 * (a booking whose slot was deleted has no date to bucket it under).
+	 * start_datetime is stored as a naive local timestamp (see
+	 * BYZO_Slot::query()'s own "{$from} 00:00:00" string comparison — no
+	 * UTC conversion anywhere in this codebase), so DATE() on it directly
+	 * buckets by the same local date get_status_counts()'s today/this_week/
+	 * this_month ranges already use — no CONVERT_TZ needed or correct here.
+	 *
+	 * @return array Zero-filled for every date in the range (no gaps for
+	 *               days with no bookings), each entry { date, total }.
+	 */
+	public static function get_daily_counts( DateTime $from, DateTime $to ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT DATE(s.start_datetime) AS day, COUNT(*) AS count
+				 FROM {$bookings_table} b
+				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
+				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 GROUP BY day",
+				$from->format( 'Y-m-d H:i:s' ),
+				$to->format( 'Y-m-d H:i:s' )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		$by_date = array();
+		foreach ( $rows ?: array() as $row ) {
+			$by_date[ $row['day'] ] = (int) $row['count'];
+		}
+
+		$series = array();
+		$cursor = new DateTime( $from->format( 'Y-m-d' ), $from->getTimezone() );
+		$end    = new DateTime( $to->format( 'Y-m-d' ), $from->getTimezone() );
+		while ( $cursor < $end ) {
+			$key      = $cursor->format( 'Y-m-d' );
+			$series[] = array(
+				'date'  => $key,
+				'total' => $by_date[ $key ] ?? 0,
+			);
+			$cursor->modify( '+1 day' );
+		}
+
+		return $series;
+	}
+
+	/**
 	 * Creates a booking against a slot, atomically decrementing the
 	 * slot's capacity_remaining. Uses a single conditional UPDATE
 	 * (`WHERE capacity_remaining >= party_size`) as the concurrency guard

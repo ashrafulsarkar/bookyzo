@@ -23,9 +23,31 @@ class BYZO_REST_Reports_Controller extends BYZO_REST_Controller {
 				),
 			)
 		);
+
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/' . $this->get_rest_base() . '/trend',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_trend' ),
+					'permission_callback' => array( $this, 'admin_permissions_check' ),
+					'args'                => array(
+						'days' => array(
+							'type'    => 'integer',
+							'default' => 14,
+						),
+					),
+				),
+			)
+		);
 	}
 
 	public function get_summary( WP_REST_Request $request ) {
 		return rest_ensure_response( BYZO_Reports::get_dashboard_summary() );
+	}
+
+	public function get_trend( WP_REST_Request $request ) {
+		return rest_ensure_response( BYZO_Reports::get_dashboard_trend( $request->get_param( 'days' ) ) );
 	}
 }

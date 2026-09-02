@@ -27,7 +27,12 @@ class BYZO_Install_Redirect {
 			return;
 		}
 
-		$target = self::needs_setup() ? 'admin.php?page=bookyzo#/setup' : 'admin.php?page=bookyzo';
+		// /setup has no admin page of its own (it's reached from inside the
+		// app), so it rides on the top-level page via `view` — the same
+		// scheme src/router/history.js builds for sub-routes.
+		$target = self::needs_setup()
+			? 'admin.php?page=' . BYZO_Plugin::MENU_SLUG . '&view=/setup'
+			: 'admin.php?page=' . BYZO_Plugin::MENU_SLUG;
 
 		wp_safe_redirect( admin_url( $target ) );
 		exit;

@@ -2,24 +2,24 @@
   <div class="flex flex-col divide-y divide-border">
     <div v-for="weekday in weekdays" :key="weekday.value" class="flex items-center gap-4 py-3">
       <label class="flex w-32 shrink-0 items-center gap-2 text-sm">
-        <input type="checkbox" :checked="isOpen(weekday.value)" @change="toggleDay(weekday.value, $event.target.checked)" />
+        <Switch :model-value="isOpen(weekday.value)" @update:model-value="(checked) => toggleDay(weekday.value, checked)" />
         {{ weekday.label }}
       </label>
 
       <template v-if="isOpen(weekday.value)">
         <div v-for="(shift, index) in shiftsFor(weekday.value)" :key="index" class="flex items-center gap-2">
-          <input
+          <Input
             type="time"
-            :value="shift.start_time"
-            class="h-8 rounded-md border border-input bg-background px-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            @change="updateShift(weekday.value, index, 'start_time', $event.target.value)"
+            class="h-8 w-auto"
+            :model-value="shift.start_time"
+            @update:model-value="(value) => updateShift(weekday.value, index, 'start_time', value)"
           />
           <span class="text-sm text-muted-foreground">to</span>
-          <input
+          <Input
             type="time"
-            :value="shift.end_time"
-            class="h-8 rounded-md border border-input bg-background px-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            @change="updateShift(weekday.value, index, 'end_time', $event.target.value)"
+            class="h-8 w-auto"
+            :model-value="shift.end_time"
+            @update:model-value="(value) => updateShift(weekday.value, index, 'end_time', value)"
           />
         </div>
       </template>
@@ -42,6 +42,8 @@
 // "don't gate the data model, gate the UI" principle applied to
 // component design (see DETAILED-SPEC.md / bookyzo-dev skill).
 import { computed } from 'vue';
+import { Switch } from '@/components/ui/switch';
+import { Input } from '@/components/ui/input';
 
 const props = defineProps({
   // Array of { weekday: 0-6, start_time: 'HH:mm', end_time: 'HH:mm', shift_group?: number }

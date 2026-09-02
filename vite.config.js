@@ -51,14 +51,18 @@ function devServerMarkerPlugin() {
 
 // package.json/node_modules/configs live at the plugin root (one npm
 // project for the whole plugin). Vue SOURCE lives in root-level src/ —
-// never shipped to WordPress.org. Vue BUILD OUTPUT goes straight into
-// admin/ (no nested dist/) — admin/ is exactly what a running site needs
-// to render the admin panel (admin/.vite/manifest.json + admin/assets/*),
-// and exactly what a future WordPress.org release-zip step (ROADMAP.md
-// Phase 1 step 10) ships: everything else at the root (src/, node_modules,
-// configs) is dev-only and gets excluded. BYZO_Admin_Assets (PHP) reads
-// admin/.vite/manifest.json to resolve hashed filenames without either
-// side hardcoding them.
+// never shipped to WordPress.org. Vue BUILD OUTPUT goes into
+// assets/admin/ (no nested dist/) — every shipped static file lives under
+// assets/, so the plugin root stays PHP-only plus that one folder, rather
+// than a build-output directory sitting at the root next to includes/.
+// assets/admin/ is exactly what a running site needs to render the admin
+// panel (assets/admin/.vite/manifest.json + assets/admin/assets/*), and
+// exactly what the WordPress.org release zip ships (ROADMAP.md Phase 1
+// step 10): everything else at the root (src/, node_modules, configs) is
+// dev-only and gets excluded. BYZO_Admin_Assets (PHP) reads
+// assets/admin/.vite/manifest.json to resolve hashed filenames without
+// either side hardcoding them. The widget build is the mirror of this at
+// assets/widget/ (vite.widget.config.js).
 export default defineConfig({
   root: 'src',
   plugins: [vue(), devServerMarkerPlugin()],
@@ -69,7 +73,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: path.resolve(__dirname, 'admin'),
+    outDir: path.resolve(__dirname, 'assets/admin'),
     emptyOutDir: true,
     manifest: true,
     rollupOptions: {

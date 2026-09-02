@@ -17,44 +17,32 @@
     <div class="px-6 pb-8">
       <div class="mb-4 flex flex-wrap items-end gap-3">
         <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-medium text-muted-foreground" for="f-from">From</label>
-          <input
-            id="f-from"
-            v-model="filters.from"
-            type="date"
-            class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
+          <Label class="text-xs text-muted-foreground" for="f-from">From</Label>
+          <Input id="f-from" v-model="filters.from" type="date" class="h-9" />
         </div>
         <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-medium text-muted-foreground" for="f-to">To</label>
-          <input
-            id="f-to"
-            v-model="filters.to"
-            type="date"
-            class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          />
+          <Label class="text-xs text-muted-foreground" for="f-to">To</Label>
+          <Input id="f-to" v-model="filters.to" type="date" class="h-9" />
         </div>
         <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-medium text-muted-foreground" for="f-resource">Resource</label>
-          <select
-            id="f-resource"
-            v-model="filters.resource_id"
-            class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">All</option>
-            <option v-for="resource in resources" :key="resource.id" :value="resource.id">{{ resource.name }}</option>
-          </select>
+          <Label class="text-xs text-muted-foreground">Resource</Label>
+          <Select v-model="filters.resource_id">
+            <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All</SelectItem>
+              <SelectItem v-for="resource in resources" :key="resource.id" :value="String(resource.id)">{{ resource.name }}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <div class="flex flex-col gap-1.5">
-          <label class="text-xs font-medium text-muted-foreground" for="f-status">Status</label>
-          <select
-            id="f-status"
-            v-model="filters.status"
-            class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          >
-            <option value="">All</option>
-            <option v-for="status in statuses" :key="status" :value="status">{{ status.replace('_', ' ') }}</option>
-          </select>
+          <Label class="text-xs text-muted-foreground">Status</Label>
+          <Select v-model="filters.status">
+            <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All</SelectItem>
+              <SelectItem v-for="status in statuses" :key="status" :value="status">{{ status.replace('_', ' ') }}</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         <Button variant="ghost" @click="clearFilters">Clear</Button>
       </div>
@@ -66,50 +54,55 @@
       </Card>
 
       <Card v-else class="overflow-hidden">
-        <table class="w-full text-sm">
-          <thead class="border-b border-border bg-muted/50 text-left text-xs uppercase text-muted-foreground">
-            <tr>
-              <th class="px-4 py-3 font-medium">Customer</th>
-              <th class="px-4 py-3 font-medium">Resource</th>
-              <th class="px-4 py-3 font-medium">When</th>
-              <th class="px-4 py-3 font-medium">Status</th>
-              <th class="px-4 py-3 font-medium"></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="booking in bookings" :key="booking.id" class="border-b border-border last:border-0">
-              <td class="px-4 py-3">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Customer</TableHead>
+              <TableHead>Resource</TableHead>
+              <TableHead>When</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow v-for="booking in bookings" :key="booking.id">
+              <TableCell>
                 <span class="block font-medium">{{ booking.customer_name }}</span>
                 <span class="block text-xs text-muted-foreground">{{ booking.customer_email }}</span>
-              </td>
-              <td class="px-4 py-3 text-muted-foreground">{{ resourceName(booking.resource_id) }}</td>
-              <td class="px-4 py-3 text-muted-foreground">{{ whenLabel(booking) }}</td>
-              <td class="px-4 py-3"><ByzoBadge :status="booking.status">{{ booking.status.replace('_', ' ') }}</ByzoBadge></td>
-              <td class="px-4 py-3 text-right">
-                <select
+              </TableCell>
+              <TableCell class="text-muted-foreground">{{ resourceName(booking.resource_id) }}</TableCell>
+              <TableCell class="text-muted-foreground">{{ whenLabel(booking) }}</TableCell>
+              <TableCell><ByzoBadge :status="booking.status">{{ booking.status.replace('_', ' ') }}</ByzoBadge></TableCell>
+              <TableCell class="text-right">
+                <Select
                   v-if="allowedTransitions(booking.status).length > 0"
-                  class="h-8 rounded-md border border-input bg-background px-2 text-xs shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-                  :value="booking.status"
-                  @change="onStatusChange(booking, $event.target.value)"
+                  :model-value="booking.status"
+                  @update:model-value="(v) => onStatusChange(booking, v)"
                 >
-                  <option :value="booking.status" disabled>{{ booking.status.replace('_', ' ') }}</option>
-                  <option v-for="next in allowedTransitions(booking.status)" :key="next" :value="next">{{ transitionLabel(next) }}</option>
-                </select>
-              </td>
-            </tr>
-          </tbody>
-        </table>
+                  <SelectTrigger class="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem :value="booking.status" disabled>{{ booking.status.replace('_', ' ') }}</SelectItem>
+                    <SelectItem v-for="next in allowedTransitions(booking.status)" :key="next" :value="next">{{ transitionLabel(next) }}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
       </Card>
-
-      <p v-if="error" class="mt-4 text-sm text-destructive">{{ error }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, reactive, computed, watch, onMounted } from 'vue';
+import { toast } from 'vue-sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
 import { api } from '@/api/client';
@@ -129,13 +122,12 @@ const statuses = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show'];
 const resources = ref([]);
 const bookings = ref([]);
 const loading = ref(true);
-const error = ref('');
 
 const filters = reactive({
   from: '',
   to: '',
-  resource_id: '',
-  status: '',
+  resource_id: '__all__',
+  status: '__all__',
 });
 
 async function loadResources() {
@@ -148,16 +140,15 @@ async function loadResources() {
 
 async function loadBookings() {
   loading.value = true;
-  error.value = '';
   try {
     const params = new URLSearchParams({ per_page: '100' });
     if (filters.from) params.set('from', filters.from);
     if (filters.to) params.set('to', filters.to);
-    if (filters.resource_id) params.set('resource_id', filters.resource_id);
-    if (filters.status) params.set('status', filters.status);
+    if (filters.resource_id !== '__all__') params.set('resource_id', filters.resource_id);
+    if (filters.status !== '__all__') params.set('status', filters.status);
     bookings.value = await api.get(`/bookings?${params.toString()}`);
   } catch (e) {
-    error.value = e.message || 'Could not load bookings.';
+    toast.error(e.message || 'Could not load bookings.');
   } finally {
     loading.value = false;
   }
@@ -166,8 +157,8 @@ async function loadBookings() {
 function clearFilters() {
   filters.from = '';
   filters.to = '';
-  filters.resource_id = '';
-  filters.status = '';
+  filters.resource_id = '__all__';
+  filters.status = '__all__';
 }
 
 function resourceName(id) {
@@ -195,12 +186,12 @@ function transitionLabel(status) {
 }
 
 async function onStatusChange(booking, newStatus) {
-  error.value = '';
   try {
     const updated = await api.put(`/bookings/${booking.id}`, { status: newStatus });
     bookings.value = bookings.value.map((b) => (b.id === updated.id ? updated : b));
+    toast.success(`Booking marked ${newStatus.replace('_', ' ')}.`);
   } catch (e) {
-    error.value = e.message || 'Could not update this booking.';
+    toast.error(e.message || 'Could not update this booking.');
   }
 }
 
@@ -216,8 +207,8 @@ const exportUrl = computed(() => {
   const params = new URLSearchParams({ action: 'byzo_export_bookings', _wpnonce: nonce });
   if (filters.from) params.set('from', filters.from);
   if (filters.to) params.set('to', filters.to);
-  if (filters.resource_id) params.set('resource_id', filters.resource_id);
-  if (filters.status) params.set('status', filters.status);
+  if (filters.resource_id !== '__all__') params.set('resource_id', filters.resource_id);
+  if (filters.status !== '__all__') params.set('status', filters.status);
   return `${base}?${params.toString()}`;
 });
 

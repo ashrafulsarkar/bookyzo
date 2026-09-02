@@ -7,9 +7,9 @@ defined( 'ABSPATH' ) || exit;
  *
  * - **Dev mode** (auto-detected — see is_dev_mode()): loads straight from
  *   the Vite dev server (`npm run dev`, default http://localhost:5173) as
- *   ES modules, with HMR — no build step, no `admin/` folder needed at
+ *   ES modules, with HMR — no build step, no `assets/admin/` folder needed at
  *   all. This is what makes local development possible even though
- *   `admin/` (the built output) is gitignored.
+ *   `assets/admin/` (the built output) is gitignored.
  * - **Built mode** (default): reads admin/.vite/manifest.json to resolve
  *   hashed filenames without either side of the Vite/PHP boundary
  *   hardcoding them (DETAILED-SPEC.md §4 / bookyzo-design skill's "Vue 3
@@ -40,7 +40,7 @@ class BYZO_Admin_Assets {
 	}
 
 	public static function enqueue( $hook ) {
-		if ( 'toplevel_page_bookyzo' !== $hook ) {
+		if ( ! self::is_bookyzo_screen( $hook ) ) {
 			return;
 		}
 
@@ -50,6 +50,54 @@ class BYZO_Admin_Assets {
 		}
 
 		self::enqueue_built();
+	}
+
+	/**
+	 * True on any of Bookyzo's own admin pages.
+	 *
+	 * Each screen now has its own registered slug (BYZO_Plugin::routes()),
+	 * so this matches the `page` parameter against that map rather than
+	 * against one hardcoded value. The $hook check still gates it to
+	 * admin.php screens, so an unrelated page carrying the same parameter
+	 * can't trigger an enqueue.
+	 */
+	private static function is_bookyzo_screen( $hook ) {
+		// The top-level page's hook is unambiguously ours, so trust it
+		// directly — no request parameter needed. Submenu hooks are
+		// derived from their slugs and would have to be enumerated here,
+		// so those go through the slug map below instead.
+		if ( 'toplevel_page_' . BYZO_Plugin::MENU_SLUG === $hook ) {
+			return true;
+		}
+
+		if ( 'admin.php' !== $GLOBALS['pagenow'] ) {
+			return false;
+		}
+
+		return null !== self::current_slug();
+	}
+
+	/**
+	 * The Bookyzo page slug being requested, or null if this isn't one.
+	 */
+	private static function current_slug() {
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- Read-only screen check, not a state change.
+		$page = isset( $_GET['page'] ) ? sanitize_key( wp_unslash( $_GET['page'] ) ) : '';
+
+		return isset( BYZO_Plugin::routes()[ $page ] ) ? $page : null;
+	}
+
+	/**
+	 * The Vue route the app should boot on, derived from which admin page
+	 * WordPress is serving. Falls back to the dashboard for anything
+	 * unmapped — defensive only, since is_bookyzo_screen() already gated
+	 * the enqueue on the slug being in the map.
+	 */
+	private static function initial_route() {
+		$slug   = self::current_slug();
+		$routes = BYZO_Plugin::routes();
+
+		return $slug && isset( $routes[ $slug ]['route'] ) ? $routes[ $slug ]['route'] : '/';
 	}
 
 	/**
@@ -115,12 +163,16 @@ class BYZO_Admin_Assets {
 	 */
 	private static function admin_globals_js() {
 		return sprintf(
-			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s };',
+			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, initialRoute: %s };',
 			wp_json_encode( admin_url( 'admin-post.php' ) ),
 			// Nonce action string must stay in sync with
 			// BYZO_Booking_Export::NONCE — not referencing the constant
 			// directly since this class loads before that one.
-			wp_json_encode( wp_create_nonce( 'byzo_export_bookings' ) )
+			wp_json_encode( wp_create_nonce( 'byzo_export_bookings' ) ),
+			// Which screen the app opens on, decided by the WP admin page
+			// slug — see BYZO_Plugin::routes(). The Vue Router owns every
+			// navigation after this first one.
+			wp_json_encode( self::initial_route() )
 		);
 	}
 
@@ -135,7 +187,7 @@ class BYZO_Admin_Assets {
 		}
 
 		$entry    = $manifest[ self::ENTRY ];
-		$dist_url = BYZO_PLUGIN_URL . 'admin/';
+		$dist_url = BYZO_PLUGIN_URL . 'assets/admin/';
 
 		wp_enqueue_script(
 			'byzo-admin',
@@ -144,7 +196,7 @@ class BYZO_Admin_Assets {
 			BYZO_VERSION,
 			true
 		);
-		wp_script_add_data( 'byzo-admin', 'type', 'module' );
+		add_filter( 'wp_script_attributes', array( __CLASS__, 'add_module_type' ) );
 
 		if ( ! empty( $entry['css'] ) ) {
 			foreach ( $entry['css'] as $index => $css_file ) {
@@ -165,6 +217,42 @@ class BYZO_Admin_Assets {
 		wp_add_inline_script( 'byzo-admin', $nonce_script, 'before' );
 	}
 
+	/**
+	 * Marks the built bundle as an ES module.
+	 *
+	 * Vite emits a real ES module (top-level `import`/`export`), which a
+	 * plain `<script>` tag cannot execute — the browser throws on the
+	 * import, the app never mounts, and the first thing the user sees is
+	 * whatever error the page surfaces instead (here:
+	 * "window.wp.apiFetch is not a function", because the bundle never
+	 * ran to use it).
+	 *
+	 * Two approaches do NOT work on WP 7.1 and were both tried here:
+	 *
+	 * - `wp_script_add_data( $handle, 'type', 'module' )` — core's
+	 *   registered 'type' data key has nothing to do with the tag's type
+	 *   attribute; nothing in WP_Scripts reads it, so it silently no-ops.
+	 * - `script_loader_tag` — WP_Scripts::do_item() builds the tag from an
+	 *   attribute array via wp_get_script_tag() and only applies that
+	 *   filter to the already-assembled string, which by then also has the
+	 *   inline 'before' script concatenated in front of it. Editing that
+	 *   string means string-surgery on two tags at once.
+	 *
+	 * wp_script_attributes is the filter that actually feeds tag
+	 * generation, so set the attribute there. It fires for every script
+	 * tag, hence the id check — and it never fires for inline scripts,
+	 * so the 'before' preamble (which configures wp.apiFetch's middleware
+	 * and must stay a classic, non-deferred script to run before the
+	 * bundle) is untouched by construction.
+	 */
+	public static function add_module_type( $attributes ) {
+		if ( isset( $attributes['id'] ) && 'byzo-admin-js' === $attributes['id'] ) {
+			$attributes['type'] = 'module';
+		}
+
+		return $attributes;
+	}
+
 	public static function render_missing_build_notice() {
 		printf(
 			'<div class="notice notice-warning"><p>%s</p></div>',
@@ -173,7 +261,7 @@ class BYZO_Admin_Assets {
 	}
 
 	private static function read_manifest() {
-		$path = BYZO_PLUGIN_DIR . 'admin/.vite/manifest.json';
+		$path = BYZO_PLUGIN_DIR . 'assets/admin/.vite/manifest.json';
 
 		if ( ! file_exists( $path ) ) {
 			return null;

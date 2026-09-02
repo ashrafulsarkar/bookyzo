@@ -23,22 +23,12 @@
           </CardHeader>
           <CardContent class="flex flex-col gap-4">
             <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-medium" :for="`subject-${event.id}`">Subject</label>
-              <input
-                :id="`subject-${event.id}`"
-                v-model="templates[event.id].subject"
-                type="text"
-                class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
+              <Label :for="`subject-${event.id}`">Subject</Label>
+              <Input :id="`subject-${event.id}`" v-model="templates[event.id].subject" type="text" />
             </div>
             <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-medium" :for="`body-${event.id}`">Body</label>
-              <textarea
-                :id="`body-${event.id}`"
-                v-model="templates[event.id].body"
-                rows="6"
-                class="rounded-md border border-input bg-background px-3 py-2 font-mono text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
+              <Label :for="`body-${event.id}`">Body</Label>
+              <Textarea :id="`body-${event.id}`" v-model="templates[event.id].body" rows="6" class="font-mono" />
               <p class="text-xs text-muted-foreground">
                 Placeholders: <code>{customer_name}</code> <code>{resource_name}</code> <code>{start_time}</code>
                 <code>{business_name}</code>
@@ -47,17 +37,18 @@
           </CardContent>
         </Card>
       </div>
-
-      <p v-if="error" class="mt-4 text-sm text-destructive">{{ error }}</p>
-      <p v-if="saved" class="mt-4 text-sm" style="color: var(--byzo-success)">Saved.</p>
     </div>
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted } from 'vue';
+import { toast } from 'vue-sonner';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import { api } from '@/api/client';
 
@@ -74,29 +65,25 @@ const events = [
 const templates = ref({});
 const loading = ref(true);
 const saving = ref(false);
-const error = ref('');
-const saved = ref(false);
 
 async function load() {
   loading.value = true;
   try {
     templates.value = await api.get('/email-templates');
   } catch (e) {
-    error.value = e.message || 'Could not load email templates.';
+    toast.error(e.message || 'Could not load email templates.');
   } finally {
     loading.value = false;
   }
 }
 
 async function save() {
-  error.value = '';
-  saved.value = false;
   saving.value = true;
   try {
     templates.value = await api.put('/email-templates', templates.value);
-    saved.value = true;
+    toast.success('Email templates saved.');
   } catch (e) {
-    error.value = e.message || 'Could not save email templates.';
+    toast.error(e.message || 'Could not save email templates.');
   } finally {
     saving.value = false;
   }

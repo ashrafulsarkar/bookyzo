@@ -53,6 +53,7 @@
 import { ref, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../../api/client';
+import { markSetupComplete } from '../../router';
 import BookingTypeStep from './BookingTypeStep.vue';
 import BusinessProfileStep from './BusinessProfileStep.vue';
 import FirstResourceStep from './FirstResourceStep.vue';
@@ -71,6 +72,7 @@ onMounted(async () => {
   try {
     state.value = await api.get('/setup');
     if (!state.value.needed) {
+      markSetupComplete();
       router.replace({ name: 'dashboard' });
     }
   } catch (error) {
@@ -87,11 +89,15 @@ async function advanceTo(step) {
 
 async function finish() {
   state.value = await api.put('/setup', { step: 'done' });
+  // Tell the route guard setup is done, or its cached "needed" answer
+  // would bounce this very navigation straight back here.
+  markSetupComplete();
   router.replace({ name: 'dashboard' });
 }
 
 async function skip() {
   await api.put('/setup', { skip: true });
+  markSetupComplete();
   router.replace({ name: 'dashboard' });
 }
 </script>

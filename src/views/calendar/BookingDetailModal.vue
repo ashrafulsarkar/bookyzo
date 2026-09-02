@@ -1,16 +1,16 @@
 <template>
-  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40" @click.self="$emit('close')">
-    <Card class="w-full max-w-md">
-      <CardHeader>
-        <div class="flex items-start justify-between">
+  <Dialog :open="true" @update:open="(v) => { if (!v) $emit('close'); }">
+    <DialogContent class="max-w-md">
+      <DialogHeader>
+        <div class="flex items-start justify-between pr-6">
           <div>
-            <CardTitle>{{ booking.customer_name }}</CardTitle>
-            <CardDescription>{{ timeRangeLabel }}</CardDescription>
+            <DialogTitle>{{ booking.customer_name }}</DialogTitle>
+            <DialogDescription>{{ timeRangeLabel }}</DialogDescription>
           </div>
           <ByzoBadge :status="booking.status">{{ booking.status.replace('_', ' ') }}</ByzoBadge>
         </div>
-      </CardHeader>
-      <CardContent class="flex flex-col gap-2 text-sm">
+      </DialogHeader>
+      <div class="flex flex-col gap-2 text-sm">
         <p><span class="text-muted-foreground">Email:</span> {{ booking.customer_email }}</p>
         <p v-if="booking.customer_phone"><span class="text-muted-foreground">Phone:</span> {{ booking.customer_phone }}</p>
         <p v-if="booking.customer_notes"><span class="text-muted-foreground">Notes:</span> {{ booking.customer_notes }}</p>
@@ -28,8 +28,8 @@
         </p>
 
         <p v-if="error" class="text-destructive">{{ error }}</p>
-      </CardContent>
-      <CardFooter class="flex flex-wrap justify-end gap-2">
+      </div>
+      <DialogFooter class="flex-wrap gap-2">
         <Button variant="outline" @click="$emit('close')">Close</Button>
         <Button
           v-for="transition in allowedTransitions"
@@ -41,14 +41,14 @@
         >
           {{ label(transition) }}
         </Button>
-      </CardFooter>
-    </Card>
-  </div>
+      </DialogFooter>
+    </DialogContent>
+  </Dialog>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
 import { api } from '@/api/client';
