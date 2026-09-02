@@ -148,16 +148,10 @@ class BYZO_Activator {
 			return;
 		}
 
-		$defaults = array(
-			'business_name'       => get_bloginfo( 'name' ),
-			'timezone'            => wp_timezone_string(),
-			'currency'            => 'USD',
-			'min_advance_hours'   => 2,
-			'max_advance_days'    => 30,
-			'buffer_minutes'      => 0,
-			'default_start_time'  => '09:00',
-			'default_end_time'    => '17:00',
-		);
+		// BYZO_Settings::get() returns these same defaults merged over the
+		// (currently empty) option — reused here rather than duplicated so
+		// the two can't drift apart.
+		$defaults = BYZO_Settings::get();
 
 		/**
 		 * Filters the default `byzo_settings` seeded on first activation.

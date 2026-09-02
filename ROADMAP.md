@@ -29,6 +29,8 @@ Nothing here is type-specific. Build once, every booking type reuses it.
 
 Builds ON Phase 0. Nothing here should require touching the 4 core tables' schema — only UI + type-specific defaults.
 
+**Prerequisite added (2026-09-02):** `GET/PUT /settings` (`BYZO_Settings` + `BYZO_REST_Settings_Controller`) — planned in DETAILED-SPEC.md §4 since Phase 0 but not built until now, needed for step 1's business profile form. Whitelist-validates every field (timezone against `timezone_identifiers_list()`, currency as a 3-letter code, times as H:i, numeric fields non-negative/non-zero where it matters) rather than passing PUT data through — a bad value here would silently corrupt slot-generation math downstream (buffer/advance-window fields feed directly into `BYZO_Slot_Generator`). `BYZO_Activator::maybe_seed_default_settings()` now calls `BYZO_Settings::get()` for its defaults instead of keeping a second copy, so the two can't drift. Verified via `scratchpad/smoke-settings.php` (9 checks: auth gating, defaults, partial-update merging, validation on every field, persistence) — all passed, full regression suite re-run clean.
+
 1. Setup wizard: booking-type choice (Appointment pre-selected/only option for v1 build, but keep the radio UI generic since Table/Event/Slot will reuse it in Phase 3), business profile form, first-staff-member walkthrough.
 2. Resource admin screen (Vue): staff list, create/edit form (name, photo, description, tags, capacity=1 fixed for Appointment, price, status).
 3. Availability admin screen (Vue): weekly grid (one shift/day), exceptions calendar picker.

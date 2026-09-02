@@ -23,6 +23,7 @@ define( 'BYZO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );
 define( 'BYZO_PLUGIN_URL', plugin_dir_url( __FILE__ ) );
 define( 'BYZO_PLUGIN_BASENAME', plugin_basename( __FILE__ ) );
 
+require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-settings.php';
 require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-activator.php';
 require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-deactivator.php';
 require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-plugin.php';

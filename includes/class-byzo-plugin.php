@@ -53,6 +53,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-resources-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-slots-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-bookings-controller.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-settings-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-admin-assets.php';
 	}
 
@@ -86,6 +87,7 @@ class BYZO_Plugin {
 		$controllers[] = new BYZO_REST_Resources_Controller();
 		$controllers[] = new BYZO_REST_Slots_Controller();
 		$controllers[] = new BYZO_REST_Bookings_Controller();
+		$controllers[] = new BYZO_REST_Settings_Controller();
 
 		return $controllers;
 	}
