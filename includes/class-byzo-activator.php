@@ -12,6 +12,7 @@ class BYZO_Activator {
 	public static function activate() {
 		self::create_tables();
 		self::maybe_seed_default_settings();
+		self::schedule_cron_events();
 
 		update_option( 'byzo_db_version', BYZO_DB_VERSION );
 
@@ -43,6 +44,7 @@ class BYZO_Activator {
 			tags VARCHAR(255) NULL,
 			capacity SMALLINT UNSIGNED NOT NULL DEFAULT 1,
 			price DECIMAL(10,2) NULL,
+			duration_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 30,
 			status VARCHAR(20) NOT NULL DEFAULT 'active',
 			location_id BIGINT UNSIGNED NULL,
 			group_id BIGINT UNSIGNED NULL,
@@ -118,6 +120,22 @@ class BYZO_Activator {
 
 		foreach ( $sql as $table_sql ) {
 			dbDelta( $table_sql );
+		}
+	}
+
+	/**
+	 * Registers the daily slot-generation cron and the reminder-email cron
+	 * (the latter's handler ships in a later Phase 1 step — the schedule
+	 * is reserved now so activation only ever has one place that touches
+	 * wp_schedule_event).
+	 */
+	private static function schedule_cron_events() {
+		if ( ! wp_next_scheduled( 'byzo_generate_slots' ) ) {
+			wp_schedule_event( time(), 'daily', 'byzo_generate_slots' );
+		}
+
+		if ( ! wp_next_scheduled( 'byzo_send_reminders' ) ) {
+			wp_schedule_event( time(), 'hourly', 'byzo_send_reminders' );
 		}
 	}
 

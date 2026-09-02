@@ -45,6 +45,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-install-redirect.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-resource.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-availability.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-slot-generator.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-resources-controller.php';
@@ -59,6 +60,20 @@ class BYZO_Plugin {
 		add_filter( 'byzo_rest_controllers', array( $this, 'register_core_rest_controllers' ) );
 
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
+		add_action( 'byzo_generate_slots', array( 'BYZO_Slot_Generator', 'generate_all' ) );
+
+		/**
+		 * Newly created/reactivated resources need their slots generated
+		 * immediately rather than waiting for the next daily cron tick —
+		 * otherwise a freshly onboarded business has an empty booking
+		 * widget for up to 24h.
+		 */
+		add_action( 'byzo_resource_created', array( $this, 'generate_slots_for_resource' ) );
+		add_action( 'byzo_resource_activated', array( $this, 'generate_slots_for_resource' ) );
+	}
+
+	public function generate_slots_for_resource( $resource_id ) {
+		BYZO_Slot_Generator::generate_for_resource( $resource_id );
 	}
 
 	public function register_core_rest_controllers( $controllers ) {

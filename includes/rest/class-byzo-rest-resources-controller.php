@@ -144,6 +144,13 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 			return $id;
 		}
 
+		/**
+		 * Fires after a new resource is created, so slots can be
+		 * generated immediately rather than waiting for the next daily
+		 * cron tick (BYZO_Plugin hooks this to BYZO_Slot_Generator).
+		 */
+		do_action( 'byzo_resource_created', $id );
+
 		$response = rest_ensure_response( BYZO_Resource::get( $id ) );
 		$response->set_status( 201 );
 
@@ -214,6 +221,10 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 			return $result;
 		}
 
+		// Schedule changed — regenerate now so stale slots (from the old
+		// hours) don't linger until the next nightly cron tick.
+		BYZO_Slot_Generator::generate_for_resource( $id );
+
 		return rest_ensure_response( BYZO_Availability::get_for_resource( $id ) );
 	}
 
@@ -232,6 +243,9 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
+
+		// Blocks any already-materialized open slots on the new exception date.
+		BYZO_Slot_Generator::generate_for_resource( $id );
 
 		$response = rest_ensure_response( BYZO_Availability::get_for_resource( $id ) );
 		$response->set_status( 201 );

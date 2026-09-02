@@ -203,6 +203,16 @@ class BYZO_Resource {
 			$out['price'] = ( '' === $data['price'] || null === $data['price'] ) ? null : (float) $data['price'];
 		}
 
+		if ( isset( $data['duration_minutes'] ) ) {
+			$duration = absint( $data['duration_minutes'] );
+			if ( $duration < 5 ) {
+				return new WP_Error( 'byzo_invalid_duration', __( 'duration_minutes must be at least 5.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			$out['duration_minutes'] = $duration;
+		} elseif ( $require_all ) {
+			$out['duration_minutes'] = 30;
+		}
+
 		if ( isset( $data['status'] ) ) {
 			if ( ! in_array( $data['status'], self::VALID_STATUSES, true ) ) {
 				return new WP_Error( 'byzo_invalid_status', __( 'Invalid resource status.', 'bookyzo' ), array( 'status' => 400 ) );
@@ -220,6 +230,7 @@ class BYZO_Resource {
 		$row['photo_id']    = $row['photo_id'] ? (int) $row['photo_id'] : null;
 		$row['capacity']    = (int) $row['capacity'];
 		$row['price']       = null === $row['price'] ? null : (float) $row['price'];
+		$row['duration_minutes'] = (int) $row['duration_minutes'];
 		$row['location_id'] = $row['location_id'] ? (int) $row['location_id'] : null;
 		$row['group_id']    = $row['group_id'] ? (int) $row['group_id'] : null;
 

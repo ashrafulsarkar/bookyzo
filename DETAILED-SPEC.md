@@ -21,6 +21,7 @@ Bookyzo is NOT built on WooCommerce products. It uses its own custom DB tables (
 | tags | VARCHAR(255) | comma-separated, Free-tier simple tagging |
 | capacity | SMALLINT UNSIGNED | 1 = single person/seat, N = party/group size |
 | price | DECIMAL(10,2) NULL | flat price for the resource's single service (Free's single-service-per-type model, see §A7); NULL = no price set / free booking |
+| duration_minutes | SMALLINT UNSIGNED | slot length for this resource's single service (Free's single-service-per-type model, fixed duration per §A9); default 30. Added 2026-09-02 — the slot generator (§1.3) needs a concrete duration per resource, "fixed duration" in §A9 was previously prose-only with no schema column. |
 | status | VARCHAR(20) | `active`, `inactive`, `archived` |
 | location_id | BIGINT UNSIGNED NULL | NULL on Free (single location); FK to `wp_byzo_locations` on Pro |
 | group_id | BIGINT UNSIGNED NULL | Pro: resource grouping/category |
