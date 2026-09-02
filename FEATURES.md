@@ -2,6 +2,8 @@
 
 **Positioning:** One WordPress plugin covering Appointment + Table + Event + Generic Slot booking. WooCommerce-independent core, with an optional WooCommerce bridge. Built for SMBs that currently juggle multiple booking tools.
 
+> **DIRECTION CHANGE 2026-09-02 (supersedes the original staged plan):** ALL FOUR booking types ship in the **Free** plugin together. Pro no longer gates booking types at all — Pro is extra features only (more resources per type, multi-shift, deposits, SMS/WhatsApp, self-service, analytics, and the type-specific Pro modules in B7). Free's per-type limit (one active resource per type) is the honest upgrade wall: 1 staff + 1 table + 1 event + 1 slot resource free; a 2nd of *any* type needs Pro.
+
 **Stack:** WordPress plugin (PHP + custom DB tables), REST API, Vue 3 admin dashboard, optional WooCommerce integration, PayPal and Stripe for payments.
 
 ---
@@ -11,16 +13,18 @@
 The free version should be genuinely usable for a small single-location business, not a crippled demo. Goal: real value + a natural upgrade path.
 
 ### A1. Setup & Onboarding
-- Setup wizard on first activation (choose which booking type(s) to enable: Appointment / Table / Event / Slot)
+- Setup wizard on first activation: choose the FIRST booking type (real 4-option choice: Appointment / Table / Event / Slot — all four available on Free; more types can be added later from the Resources screen, the wizard just picks which one to start with)
 - Business profile (name, timezone, currency, working hours)
-- Guided resource creation (first staff/table/event walkthrough)
+- Guided resource creation (first staff/table/event walkthrough, copy and defaults matching the chosen type)
 
 ### A2. Resource Management (Core)
+- **Type-first creation flow (decided 2026-09-02):** "Add New" starts with a booking-type picker (Appointment / Table / Event / Slot), THEN shows the type-specific form — the fields shown depend on the chosen type (see A9 for what each type's form needs). Type is fixed after creation (changing type would orphan the resource's schedule/slots).
 - Create/edit resources (staff, table, room, rental item, event — one core entity, type-specific fields)
-- Single resource type active at a time on Free (e.g. only "Appointment" OR only "Table")
+- All four booking types available on Free; **one active resource per type** (the Free cap — enforced centrally per A9, so up to 4 active resources total, one of each type)
 - Resource photo, description, short tags
-- Capacity setting (1 person / N people)
+- Capacity setting (1 person / N people) — editable for Table (seats), Event (total tickets/seats) and Slot; fixed at 1 for Appointment (one-on-one by definition)
 - Resource status (active/inactive/archived)
+- Resources list shows each resource's own copyable shortcode (see A5) plus a type column/filter
 
 ### A3. Availability Engine
 - Weekly recurring schedule per resource
@@ -40,7 +44,9 @@ The free version should be genuinely usable for a small single-location business
 
 ### A5. Customer-Facing Booking Widget
 - Gutenberg block + shortcode for the booking form
+- **Per-resource shortcodes (decided 2026-09-02):** every bookable resource gets its own shortcode (`[bookyzo_booking resource_id="X"]`, pins the widget to that resource and skips the picker step), displayed with a copy button in the Resources list — Contact-Form-7 style. Also: `[bookyzo_booking type="table"]` (picker filtered to one type) and bare `[bookyzo_booking]` (all active resources). The Gutenberg block gets the same resource/type selection.
 - Multi-step booking flow (select resource/service → pick slot → enter details → confirm)
+- **Party size / quantity input** for capacity>1 resources (Table: "Party size", Event: "Tickets", Slot: "Spots") — capped by the slot's remaining capacity; hidden entirely for Appointment (always 1). Widget labels are type-aware.
 - Guest checkout (no account required)
 - Basic custom form fields (name, email, phone, notes)
 - Mobile-responsive booking widget
@@ -61,10 +67,15 @@ The free version should be genuinely usable for a small single-location business
 - Simple booking list export (CSV)
 
 ### A9. Type-Specific Free Scope
-- **Appointment:** 1 staff member, 1 service, fixed duration
-- **Table:** single service window (e.g. dinner only), no floor plan visual
-- **Event:** single ticket tier, no QR check-in
-- **Slot:** basic fixed-duration slots, no recurring class series
+
+All four types are IN Free (direction change 2026-09-02). Free's cap is **one active resource per type**, and each type's Free scope is deliberately basic:
+
+- **Appointment:** 1 staff member, 1 service, fixed duration, capacity fixed at 1. Weekly recurring schedule.
+- **Table:** 1 table, capacity = seats, single service window (one shift/day — e.g. dinner only), party-size booking, no floor plan visual. Weekly recurring schedule.
+- **Event:** 1 event, single ticket tier (one flat price), capacity = total seats/tickets, quantity booking, no QR check-in. **One-off dated occurrences, NOT a weekly schedule** — an event happens on specific date(s), so event resources use direct occurrence entry (a "Dates" tab) instead of the weekly availability grid; each occurrence is materialized straight into the slots table.
+- **Slot:** 1 bookable item, basic fixed-duration slots, capacity = spots per slot, no recurring class series. Weekly recurring schedule.
+
+The per-type cap (1 resource per type) stays enforced centrally via `BYZO_Capabilities::max_resources_per_type()` — a real filterable capability, never scattered checks or visible locks (Guideline 5 rule, see `.claude/skills/bookyzo-dev/SKILL.md`).
 
 ---
 
@@ -73,8 +84,8 @@ The free version should be genuinely usable for a small single-location business
 Pro should unlock everything a growing/multi-location business actually needs — the things that create real operational pain when missing.
 
 ### B1. Multi-Everything
-- Unlimited resources (multiple staff, tables, rooms, event types simultaneously)
-- **All booking types active at once** (Appointment + Table + Event + Slot together — this is the core Pro differentiator vs. single-type competitors)
+- **Unlimited resources per type** (multiple staff, multiple tables, multiple events, multiple bookable items — Free allows exactly one of each; this is the primary volume-based upgrade wall, hit the day a business hires a 2nd staff member or adds a 2nd table)
+- ~~All booking types active at once~~ — **moved to Free 2026-09-02.** All four types are Free now; Pro's differentiator is depth per type (unlimited resources + the B7 type-specific modules), not type access.
 - Multi-location/multi-branch support with per-location schedules
 - Resource grouping/categories
 
@@ -165,17 +176,17 @@ Pro should unlock everything a growing/multi-location business actually needs �
 
 ## PART C — LAUNCH SEQUENCING (Step-by-step)
 
-Build/launch order — narrow scope first, expand after real usage data:
+**REVISED 2026-09-02** — the original plan shipped one booking type at a time (Appointment Free → Appointment Pro → add types one by one). Superseded: all four types now go into Free BEFORE the first WordPress.org submission, and the "all-in-one" positioning is the launch story from day one, not a later phase.
 
-1. **Core engine only** — Resource, Availability, Slot, Booking entities + REST API + Vue admin shell (no public release yet)
-2. **Pick ONE booking type** and ship it as the Free WP.org plugin, fully polished — **DECIDED 2026-09-02: Appointment** (see `DETAILED-SPEC.md` §5 and `ROADMAP.md` Phase 1)
-3. **Add Pro tier** for that single type (multi-staff, SMS/WhatsApp, deposits, analytics) — validate people will actually pay
-4. **Add second booking type** (e.g. Table or Slot) to both Free and Pro, once type #1 has traction
-5. **Add third/fourth booking type**, market the "all-in-one" angle only once 2+ types are live and stable
+1. ✅ **Core engine only** — Resource, Availability, Slot, Booking entities + REST API + Vue admin shell (no public release) — DONE 2026-09-02
+2. ✅ **Appointment built first as the reference implementation** — full vertical slice (wizard → resource → availability → calendar → widget → notifications → payments → reporting) proving the engine end to end — DONE 2026-09-02 (ROADMAP.md Phase 1)
+3. **Extend Free to all four types** (ROADMAP.md Phase 1.5): type-first Add New flow, per-resource shortcodes, capacity/party-size plumbing, Event's one-off date mode, type-aware widget/emails/copy, plus the standing Free gaps (cancellation policy, resource photo). This happens BEFORE submission — the WP.org listing leads with "all-in-one" from its first day.
+4. **Submit Free to WordPress.org** — readme/screenshots/plugin-check redone for the four-type positioning
+5. **Add Pro tier** — extra features only, across all types (unlimited resources per type, multi-shift, deposits, SMS/WhatsApp, self-service, analytics, and the B7 type-specific modules) — validate people will actually pay
 6. **WooCommerce bridge** as a separate optional add-on once core is stable
 7. **Agency/multi-site tier** last, once there's a base of paying single-site customers
 
-This keeps each release shippable and testable instead of trying to launch the full four-type system at once.
+Each numbered step is still a shippable, testable release boundary — the four types share one engine (Phase 0), so step 3 is mostly UI + one new occurrence model for Event, not four separate builds.
 
 ---
 
