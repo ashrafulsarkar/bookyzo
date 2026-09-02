@@ -15,13 +15,14 @@
 <script setup>
 // Left-to-right tab nav rather than a sidebar — matches the bookyzo-design
 // skill's "feels like a well-designed part of wp-admin" goal better than
-// a second sidebar competing with WP's own admin menu. Email Templates
-// is a standalone entry for now (step 7) — step 9 folds it into a
-// broader Settings area alongside business profile/payments.
+// a second sidebar competing with WP's own admin menu. Emails/Payments
+// are standalone entries for now (steps 7-8) — step 9 folds both into a
+// broader Settings area alongside business profile.
 const items = [
   { to: '/calendar', label: 'Calendar' },
   { to: '/bookings', label: 'Bookings' },
   { to: '/resources', label: 'Resources' },
   { to: '/settings/email-templates', label: 'Emails' },
+  { to: '/settings/payments', label: 'Payments' },
 ];
 </script>

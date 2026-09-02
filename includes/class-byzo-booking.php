@@ -12,6 +12,8 @@ class BYZO_Booking {
 
 	const VALID_STATUSES = array( 'pending', 'confirmed', 'completed', 'cancelled', 'no_show' );
 
+	const VALID_PAYMENT_STATUSES = array( 'unpaid', 'paid_manual', 'paid_online', 'refunded' );
+
 	/**
 	 * Allowed status transitions. pending is the only entry state (set by
 	 * create()); every other status is reached only via update_status().
@@ -180,6 +182,16 @@ class BYZO_Booking {
 
 		$now = current_time( 'mysql' );
 
+		// payment_amount is ALWAYS server-computed from the resource's own
+		// price, never taken from client input (validate_for_create()
+		// doesn't even look at a client-supplied payment_amount — see its
+		// docblock) — this is what BYZO_Stripe's payment-intent creation
+		// charges, so trusting a client-suppliable amount here would let a
+		// guest pay $0.01 for an expensive service. NULL price (a free
+		// resource, DETAILED-SPEC.md §1.1) means nothing to charge.
+		$resource        = BYZO_Resource::get( $slot['resource_id'] );
+		$payment_amount  = ( $resource && null !== $resource['price'] ) ? round( $resource['price'] * $party_size, 2 ) : null;
+
 		$row = array(
 			'slot_id'         => $slot['id'],
 			'resource_id'     => $slot['resource_id'],
@@ -190,7 +202,7 @@ class BYZO_Booking {
 			'party_size'      => $party_size,
 			'status'          => 'pending',
 			'payment_status'  => 'unpaid',
-			'payment_amount'  => $validated['payment_amount'],
+			'payment_amount'  => $payment_amount,
 			'custom_fields'   => wp_json_encode( $validated['custom_fields'] ),
 			'created_at'      => $now,
 			'updated_at'      => $now,
@@ -284,6 +296,38 @@ class BYZO_Booking {
 		return true;
 	}
 
+	/**
+	 * Sets payment_status directly — no state-machine restriction like
+	 * update_status()'s booking-status TRANSITIONS table, since
+	 * DETAILED-SPEC.md §A7 doesn't call for one on Free (no
+	 * deposit/partial flow, no refund UI yet) and a simple set covers
+	 * "mark as paid" and the Stripe webhook's "flip to paid_online" alike.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function set_payment_status( $id, $payment_status ) {
+		global $wpdb;
+
+		if ( ! in_array( $payment_status, self::VALID_PAYMENT_STATUSES, true ) ) {
+			return new WP_Error( 'byzo_invalid_payment_status', __( 'Invalid payment status.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$booking = self::get( $id );
+		if ( ! $booking ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$wpdb->update(
+			self::table(),
+			array( 'payment_status' => $payment_status, 'updated_at' => current_time( 'mysql' ) ),
+			array( 'id' => $id )
+		);
+
+		do_action( 'byzo_booking_payment_status_changed', $id, $payment_status, $booking['payment_status'] );
+
+		return true;
+	}
+
 	private static function validate_for_create( $data ) {
 		if ( empty( $data['slot_id'] ) ) {
 			return new WP_Error( 'byzo_missing_slot_id', __( 'slot_id is required.', 'bookyzo' ), array( 'status' => 400 ) );
@@ -306,7 +350,9 @@ class BYZO_Booking {
 			'customer_phone' => isset( $data['customer_phone'] ) ? sanitize_text_field( $data['customer_phone'] ) : null,
 			'customer_notes' => isset( $data['customer_notes'] ) ? wp_kses_post( $data['customer_notes'] ) : null,
 			'party_size'     => $party_size,
-			'payment_amount' => isset( $data['payment_amount'] ) ? (float) $data['payment_amount'] : null,
+			// No 'payment_amount' here — see create()'s comment; it's
+			// always server-computed from the resource's price, never
+			// accepted from client input.
 			'custom_fields'  => isset( $data['custom_fields'] ) && is_array( $data['custom_fields'] ) ? $data['custom_fields'] : array(),
 		);
 	}

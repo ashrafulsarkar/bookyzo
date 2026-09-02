@@ -14,8 +14,17 @@
         <p><span class="text-muted-foreground">Email:</span> {{ booking.customer_email }}</p>
         <p v-if="booking.customer_phone"><span class="text-muted-foreground">Phone:</span> {{ booking.customer_phone }}</p>
         <p v-if="booking.customer_notes"><span class="text-muted-foreground">Notes:</span> {{ booking.customer_notes }}</p>
-        <p v-if="booking.payment_amount !== null">
+        <p v-if="booking.payment_amount !== null" class="flex items-center gap-2">
           <span class="text-muted-foreground">Payment:</span> {{ Number(booking.payment_amount).toFixed(2) }} ({{ booking.payment_status }})
+          <Button
+            v-if="booking.payment_status === 'unpaid'"
+            variant="outline"
+            size="sm"
+            :disabled="markingPaid"
+            @click="markPaid"
+          >
+            {{ markingPaid ? 'Marking…' : 'Mark as paid' }}
+          </Button>
         </p>
 
         <p v-if="error" class="text-destructive">{{ error }}</p>
@@ -64,6 +73,7 @@ const props = defineProps({
 const emit = defineEmits(['close', 'updated']);
 
 const updating = ref(false);
+const markingPaid = ref(false);
 const error = ref('');
 
 const allowedTransitions = computed(() => TRANSITIONS[props.booking.status] || []);
@@ -92,6 +102,19 @@ async function changeStatus(status) {
     error.value = e.message || 'Could not update this booking.';
   } finally {
     updating.value = false;
+  }
+}
+
+async function markPaid() {
+  error.value = '';
+  markingPaid.value = true;
+  try {
+    const updated = await api.put(`/bookings/${props.booking.id}/payment`, { payment_status: 'paid_manual' });
+    emit('updated', updated);
+  } catch (e) {
+    error.value = e.message || 'Could not update payment status.';
+  } finally {
+    markingPaid.value = false;
   }
 }
 </script>

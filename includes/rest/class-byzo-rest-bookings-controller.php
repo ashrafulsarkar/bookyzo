@@ -56,6 +56,41 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 				),
 			)
 		);
+
+		// "Mark as paid" (DETAILED-SPEC.md §A7) — admin-only, deliberately
+		// a separate route from the general status PUT above rather than
+		// folding payment_status into that route's writable fields,
+		// matching update_item()'s own "only status is writable through
+		// THAT route" rule — payment state has its own narrow write surface.
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/' . $this->get_rest_base() . '/(?P<id>\d+)/payment',
+			array(
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'update_payment' ),
+					'permission_callback' => array( $this, 'admin_permissions_check' ),
+				),
+			)
+		);
+
+		// Guest-allowed (public_permissions_check) — the widget calls this
+		// right after creating its own booking, in the same guest session,
+		// no admin auth available. Guarded instead by requiring the
+		// request to know the booking's customer_email (see
+		// create_payment_intent()) — not the booking's numeric id alone,
+		// which is sequentially guessable.
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/' . $this->get_rest_base() . '/(?P<id>\d+)/payment-intent',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'create_payment_intent' ),
+					'permission_callback' => array( $this, 'public_permissions_check' ),
+				),
+			)
+		);
 	}
 
 	public function get_items( WP_REST_Request $request ) {
@@ -135,5 +170,64 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 		}
 
 		return rest_ensure_response( BYZO_Booking::get( $id ) );
+	}
+
+	/**
+	 * Body: `{ "payment_status": "paid_manual" }` — the "Mark as paid"
+	 * button (DETAILED-SPEC.md §A7). Free only ever sends 'paid_manual'
+	 * from the admin UI; 'paid_online'/'refunded' are set by the Stripe
+	 * webhook / a future refund flow, not through this admin-facing route.
+	 */
+	public function update_payment( WP_REST_Request $request ) {
+		$id   = (int) $request->get_param( 'id' );
+		$body = $request->get_json_params();
+
+		if ( empty( $body['payment_status'] ) ) {
+			return new WP_Error( 'byzo_missing_payment_status', __( 'payment_status is required.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$result = BYZO_Booking::set_payment_status( $id, $body['payment_status'] );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( BYZO_Booking::get( $id ) );
+	}
+
+	/**
+	 * Body: `{ "customer_email": "..." }` — must match the booking's
+	 * stored email, since this route has no admin session to rely on
+	 * (called by the guest widget right after booking creation). This
+	 * is a lightweight ownership check, not a strong auth boundary — the
+	 * actual security-sensitive part (the charge amount) is server-computed
+	 * from the booking's own payment_amount, never client-suppliable
+	 * (see BYZO_Booking::create()), so the worst a wrong-email guess
+	 * enables is creating a PaymentIntent for someone else's booking,
+	 * which still requires a real card to complete and charges the
+	 * correct (server-computed) amount to THAT booking either way.
+	 */
+	public function create_payment_intent( WP_REST_Request $request ) {
+		$id      = (int) $request->get_param( 'id' );
+		$booking = BYZO_Booking::get( $id );
+
+		if ( ! $booking ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			$body = $request->get_json_params();
+			if ( empty( $body['customer_email'] ) || strtolower( trim( $body['customer_email'] ) ) !== strtolower( $booking['customer_email'] ) ) {
+				return new WP_Error( 'byzo_email_mismatch', __( 'customer_email does not match this booking.', 'bookyzo' ), array( 'status' => 403 ) );
+			}
+		}
+
+		$result = BYZO_Stripe::create_payment_intent( $booking );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( $result );
 	}
 }

@@ -13,6 +13,16 @@
       @submit="onDetailsSubmit"
       @back="step = 2"
     />
+    <!-- step 3.5: optional card payment, between "details submitted" and
+         "confirmation" — only shown when Stripe is enabled AND this
+         booking actually has something to charge (DETAILED-SPEC.md §A7:
+         a NULL-price resource has nothing to pay for at all). Using 3.5
+         (not a separate numbered step) keeps the 4-dot progress
+         indicator's `n <= step` check lighting dots 1-3 correctly during
+         this step, with dot 4 lighting only once payment is done/skipped
+         and confirmation is reached — no dedicated 5th dot needed for
+         what's an optional detour, not a required step. -->
+    <StepPayment v-else-if="step === 3.5" :booking="createdBooking" @paid="step = 4" @skip="step = 4" />
     <StepConfirmation v-else-if="step === 4" :booking="createdBooking" :resource="selectedResource" />
   </div>
 </template>
@@ -22,12 +32,14 @@ import { ref } from 'vue';
 import StepResource from './steps/StepResource.vue';
 import StepSlot from './steps/StepSlot.vue';
 import StepDetails from './steps/StepDetails.vue';
+import StepPayment from './steps/StepPayment.vue';
 import StepConfirmation from './steps/StepConfirmation.vue';
 import { createBooking } from './api';
 
 // 4-step flow per DETAILED-SPEC.md §A5: resource/service picker -> slot
-// picker -> contact form -> confirmation. One SPA-like component tree,
-// no page reloads between steps.
+// picker -> contact form -> confirmation, with an optional payment
+// detour (step 3.5) between details and confirmation. One SPA-like
+// component tree, no page reloads between steps.
 const props = defineProps({
   config: { type: Object, required: true },
 });
@@ -64,7 +76,10 @@ async function onDetailsSubmit(form) {
       website: form.website,
     });
     createdBooking.value = booking;
-    step.value = 4;
+
+    const stripeAvailable = !!(window.byzoWidget && window.byzoWidget.stripeEnabled);
+    const hasAmountDue = booking.payment_amount && booking.payment_amount > 0;
+    step.value = stripeAvailable && hasAmountDue ? 3.5 : 4;
   } catch (e) {
     error.value = e.message;
   } finally {

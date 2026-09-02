@@ -31,3 +31,5 @@ async function request(path, options = {}) {
 export const getPublicResources = () => request('/resources/public');
 export const getSlots = (resourceId) => request(`/slots?resource_id=${resourceId}`);
 export const createBooking = (payload) => request('/bookings', { method: 'POST', body: JSON.stringify(payload) });
+export const createBookingPaymentIntent = (bookingId, customerEmail) =>
+  request(`/bookings/${bookingId}/payment-intent`, { method: 'POST', body: JSON.stringify({ customer_email: customerEmail }) });

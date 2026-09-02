@@ -6,6 +6,7 @@ import ResourceForm from '../views/resources/ResourceForm.vue';
 import BookingCalendar from '../views/calendar/BookingCalendar.vue';
 import BookingsList from '../views/bookings/BookingsList.vue';
 import EmailTemplates from '../views/settings/EmailTemplates.vue';
+import PaymentSettings from '../views/settings/PaymentSettings.vue';
 import { api } from '../api/client';
 
 // Hash history (not HTML5 history) deliberately — the Vue app lives at a
@@ -22,7 +23,8 @@ const routes = [
   { path: '/calendar', name: 'calendar', component: BookingCalendar },
   { path: '/bookings', name: 'bookings', component: BookingsList },
   { path: '/settings/email-templates', name: 'settings.email-templates', component: EmailTemplates },
-  // The rest of Settings (business profile, payments) lands in step 9.
+  { path: '/settings/payments', name: 'settings.payments', component: PaymentSettings },
+  // Business profile (currency/timezone/hours) lands in step 9.
 ];
 
 export const router = createRouter({
