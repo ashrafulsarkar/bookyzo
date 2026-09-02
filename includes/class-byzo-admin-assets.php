@@ -91,15 +91,34 @@ class BYZO_Admin_Assets {
 
 		printf(
 			'<script type="module">
-				window.wp.apiFetch.use( window.wp.apiFetch.createNonceMiddleware( %s ) );
-				window.wp.apiFetch.use( window.wp.apiFetch.createRootURLMiddleware( %s ) );
+				window.wp.apiFetch.use( window.wp.apiFetch.createNonceMiddleware( %1$s ) );
+				window.wp.apiFetch.use( window.wp.apiFetch.createRootURLMiddleware( %2$s ) );
+				%3$s
 			</script>
-			<script type="module" src="%s/@vite/client"></script>
-			<script type="module" src="%s/main.js"></script>',
+			<script type="module" src="%4$s/@vite/client"></script>
+			<script type="module" src="%4$s/main.js"></script>',
 			wp_json_encode( wp_create_nonce( 'wp_rest' ) ),
 			wp_json_encode( esc_url_raw( rest_url() ) ),
-			esc_url( $server ),
+			self::admin_globals_js(),
 			esc_url( $server )
+		);
+	}
+
+	/**
+	 * `window.byzoAdmin` — the small set of non-REST values the Vue app
+	 * needs from PHP (currently just the admin-post.php export URL/nonce,
+	 * DETAILED-SPEC.md §A8). Shared between dev and built mode so the two
+	 * don't drift; admin-post.php actions aren't part of the REST API so
+	 * they can't ride wp.apiFetch's own nonce middleware.
+	 */
+	private static function admin_globals_js() {
+		return sprintf(
+			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s };',
+			wp_json_encode( admin_url( 'admin-post.php' ) ),
+			// Nonce action string must stay in sync with
+			// BYZO_Booking_Export::NONCE — not referencing the constant
+			// directly since this class loads before that one.
+			wp_json_encode( wp_create_nonce( 'byzo_export_bookings' ) )
 		);
 	}
 
@@ -136,9 +155,10 @@ class BYZO_Admin_Assets {
 		// preamble rather than a second enqueued script, since it's a
 		// few lines of glue, not a module of its own.
 		$nonce_script = sprintf(
-			'wp.apiFetch.use( wp.apiFetch.createNonceMiddleware( %s ) );wp.apiFetch.use( wp.apiFetch.createRootURLMiddleware( %s ) );',
+			'wp.apiFetch.use( wp.apiFetch.createNonceMiddleware( %s ) );wp.apiFetch.use( wp.apiFetch.createRootURLMiddleware( %s ) );%s',
 			wp_json_encode( wp_create_nonce( 'wp_rest' ) ),
-			wp_json_encode( esc_url_raw( rest_url() ) )
+			wp_json_encode( esc_url_raw( rest_url() ) ),
+			self::admin_globals_js()
 		);
 		wp_add_inline_script( 'byzo-admin', $nonce_script, 'before' );
 	}
