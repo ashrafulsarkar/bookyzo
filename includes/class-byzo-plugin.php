@@ -53,6 +53,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-resources-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-slots-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-bookings-controller.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-admin-assets.php';
 	}
 
 	private function register_hooks() {
@@ -60,6 +61,7 @@ class BYZO_Plugin {
 
 		BYZO_Install_Redirect::init();
 		( new BYZO_REST() )->init();
+		BYZO_Admin_Assets::init();
 
 		add_filter( 'byzo_rest_controllers', array( $this, 'register_core_rest_controllers' ) );
 
@@ -89,9 +91,9 @@ class BYZO_Plugin {
 	}
 
 	/**
-	 * Top-level admin menu placeholder — the Vue admin shell mounts here
-	 * starting Phase 0 step 7. Step 1 only needs the page to exist so
-	 * activation/menu registration can be smoke-tested.
+	 * Top-level admin menu — the Vue admin shell (admin/src, built by
+	 * Vite into admin/dist/) mounts into #byzo-admin-app below. See
+	 * BYZO_Admin_Assets for the enqueue/manifest-reading side.
 	 */
 	public function register_admin_menu() {
 		add_menu_page(
