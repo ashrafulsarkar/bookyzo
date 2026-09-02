@@ -3,7 +3,7 @@ import tailwindcssAnimate from 'tailwindcss-animate';
 /** @type {import('tailwindcss').Config} */
 export default {
   darkMode: ['class'],
-  content: ['./admin/index.html', './admin/src/**/*.{vue,js,ts,jsx,tsx}'],
+  content: ['./src/**/*.{vue,js,ts,jsx,tsx}'],
   prefix: '',
   theme: {
     container: {

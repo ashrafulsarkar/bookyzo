@@ -1,5 +1,5 @@
 node_modules/
-admin/dist/
+admin/
 *.log
 .DS_Store
 scratchpad/*.php

@@ -96,8 +96,9 @@ class BYZO_Plugin {
 	}
 
 	/**
-	 * Top-level admin menu — the Vue admin shell (admin/src, built by
-	 * Vite into admin/dist/) mounts into #byzo-admin-app below. See
+	 * Top-level admin menu — the Vue admin shell (source in the plugin
+	 * root's src/, built by Vite straight into admin/) mounts into
+	 * #byzo-admin-app below. See
 	 * BYZO_Admin_Assets for the enqueue/manifest-reading side.
 	 */
 	public function register_admin_menu() {

@@ -5,7 +5,7 @@
   "framework": "vite",
   "tailwind": {
     "config": "tailwind.config.js",
-    "css": "admin/src/styles/tailwind.css",
+    "css": "src/styles/tailwind.css",
     "baseColor": "slate",
     "cssVariables": true
   },
