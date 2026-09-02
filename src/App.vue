@@ -1,14 +1,18 @@
 <template>
   <div class="byzo-app">
+    <ByzoNav v-if="route.name !== 'setup'" />
     <router-view />
   </div>
 </template>
 
 <script setup>
-// Root shell. Deliberately minimal in Phase 0 — the persistent nav
-// (ByzoPageHeader per route, sidebar/tabs) lands with the first real
-// screens in Phase 1, not here, so this component doesn't need reworking
-// once that structure is known.
+import { useRoute } from 'vue-router';
+import ByzoNav from '@/components/base/ByzoNav.vue';
+
+// Setup Wizard is deliberately full-screen (no persistent nav) — every
+// other route gets the tab nav. Grows into a fuller shell (breadcrumbs,
+// global search, etc.) only once there's enough screens to need one.
+const route = useRoute();
 </script>
 
 <style>

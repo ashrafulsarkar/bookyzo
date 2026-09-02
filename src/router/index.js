@@ -1,6 +1,8 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import Dashboard from '../views/Dashboard.vue';
 import SetupWizard from '../views/setup/SetupWizard.vue';
+import ResourcesList from '../views/resources/ResourcesList.vue';
+import ResourceForm from '../views/resources/ResourceForm.vue';
 import { api } from '../api/client';
 
 // Hash history (not HTML5 history) deliberately — the Vue app lives at a
@@ -11,7 +13,10 @@ import { api } from '../api/client';
 const routes = [
   { path: '/', name: 'dashboard', component: Dashboard },
   { path: '/setup', name: 'setup', component: SetupWizard },
-  // Resources, Calendar, Bookings, Settings routes land in later Phase 1 steps.
+  { path: '/resources', name: 'resources', component: ResourcesList },
+  { path: '/resources/new', name: 'resources.new', component: ResourceForm },
+  { path: '/resources/:id/edit', name: 'resources.edit', component: ResourceForm },
+  // Calendar, Bookings, Settings routes land in later Phase 1 steps.
 ];
 
 export const router = createRouter({
@@ -19,13 +24,13 @@ export const router = createRouter({
   routes,
 });
 
-// Covers normal navigation to the Dashboard (not just the PHP-side
-// activation redirect in BYZO_Install_Redirect, which only fires once
-// right after activation) — an owner who skipped or abandoned the
-// wizard and comes back to admin.php?page=bookyzo later should still
-// land on /setup, not a Dashboard with nothing configured yet.
+// Applies to every route except /setup itself — an owner who skipped or
+// abandoned the wizard and navigates (or deep-links) anywhere else in
+// the app later should still land on /setup, not a screen with nothing
+// configured yet. Not just the PHP-side activation redirect in
+// BYZO_Install_Redirect, which only fires once right after activation.
 router.beforeEach(async (to) => {
-  if (to.name !== 'dashboard') {
+  if (to.name === 'setup') {
     return true;
   }
 
@@ -36,8 +41,8 @@ router.beforeEach(async (to) => {
     }
   } catch (error) {
     // If the setup-state check itself fails (e.g. transient REST error),
-    // don't block navigation — fail open to the Dashboard rather than
-    // stranding the user on a route guard error.
+    // don't block navigation — fail open rather than stranding the user
+    // on a route guard error.
   }
 
   return true;
