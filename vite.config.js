@@ -1,9 +1,53 @@
 import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import path from 'node:path';
+import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const DEV_SERVER_MARKER = path.resolve(__dirname, '.dev-server-running');
+
+/**
+ * Writes/removes a marker file the running `npm run dev` process is
+ * live — BYZO_Admin_Assets (PHP) checks for this file's existence to
+ * auto-switch between the Vite dev server and the built admin/ folder,
+ * with no wp-config.php constant to remember to toggle. Covers normal
+ * shutdown, Ctrl+C (SIGINT), and terminal close (SIGTERM) so the marker
+ * doesn't get left behind pointing at a dev server that's no longer running.
+ */
+function devServerMarkerPlugin() {
+  let removed = false;
+  const cleanup = () => {
+    if (removed) return;
+    removed = true;
+    try {
+      fs.rmSync(DEV_SERVER_MARKER, { force: true });
+    } catch {
+      // Best-effort — a stale marker just means PHP tries the dev
+      // server once, gets no response, and BYZO_Admin_Assets' own
+      // fallback path (the "build not found" notice) still applies
+      // since a stale marker with no manifest.json is the same
+      // situation as no marker at all from the enqueue logic's view.
+    }
+  };
+
+  return {
+    name: 'byzo-dev-server-marker',
+    configureServer(server) {
+      fs.writeFileSync(DEV_SERVER_MARKER, String(process.pid));
+      server.httpServer?.once('close', cleanup);
+      process.once('exit', cleanup);
+      process.once('SIGINT', () => {
+        cleanup();
+        process.exit();
+      });
+      process.once('SIGTERM', () => {
+        cleanup();
+        process.exit();
+      });
+    },
+  };
+}
 
 // package.json/node_modules/configs live at the plugin root (one npm
 // project for the whole plugin). Vue SOURCE lives in root-level src/ —
@@ -17,7 +61,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // side hardcoding them.
 export default defineConfig({
   root: 'src',
-  plugins: [vue()],
+  plugins: [vue(), devServerMarkerPlugin()],
   base: '',
   resolve: {
     alias: {
@@ -33,11 +77,11 @@ export default defineConfig({
     },
   },
   // `npm run dev` serves straight from source with HMR — BYZO_Admin_Assets
-  // (PHP) loads from this server directly when BYZO_DEV_MODE is defined
-  // true in wp-config.php, skipping the built admin/ folder entirely.
-  // cors: true because WordPress (a different origin, e.g.
-  // http://localhost/test) is the page loading these modules, not Vite's
-  // own dev-server page.
+  // (PHP) auto-detects this server is running via devServerMarkerPlugin's
+  // .dev-server-running file and loads from it directly, skipping the
+  // built admin/ folder entirely, no manual toggle needed. cors: true
+  // because WordPress (a different origin, e.g. http://localhost/test)
+  // is the page loading these modules, not Vite's own dev-server page.
   server: {
     port: 5173,
     strictPort: true,

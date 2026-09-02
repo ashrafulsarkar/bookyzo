@@ -5,11 +5,11 @@ defined( 'ABSPATH' ) || exit;
  * Enqueues the Vue admin app on the Bookyzo admin page only, in one of
  * two modes:
  *
- * - **Dev mode** (`BYZO_DEV_MODE` defined true, e.g. in wp-config.php):
- *   loads straight from the Vite dev server (`npm run dev`, default
- *   http://localhost:5173) as ES modules, with HMR — no build step, no
- *   `admin/` folder needed at all. This is what makes local development
- *   possible even though `admin/` (the built output) is gitignored.
+ * - **Dev mode** (auto-detected — see is_dev_mode()): loads straight from
+ *   the Vite dev server (`npm run dev`, default http://localhost:5173) as
+ *   ES modules, with HMR — no build step, no `admin/` folder needed at
+ *   all. This is what makes local development possible even though
+ *   `admin/` (the built output) is gitignored.
  * - **Built mode** (default): reads admin/.vite/manifest.json to resolve
  *   hashed filenames without either side of the Vite/PHP boundary
  *   hardcoding them (DETAILED-SPEC.md §4 / bookyzo-design skill's "Vue 3
@@ -28,6 +28,13 @@ class BYZO_Admin_Assets {
 	 */
 	const DEFAULT_DEV_SERVER = 'http://localhost:5173';
 
+	/**
+	 * Written/removed by vite.config.js's devServerMarkerPlugin whenever
+	 * `npm run dev` starts/stops — so dev mode is detected automatically,
+	 * with no wp-config.php constant to remember to toggle on/off.
+	 */
+	const DEV_SERVER_MARKER = '.dev-server-running';
+
 	public static function init() {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
 	}
@@ -45,8 +52,19 @@ class BYZO_Admin_Assets {
 		self::enqueue_built();
 	}
 
+	/**
+	 * Auto-detects a running `npm run dev` via its marker file.
+	 * `BYZO_DEV_MODE` (defined false in wp-config.php) remains available
+	 * as an explicit override to force built mode even if a stale marker
+	 * is somehow left behind — auto-detect is right by default, this is
+	 * only an escape hatch, not the primary mechanism.
+	 */
 	private static function is_dev_mode() {
-		return defined( 'BYZO_DEV_MODE' ) && BYZO_DEV_MODE;
+		if ( defined( 'BYZO_DEV_MODE' ) && false === BYZO_DEV_MODE ) {
+			return false;
+		}
+
+		return file_exists( BYZO_PLUGIN_DIR . self::DEV_SERVER_MARKER );
 	}
 
 	/**
@@ -128,7 +146,7 @@ class BYZO_Admin_Assets {
 	public static function render_missing_build_notice() {
 		printf(
 			'<div class="notice notice-warning"><p>%s</p></div>',
-			esc_html__( 'Bookyzo: admin app build not found. Either run "npm install && npm run build" from the plugin\'s root folder, or define BYZO_DEV_MODE as true in wp-config.php and run "npm run dev" for local development.', 'bookyzo' )
+			esc_html__( 'Bookyzo: admin app build not found. Run "npm install && npm run build" from the plugin\'s root folder, or run "npm run dev" for local development (auto-detected).', 'bookyzo' )
 		);
 	}
 
