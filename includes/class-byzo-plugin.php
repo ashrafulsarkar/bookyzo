@@ -43,7 +43,11 @@ class BYZO_Plugin {
 	private function load_includes() {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-capabilities.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-install-redirect.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-resource.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-availability.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-controller.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-resources-controller.php';
 	}
 
 	private function register_hooks() {
@@ -52,7 +56,15 @@ class BYZO_Plugin {
 		BYZO_Install_Redirect::init();
 		( new BYZO_REST() )->init();
 
+		add_filter( 'byzo_rest_controllers', array( $this, 'register_core_rest_controllers' ) );
+
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
+	}
+
+	public function register_core_rest_controllers( $controllers ) {
+		$controllers[] = new BYZO_REST_Resources_Controller();
+
+		return $controllers;
 	}
 
 	/**

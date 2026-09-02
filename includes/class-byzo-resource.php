@@ -1,0 +1,228 @@
+<?php
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Data-access layer for wp_byzo_resources (DETAILED-SPEC.md §1.1). Plain
+ * static methods over $wpdb rather than a full ORM/WP_Post shape — the
+ * table is custom SQL by design (WooCommerce-independent core), and the
+ * REST controller is the only caller for now so an ORM would be premature.
+ */
+class BYZO_Resource {
+
+	const VALID_TYPES    = array( 'appointment', 'table', 'event', 'slot' );
+	const VALID_STATUSES = array( 'active', 'inactive', 'archived' );
+
+	public static function table() {
+		global $wpdb;
+		return $wpdb->prefix . 'byzo_resources';
+	}
+
+	public static function get( $id ) {
+		global $wpdb;
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM ' . self::table() . ' WHERE id = %d', $id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			ARRAY_A
+		);
+
+		return $row ? self::cast( $row ) : null;
+	}
+
+	/**
+	 * @param array $args {
+	 *     @type string $type     Filter by resource type.
+	 *     @type string $status   Filter by status.
+	 *     @type int    $per_page Default 20, max 100.
+	 *     @type int    $page     1-indexed.
+	 * }
+	 */
+	public static function query( $args = array() ) {
+		global $wpdb;
+
+		$defaults = array(
+			'type'     => '',
+			'status'   => '',
+			'per_page' => 20,
+			'page'     => 1,
+		);
+		$args = wp_parse_args( $args, $defaults );
+
+		$where  = array( '1=1' );
+		$params = array();
+
+		if ( $args['type'] && in_array( $args['type'], self::VALID_TYPES, true ) ) {
+			$where[]  = 'type = %s';
+			$params[] = $args['type'];
+		}
+
+		if ( $args['status'] && in_array( $args['status'], self::VALID_STATUSES, true ) ) {
+			$where[]  = 'status = %s';
+			$params[] = $args['status'];
+		}
+
+		$per_page = min( 100, max( 1, (int) $args['per_page'] ) );
+		$page     = max( 1, (int) $args['page'] );
+		$offset   = ( $page - 1 ) * $per_page;
+
+		$where_sql = implode( ' AND ', $where );
+
+		$sql = "SELECT * FROM " . self::table() . " WHERE {$where_sql} ORDER BY created_at DESC LIMIT %d OFFSET %d";
+		$params[] = $per_page;
+		$params[] = $offset;
+
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		$count_sql = "SELECT COUNT(*) FROM " . self::table() . " WHERE {$where_sql}";
+		$count_params = array_slice( $params, 0, count( $params ) - 2 );
+		$total = $count_params
+			? (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $count_params ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			: (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
+
+		return array(
+			'items' => array_map( array( __CLASS__, 'cast' ), $rows ?: array() ),
+			'total' => $total,
+		);
+	}
+
+	/**
+	 * @return int|WP_Error New resource ID, or WP_Error on validation failure.
+	 */
+	public static function create( $data ) {
+		global $wpdb;
+
+		$validated = self::validate( $data, true );
+		if ( is_wp_error( $validated ) ) {
+			return $validated;
+		}
+
+		$now = current_time( 'mysql' );
+		$validated['created_at'] = $now;
+		$validated['updated_at'] = $now;
+
+		$inserted = $wpdb->insert( self::table(), $validated );
+
+		if ( false === $inserted ) {
+			return new WP_Error( 'byzo_db_error', __( 'Could not create resource.', 'bookyzo' ) );
+		}
+
+		return (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * @return true|WP_Error
+	 */
+	public static function update( $id, $data ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Resource not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$validated = self::validate( $data, false );
+		if ( is_wp_error( $validated ) ) {
+			return $validated;
+		}
+
+		if ( empty( $validated ) ) {
+			return true;
+		}
+
+		$validated['updated_at'] = current_time( 'mysql' );
+
+		$updated = $wpdb->update( self::table(), $validated, array( 'id' => $id ) );
+
+		if ( false === $updated ) {
+			return new WP_Error( 'byzo_db_error', __( 'Could not update resource.', 'bookyzo' ) );
+		}
+
+		return true;
+	}
+
+	/**
+	 * @return true|WP_Error
+	 */
+	public static function delete( $id ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Resource not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$wpdb->delete( self::table(), array( 'id' => $id ) );
+
+		return true;
+	}
+
+	/**
+	 * Validates and whitelists incoming data. `$require_all` = true for
+	 * create (name/type required); false for update (partial patches OK).
+	 *
+	 * @return array|WP_Error Sanitized column => value pairs ready for $wpdb, or WP_Error.
+	 */
+	private static function validate( $data, $require_all ) {
+		$out = array();
+
+		if ( isset( $data['name'] ) ) {
+			$name = sanitize_text_field( $data['name'] );
+			if ( '' === $name ) {
+				return new WP_Error( 'byzo_invalid_name', __( 'Resource name cannot be empty.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			$out['name'] = $name;
+		} elseif ( $require_all ) {
+			return new WP_Error( 'byzo_missing_name', __( 'Resource name is required.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		if ( isset( $data['type'] ) ) {
+			if ( ! in_array( $data['type'], self::VALID_TYPES, true ) ) {
+				return new WP_Error( 'byzo_invalid_type', __( 'Invalid resource type.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			$out['type'] = $data['type'];
+		} elseif ( $require_all ) {
+			$out['type'] = 'appointment';
+		}
+
+		if ( isset( $data['description'] ) ) {
+			$out['description'] = wp_kses_post( $data['description'] );
+		}
+
+		if ( isset( $data['photo_id'] ) ) {
+			$out['photo_id'] = absint( $data['photo_id'] ) ?: null;
+		}
+
+		if ( isset( $data['tags'] ) ) {
+			$out['tags'] = sanitize_text_field( $data['tags'] );
+		}
+
+		if ( isset( $data['capacity'] ) ) {
+			$out['capacity'] = max( 1, absint( $data['capacity'] ) );
+		} elseif ( $require_all ) {
+			$out['capacity'] = 1;
+		}
+
+		if ( isset( $data['price'] ) ) {
+			$out['price'] = ( '' === $data['price'] || null === $data['price'] ) ? null : (float) $data['price'];
+		}
+
+		if ( isset( $data['status'] ) ) {
+			if ( ! in_array( $data['status'], self::VALID_STATUSES, true ) ) {
+				return new WP_Error( 'byzo_invalid_status', __( 'Invalid resource status.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			$out['status'] = $data['status'];
+		} elseif ( $require_all ) {
+			$out['status'] = 'active';
+		}
+
+		return $out;
+	}
+
+	private static function cast( $row ) {
+		$row['id']          = (int) $row['id'];
+		$row['photo_id']    = $row['photo_id'] ? (int) $row['photo_id'] : null;
+		$row['capacity']    = (int) $row['capacity'];
+		$row['price']       = null === $row['price'] ? null : (float) $row['price'];
+		$row['location_id'] = $row['location_id'] ? (int) $row['location_id'] : null;
+		$row['group_id']    = $row['group_id'] ? (int) $row['group_id'] : null;
+
+		return $row;
+	}
+}
