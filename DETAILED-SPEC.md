@@ -154,7 +154,7 @@ Same pattern throughout: Pro adds its own tables/columns where the feature is ge
 | `/resources/{id}` | GET, PUT, DELETE | |
 | `/resources/{id}/availability` | GET, PUT | weekly schedule + exceptions |
 | `/slots` | GET | public — available slots for booking widget, filtered by resource/date range |
-| `/bookings` | GET, POST | GET = admin list (capability-gated; query params `from`, `to`, `resource_id`, `status` for calendar/list filtering per §A4); POST = public create (guest-allowed, rate-limited) |
+| `/bookings` | GET, POST | GET = admin list (capability-gated; query params `from`, `to`, `resource_id`, `status` for calendar/list filtering per §A4 — `from`/`to` filter by the booking's *slot* start time, i.e. when the appointment happens, not `created_at`; a booking whose slot was later deleted has no date and is excluded from a date-filtered query, added 2026-09-02 while building the calendar screen); POST = public create (guest-allowed, rate-limited) |
 | `/bookings/{id}` | GET, PUT | PUT = status change, admin or signed-token self-service |
 | `/settings` | GET, PUT | business profile + Free/Pro settings sections |
 | `/stripe-webhook` | POST | Stripe only, signature-verified, not nonce-based |

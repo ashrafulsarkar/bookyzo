@@ -35,8 +35,14 @@ class BYZO_Booking {
 	public static function get( $id ) {
 		global $wpdb;
 
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
 		$row = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM ' . self::table() . ' WHERE id = %d', $id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->prepare(
+				"SELECT b.*, s.start_datetime AS slot_start, s.end_datetime AS slot_end FROM {$bookings_table} b LEFT JOIN {$slots_table} s ON s.id = b.slot_id WHERE b.id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$id
+			),
 			ARRAY_A
 		);
 
@@ -44,7 +50,20 @@ class BYZO_Booking {
 	}
 
 	/**
-	 * @param array $args { @type string $from, $to (Y-m-d, filters by slot start_datetime's date); @type int $resource_id; @type string $status; @type int $per_page; @type int $page }
+	 * @param array $args {
+	 *     @type string $from, $to  Y-m-d, filters by the booking's SLOT time
+	 *         (when the appointment happens), not when the booking record
+	 *         was created — the calendar view (DETAILED-SPEC.md §A4) needs
+	 *         "what's on the schedule for this date range," not "what was
+	 *         booked recently." Bookings with no slot (slot_id NULL, e.g.
+	 *         after the slot row was deleted — see §1.4) are excluded when
+	 *         from/to is given, since they have no date to place on a
+	 *         calendar; they still show up in an unfiltered list.
+	 *     @type int    $resource_id
+	 *     @type string $status
+	 *     @type int    $per_page
+	 *     @type int    $page
+	 * }
 	 */
 	public static function query( $args = array() ) {
 		global $wpdb;
@@ -59,26 +78,29 @@ class BYZO_Booking {
 		);
 		$args = wp_parse_args( $args, $defaults );
 
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
 		$where  = array( '1=1' );
 		$params = array();
 
 		if ( $args['resource_id'] ) {
-			$where[]  = 'resource_id = %d';
+			$where[]  = 'b.resource_id = %d';
 			$params[] = (int) $args['resource_id'];
 		}
 
 		if ( $args['status'] && in_array( $args['status'], self::VALID_STATUSES, true ) ) {
-			$where[]  = 'status = %s';
+			$where[]  = 'b.status = %s';
 			$params[] = $args['status'];
 		}
 
 		if ( $args['from'] ) {
-			$where[]  = 'created_at >= %s';
+			$where[]  = 's.start_datetime >= %s';
 			$params[] = $args['from'] . ' 00:00:00';
 		}
 
 		if ( $args['to'] ) {
-			$where[]  = 'created_at < %s';
+			$where[]  = 's.start_datetime < %s';
 			$params[] = ( new DateTime( $args['to'], wp_timezone() ) )->modify( '+1 day' )->format( 'Y-m-d' ) . ' 00:00:00';
 		}
 
@@ -87,14 +109,16 @@ class BYZO_Booking {
 		$offset   = ( $page - 1 ) * $per_page;
 
 		$where_sql = implode( ' AND ', $where );
+		$select    = 'b.*, s.start_datetime AS slot_start, s.end_datetime AS slot_end';
+		$join      = "LEFT JOIN {$slots_table} s ON s.id = b.slot_id";
 
-		$sql      = 'SELECT * FROM ' . self::table() . " WHERE {$where_sql} ORDER BY created_at DESC LIMIT %d OFFSET %d";
+		$sql = "SELECT {$select} FROM {$bookings_table} b {$join} WHERE {$where_sql} ORDER BY COALESCE(s.start_datetime, b.created_at) ASC LIMIT %d OFFSET %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$params[] = $per_page;
 		$params[] = $offset;
 
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
-		$count_sql    = 'SELECT COUNT(*) FROM ' . self::table() . " WHERE {$where_sql}";
+		$count_sql    = "SELECT COUNT(*) FROM {$bookings_table} b {$join} WHERE {$where_sql}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$count_params = array_slice( $params, 0, count( $params ) - 2 );
 		$total        = $count_params
 			? (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $count_params ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
@@ -294,6 +318,12 @@ class BYZO_Booking {
 		$row['party_size']     = (int) $row['party_size'];
 		$row['payment_amount'] = null === $row['payment_amount'] ? null : (float) $row['payment_amount'];
 		$row['custom_fields']  = $row['custom_fields'] ? json_decode( $row['custom_fields'], true ) : array();
+
+		// slot_start/slot_end come from the LEFT JOIN in get()/query() —
+		// always present in the shape (null when the slot was deleted,
+		// per DETAILED-SPEC.md §1.4's note on slot_id being nullable).
+		$row['slot_start'] = $row['slot_start'] ?? null;
+		$row['slot_end']   = $row['slot_end'] ?? null;
 
 		return $row;
 	}

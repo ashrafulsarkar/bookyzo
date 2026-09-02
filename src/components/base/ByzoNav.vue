@@ -16,9 +16,9 @@
 // Left-to-right tab nav rather than a sidebar — matches the bookyzo-design
 // skill's "feels like a well-designed part of wp-admin" goal better than
 // a second sidebar competing with WP's own admin menu. Grows as Phase 1
-// steps 3-5 add Calendar/Bookings/Settings routes; Resources is the only
-// real entry today.
+// steps 4-5 add Bookings/Settings routes.
 const items = [
+  { to: '/calendar', label: 'Calendar' },
   { to: '/resources', label: 'Resources' },
 ];
 </script>

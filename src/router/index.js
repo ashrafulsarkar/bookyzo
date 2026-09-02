@@ -3,6 +3,7 @@ import Dashboard from '../views/Dashboard.vue';
 import SetupWizard from '../views/setup/SetupWizard.vue';
 import ResourcesList from '../views/resources/ResourcesList.vue';
 import ResourceForm from '../views/resources/ResourceForm.vue';
+import BookingCalendar from '../views/calendar/BookingCalendar.vue';
 import { api } from '../api/client';
 
 // Hash history (not HTML5 history) deliberately — the Vue app lives at a
@@ -16,7 +17,8 @@ const routes = [
   { path: '/resources', name: 'resources', component: ResourcesList },
   { path: '/resources/new', name: 'resources.new', component: ResourceForm },
   { path: '/resources/:id/edit', name: 'resources.edit', component: ResourceForm },
-  // Calendar, Bookings, Settings routes land in later Phase 1 steps.
+  { path: '/calendar', name: 'calendar', component: BookingCalendar },
+  // Bookings (list screen), Settings routes land in later Phase 1 steps.
 ];
 
 export const router = createRouter({
