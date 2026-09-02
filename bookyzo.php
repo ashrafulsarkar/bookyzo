@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       Bookyzo – Booking & Appointments
  * Plugin URI:         https://bookyzo.com
- * Description:        Unified appointment, table, event, and slot booking for WordPress.
- * Version:            0.1.0
+ * Description:        Accept online appointment bookings on your WordPress site — staff scheduling, a customer-facing booking widget, email reminders, and optional Stripe payments.
+ * Version:            1.0.0
  * Requires at least:  6.0
  * Requires PHP:       7.4
  * Author:             Codeholt
@@ -11,12 +11,11 @@
  * License:            GPL v2 or later
  * License URI:        https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:        bookyzo
- * Domain Path:        /languages
  */
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'BYZO_VERSION', '0.1.0' );
+define( 'BYZO_VERSION', '1.0.0' );
 define( 'BYZO_DB_VERSION', '1.2' );
 define( 'BYZO_PLUGIN_FILE', __FILE__ );
 define( 'BYZO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

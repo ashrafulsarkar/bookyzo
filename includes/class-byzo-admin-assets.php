@@ -89,6 +89,7 @@ class BYZO_Admin_Assets {
 		$server = apply_filters( 'byzo_dev_server_url', self::DEFAULT_DEV_SERVER );
 		$server = untrailingslashit( $server );
 
+		// phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedScript, WordPress.Security.EscapeOutput.OutputNotEscaped -- dev-mode-only Vite module scripts (never present on a production/WordPress.org install, see is_dev_mode()); admin_globals_js() and every other argument are already wp_json_encode()/esc_url()-safe.
 		printf(
 			'<script type="module">
 				window.wp.apiFetch.use( window.wp.apiFetch.createNonceMiddleware( %1$s ) );
@@ -102,6 +103,7 @@ class BYZO_Admin_Assets {
 			self::admin_globals_js(),
 			esc_url( $server )
 		);
+		// phpcs:enable WordPress.WP.EnqueuedResources.NonEnqueuedScript, WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	/**

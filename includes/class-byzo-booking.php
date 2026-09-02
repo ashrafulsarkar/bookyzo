@@ -118,13 +118,13 @@ class BYZO_Booking {
 		$params[] = $per_page;
 		$params[] = $offset;
 
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 
 		$count_sql    = "SELECT COUNT(*) FROM {$bookings_table} b {$join} WHERE {$where_sql}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$count_params = array_slice( $params, 0, count( $params ) - 2 );
 		$total        = $count_params
-			? (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $count_params ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			: (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
+			? (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $count_params ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+			: (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
 
 		return array(
 			'items' => array_map( array( __CLASS__, 'cast' ), $rows ?: array() ),
@@ -148,18 +148,20 @@ class BYZO_Booking {
 		$bookings_table = self::table();
 		$slots_table    = $wpdb->prefix . 'byzo_slots';
 
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT b.status, COUNT(*) AS count
 				 FROM {$bookings_table} b
 				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
 				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
-				 GROUP BY b.status", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				 GROUP BY b.status",
 				$from->format( 'Y-m-d H:i:s' ),
 				$to->format( 'Y-m-d H:i:s' )
 			),
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 
 		$counts = array_fill_keys( self::VALID_STATUSES, 0 );
 		foreach ( $rows ?: array() as $row ) {
@@ -317,16 +319,18 @@ class BYZO_Booking {
 			// back to 'open' (CASE keeps a 'blocked' slot — e.g. a
 			// blackout added after this booking was made — from being
 			// silently reopened by a later cancellation).
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name, not user input.
 			$wpdb->query(
 				$wpdb->prepare(
 					"UPDATE {$slots_table}
 					 SET capacity_remaining = capacity_remaining + %d,
 					     status = CASE WHEN status = 'full' THEN 'open' ELSE status END
-					 WHERE id = %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+					 WHERE id = %d",
 					$booking['party_size'],
 					$booking['slot_id']
 				)
 			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 		}
 
 		do_action( 'byzo_booking_status_changed', $id, $new_status, $booking['status'] );
@@ -410,6 +414,7 @@ class BYZO_Booking {
 		$bookings_table = self::table();
 		$slots_table    = $wpdb->prefix . 'byzo_slots';
 
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT b.*, s.start_datetime AS slot_start, s.end_datetime AS slot_end
@@ -418,12 +423,13 @@ class BYZO_Booking {
 				 WHERE b.status IN ('pending','confirmed')
 				   AND b.reminder_sent_at IS NULL
 				   AND s.start_datetime >= %s
-				   AND s.start_datetime < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				   AND s.start_datetime < %s",
 				$window_start->format( 'Y-m-d H:i:s' ),
 				$window_end->format( 'Y-m-d H:i:s' )
 			),
 			ARRAY_A
 		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 
 		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
 	}

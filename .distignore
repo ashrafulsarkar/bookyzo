@@ -1,0 +1,32 @@
+# Files and folders that must never ship in the WordPress.org release
+# zip (see bin/build-release.js, ROADMAP.md Phase 1 step 10). Mirrors
+# the codeholt-bundles-for-woocommerce precedent's .distignore, adapted
+# for Bookyzo's own root-level Vue source/tooling layout (see
+# ROADMAP.md Phase 1 step 1's "File layout — FINAL" note for why
+# src/, node_modules, and every build config live at the plugin root).
+.git
+.gitignore
+.gitattributes
+.github
+.distignore
+.editorconfig
+.claude
+.dev-server-running
+DETAILED-SPEC.md
+ROADMAP.md
+FEATURES.md
+README.md
+bin
+components.json
+node_modules
+release
+package.json
+package-lock.json
+postcss.config.js
+tailwind.config.js
+vite.config.js
+vite.widget.config.js
+src
+scratchpad
+*.zip
+*.log

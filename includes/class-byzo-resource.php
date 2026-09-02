@@ -21,7 +21,7 @@ class BYZO_Resource {
 		global $wpdb;
 
 		$row = $wpdb->get_row(
-			$wpdb->prepare( 'SELECT * FROM ' . self::table() . ' WHERE id = %d', $id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->prepare( 'SELECT * FROM ' . self::table() . ' WHERE id = %d', $id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 			ARRAY_A
 		);
 
@@ -70,13 +70,13 @@ class BYZO_Resource {
 		$params[] = $per_page;
 		$params[] = $offset;
 
-		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 
 		$count_sql = "SELECT COUNT(*) FROM " . self::table() . " WHERE {$where_sql}";
 		$count_params = array_slice( $params, 0, count( $params ) - 2 );
 		$total = $count_params
-			? (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $count_params ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			: (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
+			? (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $count_params ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+			: (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
 
 		return array(
 			'items' => array_map( array( __CLASS__, 'cast' ), $rows ?: array() ),
@@ -114,7 +114,8 @@ class BYZO_Resource {
 	public static function update( $id, $data ) {
 		global $wpdb;
 
-		if ( ! self::get( $id ) ) {
+		$existing = self::get( $id );
+		if ( ! $existing ) {
 			return new WP_Error( 'byzo_not_found', __( 'Resource not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
@@ -133,6 +134,17 @@ class BYZO_Resource {
 
 		if ( false === $updated ) {
 			return new WP_Error( 'byzo_db_error', __( 'Could not update resource.', 'bookyzo' ) );
+		}
+
+		// Fires when a resource transitions INTO 'active' from something
+		// else (not on every save of an already-active resource) — this
+		// is the "reactivated" half of the doc comment on
+		// BYZO_Plugin::register_hooks()'s byzo_resource_activated
+		// listener; without this the listener was wired to an event that
+		// never actually fired, and reactivating an inactive resource
+		// silently generated no slots until the next nightly cron.
+		if ( isset( $validated['status'] ) && 'active' === $validated['status'] && 'active' !== $existing['status'] ) {
+			do_action( 'byzo_resource_activated', $id );
 		}
 
 		return true;

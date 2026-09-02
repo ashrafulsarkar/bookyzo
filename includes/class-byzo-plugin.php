@@ -74,8 +74,6 @@ class BYZO_Plugin {
 	}
 
 	private function register_hooks() {
-		load_plugin_textdomain( 'bookyzo', false, dirname( BYZO_PLUGIN_BASENAME ) . '/languages' );
-
 		BYZO_Install_Redirect::init();
 		( new BYZO_REST() )->init();
 		BYZO_Admin_Assets::init();

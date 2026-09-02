@@ -27,7 +27,7 @@ class BYZO_Availability {
 
 		$schedules = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT id, weekday, start_time, end_time, shift_group FROM ' . self::schedules_table() . ' WHERE resource_id = %d ORDER BY weekday ASC, shift_group ASC', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				'SELECT id, weekday, start_time, end_time, shift_group FROM ' . self::schedules_table() . ' WHERE resource_id = %d ORDER BY weekday ASC, shift_group ASC', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 				$resource_id
 			),
 			ARRAY_A
@@ -35,7 +35,7 @@ class BYZO_Availability {
 
 		$exceptions = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT id, date, is_closed, start_time, end_time FROM ' . self::exceptions_table() . ' WHERE resource_id = %d OR resource_id IS NULL ORDER BY date ASC', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				'SELECT id, date, is_closed, start_time, end_time FROM ' . self::exceptions_table() . ' WHERE resource_id = %d OR resource_id IS NULL ORDER BY date ASC', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 				$resource_id
 			),
 			ARRAY_A

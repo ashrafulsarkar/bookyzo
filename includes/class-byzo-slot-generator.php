@@ -174,10 +174,11 @@ class BYZO_Slot_Generator {
 		$count = 0;
 
 		foreach ( $slots as $slot ) {
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name, not user input.
 			$sql = $wpdb->prepare(
 				"INSERT INTO {$table} (resource_id, start_datetime, end_datetime, capacity_remaining, status)
 				 VALUES (%d, %s, %s, %d, %s)
-				 ON DUPLICATE KEY UPDATE end_datetime = VALUES(end_datetime)", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				 ON DUPLICATE KEY UPDATE end_datetime = VALUES(end_datetime)",
 				$slot['resource_id'],
 				$slot['start_datetime'],
 				$slot['end_datetime'],
@@ -185,6 +186,7 @@ class BYZO_Slot_Generator {
 				$slot['status']
 			);
 			$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 			$count++;
 		}
 
