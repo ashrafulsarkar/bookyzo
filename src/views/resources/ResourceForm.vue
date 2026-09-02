@@ -10,88 +10,36 @@
     </ByzoPageHeader>
 
     <div class="px-6 pb-8">
+      <!-- Availability/Exceptions need a saved resource id (DETAILED-SPEC.md
+           §A2/A3's Details/Availability/Exceptions tabs) — only shown once
+           editing an existing resource, not while creating a new one. -->
+      <div v-if="isEdit" class="mb-4 flex gap-1 border-b border-border">
+        <button
+          v-for="tab in tabs"
+          :key="tab.id"
+          type="button"
+          class="border-b-2 px-3 py-2 text-sm font-medium transition-colors"
+          :class="activeTab === tab.id ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'"
+          @click="activeTab = tab.id"
+        >
+          {{ tab.label }}
+        </button>
+      </div>
+
       <div v-if="loading" class="py-12 text-center text-sm text-muted-foreground">Loading…</div>
 
-      <Card v-else class="max-w-xl">
-        <CardContent class="flex flex-col gap-4 pt-6">
-          <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium" for="name">Name</label>
-            <input
-              id="name"
-              v-model="form.name"
-              type="text"
-              class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </div>
-
-          <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium" for="description">Description</label>
-            <textarea
-              id="description"
-              v-model="form.description"
-              rows="3"
-              class="rounded-md border border-input bg-background px-3 py-2 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-          </div>
-
-          <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium" for="tags">Tags</label>
-            <input
-              id="tags"
-              v-model="form.tags"
-              type="text"
-              placeholder="e.g. haircut, senior stylist"
-              class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            />
-            <p class="text-xs text-muted-foreground">Comma-separated.</p>
-          </div>
-
-          <div class="grid grid-cols-2 gap-4">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-medium" for="duration">Duration (minutes)</label>
-              <input
-                id="duration"
-                v-model.number="form.duration_minutes"
-                type="number"
-                min="5"
-                step="5"
-                class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-sm font-medium" for="price">Price</label>
-              <input
-                id="price"
-                v-model="form.price"
-                type="number"
-                min="0"
-                step="0.01"
-                placeholder="0.00"
-                class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-              />
-            </div>
-          </div>
-
-          <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium" for="status">Status</label>
-            <select
-              id="status"
-              v-model="form.status"
-              class="h-9 rounded-md border border-input bg-background px-3 text-sm shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="archived">Archived</option>
-            </select>
-          </div>
-
-          <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
-        </CardContent>
-        <CardFooter class="justify-between">
-          <Button variant="outline" @click="router.push({ name: 'resources' })">Cancel</Button>
-          <Button :disabled="saving" @click="save">{{ saving ? 'Saving…' : 'Save' }}</Button>
-        </CardFooter>
-      </Card>
+      <template v-else>
+        <ResourceDetailsTab
+          v-if="activeTab === 'details'"
+          :form="form"
+          :saving="saving"
+          :error="error"
+          @save="save"
+          @cancel="router.push({ name: 'resources' })"
+        />
+        <ResourceAvailabilityTab v-else-if="activeTab === 'availability'" :resource-id="route.params.id" />
+        <ResourceExceptionsTab v-else-if="activeTab === 'exceptions'" :resource-id="route.params.id" />
+      </template>
     </div>
   </div>
 </template>
@@ -99,9 +47,10 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
+import ResourceDetailsTab from './ResourceDetailsTab.vue';
+import ResourceAvailabilityTab from './ResourceAvailabilityTab.vue';
+import ResourceExceptionsTab from './ResourceExceptionsTab.vue';
 import { api } from '@/api/client';
 
 const route = useRoute();
@@ -111,6 +60,13 @@ const isEdit = computed(() => !!route.params.id);
 const loading = ref(isEdit.value);
 const saving = ref(false);
 const error = ref('');
+const activeTab = ref('details');
+
+const tabs = [
+  { id: 'details', label: 'Details' },
+  { id: 'availability', label: 'Availability' },
+  { id: 'exceptions', label: 'Exceptions' },
+];
 
 const form = ref({
   name: '',
@@ -169,10 +125,14 @@ async function save() {
   try {
     if (isEdit.value) {
       await api.put(`/resources/${route.params.id}`, payload);
+      router.push({ name: 'resources' });
     } else {
-      await api.post('/resources', payload);
+      const created = await api.post('/resources', payload);
+      // Straight to the new resource's Availability tab — a resource
+      // with no schedule generates zero slots (BYZO_Slot_Generator), so
+      // this is the natural next step, not a dead end at the list.
+      router.push({ name: 'resources.edit', params: { id: created.id } });
     }
-    router.push({ name: 'resources' });
   } catch (e) {
     error.value = e.message || 'Could not save this resource.';
   } finally {
