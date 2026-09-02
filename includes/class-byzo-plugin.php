@@ -69,6 +69,8 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-stripe.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-payment-settings-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-stripe-webhook-controller.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-reports.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-reports-controller.php';
 	}
 
 	private function register_hooks() {
@@ -109,6 +111,7 @@ class BYZO_Plugin {
 		$controllers[] = new BYZO_REST_Email_Templates_Controller();
 		$controllers[] = new BYZO_REST_Payment_Settings_Controller();
 		$controllers[] = new BYZO_REST_Stripe_Webhook_Controller();
+		$controllers[] = new BYZO_REST_Reports_Controller();
 
 		return $controllers;
 	}

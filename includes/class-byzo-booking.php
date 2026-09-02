@@ -133,6 +133,44 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * Booking counts by status within [$from, $to), keyed by slot start
+	 * time (when the appointment happens, matching query()'s own
+	 * from/to semantics — see its docblock) — the aggregate query
+	 * DETAILED-SPEC.md §A8 describes. INNER JOIN, not LEFT: a booking
+	 * whose slot was deleted has no date to count it under, same
+	 * exclusion query() already applies.
+	 *
+	 * @return array Every status key present (0 if none), plus 'total'.
+	 */
+	public static function get_status_counts( DateTime $from, DateTime $to ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT b.status, COUNT(*) AS count
+				 FROM {$bookings_table} b
+				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
+				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 GROUP BY b.status", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$from->format( 'Y-m-d H:i:s' ),
+				$to->format( 'Y-m-d H:i:s' )
+			),
+			ARRAY_A
+		);
+
+		$counts = array_fill_keys( self::VALID_STATUSES, 0 );
+		foreach ( $rows ?: array() as $row ) {
+			$counts[ $row['status'] ] = (int) $row['count'];
+		}
+		$counts['total'] = array_sum( $counts );
+
+		return $counts;
+	}
+
+	/**
 	 * Creates a booking against a slot, atomically decrementing the
 	 * slot's capacity_remaining. Uses a single conditional UPDATE
 	 * (`WHERE capacity_remaining >= party_size`) as the concurrency guard
