@@ -40,6 +40,25 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 			)
 		);
 
+		// Public, read-only, whitelisted-fields listing for the booking
+		// widget's resource/service picker step (DETAILED-SPEC.md §A5)
+		// — a real gap found while building that step: the widget has
+		// no wp-admin session, so the main GET /resources route
+		// (admin_permissions_check) isn't reachable, and even if it
+		// were, it exposes internal fields (location_id, timestamps,
+		// etc.) a guest has no reason to see.
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/' . $this->get_rest_base() . '/public',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_public_items' ),
+					'permission_callback' => array( $this, 'public_permissions_check' ),
+				),
+			)
+		);
+
 		register_rest_route(
 			self::NAMESPACE_V1,
 			'/' . $this->get_rest_base() . '/(?P<id>\d+)',
@@ -118,6 +137,34 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 		$response->header( 'X-WP-Total', (string) $result['total'] );
 
 		return $response;
+	}
+
+	/**
+	 * GET /resources/public — see the registration comment above.
+	 * Whitelists exactly the fields the booking widget needs; never
+	 * passes a raw resource row through, so a new internal column
+	 * added later doesn't accidentally leak to guests by default.
+	 */
+	public function get_public_items( WP_REST_Request $request ) {
+		$result = BYZO_Resource::query( array( 'status' => 'active', 'per_page' => 100 ) );
+
+		$items = array_map(
+			static function ( $resource ) {
+				return array(
+					'id'                => $resource['id'],
+					'type'              => $resource['type'],
+					'name'              => $resource['name'],
+					'description'       => $resource['description'],
+					'photo_id'          => $resource['photo_id'],
+					'duration_minutes'  => $resource['duration_minutes'],
+					'price'             => $resource['price'],
+					'capacity'          => $resource['capacity'],
+				);
+			},
+			$result['items']
+		);
+
+		return rest_ensure_response( $items );
 	}
 
 	public function get_item( WP_REST_Request $request ) {

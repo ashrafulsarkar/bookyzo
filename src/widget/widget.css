@@ -1,0 +1,234 @@
+/*
+ * Hand-written, scoped CSS — deliberately NOT Tailwind (unlike the
+ * admin app). This bundle runs inside an arbitrary theme's page, not
+ * wp-admin, so it must never leak styles onto the host site (no global
+ * resets/preflight) and shouldn't risk utility-class-name collisions
+ * with a theme's own CSS (Tailwind classes like .flex/.gap-2 are
+ * plausible names a theme could also define). Everything is scoped
+ * under .bookyzo-widget, own local copies of the brand tokens (this
+ * bundle never loads on wp-admin, so it can't rely on the admin app's
+ * tailwind.css being present) — see ROADMAP.md Phase 1 step 6 for the
+ * fuller Shadow-DOM-vs-scoped-CSS tradeoff this decision was made under.
+ */
+
+.bookyzo-widget {
+  --byzo-primary: #2563eb;
+  --byzo-primary-dark: #1d4ed8;
+  --byzo-primary-light: #eff6ff;
+  --byzo-danger: #dc2626;
+  --byzo-danger-bg: #fef2f2;
+  --byzo-text: #1d2327;
+  --byzo-text-muted: #6b7280;
+  --byzo-border: #e7e8ec;
+  --byzo-surface: #ffffff;
+  --byzo-radius: 14px;
+  --byzo-radius-sm: 8px;
+  --byzo-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 2px 10px rgba(16, 24, 40, 0.06);
+
+  max-width: 460px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--byzo-text);
+  background: var(--byzo-surface);
+  border: 1px solid var(--byzo-border);
+  border-radius: var(--byzo-radius);
+  box-shadow: var(--byzo-shadow);
+  padding: 24px;
+}
+
+.bookyzo-widget *,
+.bookyzo-widget *::before,
+.bookyzo-widget *::after {
+  box-sizing: border-box;
+}
+
+.bookyzo-widget h2 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.bookyzo-widget p {
+  margin: 0 0 16px;
+  color: var(--byzo-text-muted);
+}
+
+.bookyzo-widget .progress {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 20px;
+}
+
+.bookyzo-widget .progress .dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--byzo-border);
+}
+
+.bookyzo-widget .progress .dot.active {
+  background: var(--byzo-primary);
+  width: 20px;
+  border-radius: 999px;
+}
+
+.bookyzo-widget .field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.bookyzo-widget .field label {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.bookyzo-widget input,
+.bookyzo-widget textarea {
+  font: inherit;
+  color: inherit;
+  border: 1px solid var(--byzo-border);
+  border-radius: var(--byzo-radius-sm);
+  padding: 8px 10px;
+  width: 100%;
+  background: #fff;
+}
+
+.bookyzo-widget input:focus,
+.bookyzo-widget textarea:focus {
+  outline: 2px solid var(--byzo-primary);
+  outline-offset: 1px;
+}
+
+.bookyzo-widget .honeypot {
+  position: absolute;
+  left: -9999px;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.bookyzo-widget .btn {
+  font: inherit;
+  font-weight: 500;
+  border-radius: var(--byzo-radius-sm);
+  padding: 9px 16px;
+  border: 1px solid transparent;
+  cursor: pointer;
+}
+
+.bookyzo-widget .btn-primary {
+  background: linear-gradient(135deg, var(--byzo-primary), var(--byzo-primary-dark));
+  color: #fff;
+}
+
+.bookyzo-widget .btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.bookyzo-widget .btn-outline {
+  background: transparent;
+  border-color: var(--byzo-border);
+  color: var(--byzo-text);
+}
+
+.bookyzo-widget .actions {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 20px;
+}
+
+.bookyzo-widget .resource-list,
+.bookyzo-widget .date-list,
+.bookyzo-widget .slot-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bookyzo-widget .date-list,
+.bookyzo-widget .slot-list {
+  flex-direction: row;
+  flex-wrap: wrap;
+}
+
+.bookyzo-widget .option-card {
+  display: block;
+  width: 100%;
+  text-align: left;
+  border: 1px solid var(--byzo-border);
+  border-radius: var(--byzo-radius-sm);
+  padding: 12px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.bookyzo-widget .option-card:hover {
+  border-color: var(--byzo-primary);
+}
+
+.bookyzo-widget .option-card .name {
+  font-weight: 600;
+  display: block;
+}
+
+.bookyzo-widget .option-card .meta {
+  color: var(--byzo-text-muted);
+  font-size: 13px;
+}
+
+.bookyzo-widget .chip {
+  border: 1px solid var(--byzo-border);
+  border-radius: 999px;
+  padding: 6px 14px;
+  background: #fff;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px;
+}
+
+.bookyzo-widget .chip:hover,
+.bookyzo-widget .chip.selected {
+  border-color: var(--byzo-primary);
+  color: var(--byzo-primary);
+  background: var(--byzo-primary-light);
+}
+
+.bookyzo-widget .error {
+  color: var(--byzo-danger);
+  background: var(--byzo-danger-bg);
+  border-radius: var(--byzo-radius-sm);
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-bottom: 12px;
+}
+
+.bookyzo-widget .empty {
+  color: var(--byzo-text-muted);
+  padding: 24px 0;
+  text-align: center;
+}
+
+.bookyzo-widget .confirmation {
+  text-align: center;
+  padding: 12px 0;
+}
+
+.bookyzo-widget .confirmation .check {
+  width: 48px;
+  height: 48px;
+  border-radius: 999px;
+  background: #f0fdf4;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 12px;
+  font-size: 24px;
+}

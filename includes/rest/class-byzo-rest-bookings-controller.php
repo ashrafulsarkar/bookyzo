@@ -87,13 +87,27 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 	}
 
 	public function create_item( WP_REST_Request $request ) {
+		$guard_check = BYZO_Public_Guard::check_booking_request( $request );
+		if ( is_wp_error( $guard_check ) ) {
+			return $guard_check;
+		}
+
 		$id = BYZO_Booking::create( $request->get_json_params() );
 
 		if ( is_wp_error( $id ) ) {
 			return $id;
 		}
 
-		$response = rest_ensure_response( BYZO_Booking::get( $id ) );
+		$booking = BYZO_Booking::get( $id );
+
+		// Only exposed on creation — a self-service link is only useful
+		// right when the booking is made (for a confirmation-email link,
+		// DETAILED-SPEC.md §A5); nothing needs it on a later GET, and
+		// keeping it off other responses keeps the field's surface area
+		// matched to its actual use today.
+		$booking['manage_token'] = BYZO_Booking_Token::generate( $booking['id'], $booking['customer_email'] );
+
+		$response = rest_ensure_response( $booking );
 		$response->set_status( 201 );
 
 		return $response;

@@ -5,7 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build"
+    "build": "npm run build:admin && npm run build:widget",
+    "build:admin": "vite build",
+    "build:widget": "vite build --config vite.widget.config.js"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",

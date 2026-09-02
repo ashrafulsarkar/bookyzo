@@ -1,5 +1,6 @@
 node_modules/
 /admin/
+/public/
 /.dev-server-running
 *.log
 .DS_Store

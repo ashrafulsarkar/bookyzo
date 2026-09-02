@@ -58,6 +58,9 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-setup-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-admin-assets.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-export.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-token.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-guard.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-widget.php';
 	}
 
 	private function register_hooks() {
@@ -67,6 +70,7 @@ class BYZO_Plugin {
 		( new BYZO_REST() )->init();
 		BYZO_Admin_Assets::init();
 		BYZO_Booking_Export::init();
+		BYZO_Public_Widget::init();
 
 		add_filter( 'byzo_rest_controllers', array( $this, 'register_core_rest_controllers' ) );
 

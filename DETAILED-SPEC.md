@@ -151,6 +151,7 @@ Same pattern throughout: Pro adds its own tables/columns where the feature is ge
 | Endpoint | Method | Purpose |
 |---|---|---|
 | `/resources` | GET, POST | list/create (admin) |
+| `/resources/public` | GET | public — whitelisted fields only (id/type/name/description/photo_id/duration_minutes/price/capacity), active resources only; added 2026-09-02 for the booking widget's resource/service picker (§A5), which has no admin session to use `/resources` with |
 | `/resources/{id}` | GET, PUT, DELETE | |
 | `/resources/{id}/availability` | GET, PUT | weekly schedule + exceptions |
 | `/slots` | GET | public — available slots for booking widget, filtered by resource/date range |
@@ -159,7 +160,7 @@ Same pattern throughout: Pro adds its own tables/columns where the feature is ge
 | `/settings` | GET, PUT | business profile + Free/Pro settings sections |
 | `/stripe-webhook` | POST | Stripe only, signature-verified, not nonce-based |
 
-Vue admin app talks to these via `wp.apiFetch` (standard WP REST nonce). Public widget's booking-creation POST needs its own lightweight abuse guard (nonce isn't available to fully logged-out guest widget embeds cached by a page cache — consider a short-lived REST nonce fetched on widget mount, or a honeypot + rate limit by IP, decide before building A5).
+Vue admin app talks to these via `wp.apiFetch` (standard WP REST nonce). **Public widget's abuse guard — DECIDED 2026-09-02: no nonce at all, honeypot + per-IP rate limit instead.** A nonce protects an authenticated user's cookie session against CSRF; a guest has no session to protect, so the widget's own fetch wrapper (`src/widget/api.js`) calls these routes with no nonce, sidestepping the page-cache staleness concern entirely. Real abuse mitigation is `BYZO_Public_Guard`: a hidden honeypot field (`website`) on the booking form, and a soft per-IP rate limit (20 requests/10min, filterable via `byzo_booking_rate_limit_max`/`_window`) — both skipped for an authenticated admin (`current_user_can('manage_options')`) so the admin's own manual-booking modal is never throttled by a guard meant for anonymous spam.
 
 ---
 
