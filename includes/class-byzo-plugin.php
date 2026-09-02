@@ -114,6 +114,6 @@ class BYZO_Plugin {
 	}
 
 	public function render_admin_root() {
-		echo '<div id="byzo-admin-app">' . esc_html__( 'Loading…', 'bookyzo' ) . '</div>';
+		require BYZO_PLUGIN_DIR . 'templates/admin/admin-root.php';
 	}
 }
