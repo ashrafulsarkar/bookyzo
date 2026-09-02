@@ -43,12 +43,14 @@ class BYZO_Plugin {
 	private function load_includes() {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-capabilities.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-install-redirect.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest.php';
 	}
 
 	private function register_hooks() {
 		load_plugin_textdomain( 'bookyzo', false, dirname( BYZO_PLUGIN_BASENAME ) . '/languages' );
 
 		BYZO_Install_Redirect::init();
+		( new BYZO_REST() )->init();
 
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 	}
