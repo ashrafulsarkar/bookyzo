@@ -46,9 +46,11 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-resource.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-availability.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-slot-generator.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-slot.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-resources-controller.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-slots-controller.php';
 	}
 
 	private function register_hooks() {
@@ -78,6 +80,7 @@ class BYZO_Plugin {
 
 	public function register_core_rest_controllers( $controllers ) {
 		$controllers[] = new BYZO_REST_Resources_Controller();
+		$controllers[] = new BYZO_REST_Slots_Controller();
 
 		return $controllers;
 	}
