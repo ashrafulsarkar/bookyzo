@@ -27,7 +27,25 @@ class BYZO_Install_Redirect {
 			return;
 		}
 
-		wp_safe_redirect( admin_url( 'admin.php?page=bookyzo' ) );
+		$target = self::needs_setup() ? 'admin.php?page=bookyzo#/setup' : 'admin.php?page=bookyzo';
+
+		wp_safe_redirect( admin_url( $target ) );
 		exit;
+	}
+
+	/**
+	 * Whether the wizard should still be shown — false once the owner
+	 * either finished it (`byzo_setup_step` reaches 'done') or explicitly
+	 * skipped it. Also used by the Vue app's own bootstrap (via a
+	 * REST-exposed flag, not this PHP method directly) to decide whether
+	 * to auto-open the wizard on a normal page load, not just right after
+	 * activation.
+	 */
+	public static function needs_setup() {
+		if ( get_option( 'byzo_setup_skipped' ) ) {
+			return false;
+		}
+
+		return 'done' !== get_option( 'byzo_setup_step', 'booking_type' );
 	}
 }

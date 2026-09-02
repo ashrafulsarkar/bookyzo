@@ -12,7 +12,7 @@
 </script>
 
 <style>
-@import './styles/tokens.css';
+@import './styles/tailwind.css';
 
 .byzo-app {
   color: var(--byzo-text);

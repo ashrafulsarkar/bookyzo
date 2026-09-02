@@ -1,0 +1,89 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+ * shadcn-vue theme variables, mapped onto Bookyzo's own brand palette
+ * (bookyzo-design skill, brand #2563eb) instead of shadcn's default
+ * indigo/zinc — HSL triplets (no hsl() wrapper) because tailwind.config.js
+ * reads them as hsl(var(--primary)) etc. per shadcn-vue convention.
+ */
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 204 15% 13%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 204 15% 13%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 204 15% 13%;
+
+    --primary: 221 83% 53%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 225 40% 98%;
+    --secondary-foreground: 204 15% 13%;
+
+    --muted: 225 40% 98%;
+    --muted-foreground: 220 9% 46%;
+
+    --accent: 214 100% 97%;
+    --accent-foreground: 224 76% 48%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 228 12% 92%;
+    --input: 228 12% 92%;
+    --ring: 221 83% 53%;
+
+    --radius: 14px;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/*
+ * Bookyzo's own semantic layer (bookyzo-design skill) — status colors and
+ * a couple of tokens shadcn-vue's palette has no equivalent for. Screens
+ * read these directly (var(--byzo-status-pending), etc.) rather than
+ * repurposing shadcn's primary/destructive for meanings they don't carry.
+ */
+:root {
+  --byzo-primary: #2563eb;
+  --byzo-primary-dark: #1d4ed8;
+  --byzo-primary-light: #eff6ff;
+
+  --byzo-success: #16a34a;
+  --byzo-success-bg: #f0fdf4;
+  --byzo-danger: #dc2626;
+  --byzo-danger-bg: #fef2f2;
+  --byzo-warning: #d97706;
+  --byzo-warning-bg: #fffbeb;
+
+  --byzo-text: #1d2327;
+  --byzo-text-muted: #6b7280;
+  --byzo-border: #e7e8ec;
+  --byzo-surface: #ffffff;
+  --byzo-surface-alt: #f8f9fc;
+
+  --byzo-radius: 14px;
+  --byzo-radius-sm: 8px;
+  --byzo-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 2px 10px rgba(16, 24, 40, 0.06);
+  --byzo-shadow-md: 0 10px 28px rgba(16, 24, 40, 0.12);
+  --byzo-shadow-lg: 0 16px 40px rgba(16, 24, 40, 0.16);
+
+  --byzo-status-pending: #d97706;
+  --byzo-status-confirmed: #2563eb;
+  --byzo-status-completed: #16a34a;
+  --byzo-status-cancelled: #9ca3af;
+  --byzo-status-no-show: #dc2626;
+}
