@@ -111,6 +111,7 @@ class BYZO_Activator {
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			cancelled_at DATETIME NULL,
+			reminder_sent_at DATETIME NULL,
 			PRIMARY KEY  (id),
 			KEY slot_id (slot_id),
 			KEY resource_id (resource_id),

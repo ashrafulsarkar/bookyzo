@@ -311,6 +311,45 @@ class BYZO_Booking {
 		);
 	}
 
+	/**
+	 * Bookings whose slot starts within [$window_start, $window_end) that
+	 * haven't been reminded yet — the query behind the 24h reminder cron
+	 * (DETAILED-SPEC.md §A6). Only pending/confirmed bookings are
+	 * reminder-eligible; a cancelled/completed/no_show booking has
+	 * nothing upcoming to remind about.
+	 *
+	 * @return array Cast booking rows (same shape as get()/query()).
+	 */
+	public static function get_due_for_reminder( DateTime $window_start, DateTime $window_end ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT b.*, s.start_datetime AS slot_start, s.end_datetime AS slot_end
+				 FROM {$bookings_table} b
+				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
+				 WHERE b.status IN ('pending','confirmed')
+				   AND b.reminder_sent_at IS NULL
+				   AND s.start_datetime >= %s
+				   AND s.start_datetime < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$window_start->format( 'Y-m-d H:i:s' ),
+				$window_end->format( 'Y-m-d H:i:s' )
+			),
+			ARRAY_A
+		);
+
+		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
+	}
+
+	public static function mark_reminder_sent( $id ) {
+		global $wpdb;
+
+		$wpdb->update( self::table(), array( 'reminder_sent_at' => current_time( 'mysql' ) ), array( 'id' => $id ) );
+	}
+
 	private static function cast( $row ) {
 		$row['id']             = (int) $row['id'];
 		$row['slot_id']        = $row['slot_id'] ? (int) $row['slot_id'] : null;

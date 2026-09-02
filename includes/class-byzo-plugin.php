@@ -61,6 +61,10 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-token.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-guard.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-widget.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/functions.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-email-templates.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-notifications.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-email-templates-controller.php';
 	}
 
 	private function register_hooks() {
@@ -71,6 +75,7 @@ class BYZO_Plugin {
 		BYZO_Admin_Assets::init();
 		BYZO_Booking_Export::init();
 		BYZO_Public_Widget::init();
+		BYZO_Notifications::init();
 
 		add_filter( 'byzo_rest_controllers', array( $this, 'register_core_rest_controllers' ) );
 
@@ -97,6 +102,7 @@ class BYZO_Plugin {
 		$controllers[] = new BYZO_REST_Bookings_Controller();
 		$controllers[] = new BYZO_REST_Settings_Controller();
 		$controllers[] = new BYZO_REST_Setup_Controller();
+		$controllers[] = new BYZO_REST_Email_Templates_Controller();
 
 		return $controllers;
 	}
