@@ -7,11 +7,11 @@
       </DialogHeader>
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-1.5">
-          <Label for="mb-resource">Resource</Label>
-          <Select v-model="selectedResourceId">
-            <SelectTrigger id="mb-resource" class="h-9"><SelectValue /></SelectTrigger>
+          <Label for="mb-item">Bookable item</Label>
+          <Select v-model="selectedBookableItemId">
+            <SelectTrigger id="mb-item" class="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem v-for="resource in resources" :key="resource.id" :value="resource.id">{{ resource.name }}</SelectItem>
+              <SelectItem v-for="item in items" :key="item.id" :value="item.id">{{ item.name }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -82,12 +82,12 @@ import { api } from '@/api/client';
 // permission check, which the REST layer already handles transparently
 // (BYZO_REST_Controller::public_permissions_check allows both).
 const props = defineProps({
-  initialResourceId: { type: [String, Number], default: null },
+  initialBookableItemId: { type: [String, Number], default: null },
 });
 const emit = defineEmits(['close', 'created']);
 
-const resources = ref([]);
-const selectedResourceId = ref(props.initialResourceId);
+const items = ref([]);
+const selectedBookableItemId = ref(props.initialBookableItemId);
 const slots = ref([]);
 const selectedSlotId = ref(null);
 const loadingSlots = ref(false);
@@ -111,28 +111,28 @@ const PARTY_SIZE_LABELS = {
   event: 'Tickets',
   slot: 'Spots',
 };
-const selectedResource = computed(() => resources.value.find((r) => r.id === selectedResourceId.value));
+const selectedItem = computed(() => items.value.find((i) => i.id === selectedBookableItemId.value));
 const selectedSlot = computed(() => slots.value.find((s) => s.id === selectedSlotId.value));
-const showPartySize = computed(() => selectedResource.value && selectedResource.value.type !== 'appointment');
-const partySizeLabel = computed(() => PARTY_SIZE_LABELS[selectedResource.value?.type] || 'Party size');
+const showPartySize = computed(() => selectedItem.value && selectedItem.value.type !== 'appointment');
+const partySizeLabel = computed(() => PARTY_SIZE_LABELS[selectedItem.value?.type] || 'Party size');
 const partySizeMax = computed(() => Math.max(1, selectedSlot.value?.capacity_remaining || 1));
 
-async function loadResources() {
-  resources.value = await api.get('/resources?status=active&per_page=100');
-  if (!selectedResourceId.value && resources.value.length > 0) {
-    selectedResourceId.value = resources.value[0].id;
+async function loadItems() {
+  items.value = await api.get('/bookable-items?status=active&per_page=100');
+  if (!selectedBookableItemId.value && items.value.length > 0) {
+    selectedBookableItemId.value = items.value[0].id;
   }
 }
 
 async function loadSlots() {
-  if (!selectedResourceId.value) {
+  if (!selectedBookableItemId.value) {
     slots.value = [];
     return;
   }
   loadingSlots.value = true;
   selectedSlotId.value = null;
   try {
-    slots.value = await api.get(`/slots?resource_id=${selectedResourceId.value}`);
+    slots.value = await api.get(`/slots?bookable_item_id=${selectedBookableItemId.value}`);
   } catch (e) {
     slots.value = [];
   } finally {
@@ -161,7 +161,7 @@ async function save() {
   }
 }
 
-watch(selectedResourceId, loadSlots);
+watch(selectedBookableItemId, loadSlots);
 // A newly picked slot may have less remaining capacity than whatever was
 // typed for the previous one — reset rather than silently clamp, so the
 // customer's actual pick decision isn't guessed at.
@@ -169,7 +169,7 @@ watch(selectedSlotId, () => {
   form.value.party_size = 1;
 });
 onMounted(async () => {
-  await loadResources();
+  await loadItems();
   await loadSlots();
 });
 </script>

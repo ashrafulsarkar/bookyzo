@@ -38,11 +38,11 @@
     <BookingTypeStep v-if="state.step === 'booking_type'" @next="advanceTo('business_profile')" />
     <BusinessProfileStep
       v-else-if="state.step === 'business_profile'"
-      @next="advanceTo('first_resource')"
+      @next="advanceTo('first_bookable_item')"
       @back="advanceTo('booking_type')"
     />
-    <FirstResourceStep
-      v-else-if="state.step === 'first_resource'"
+    <FirstBookableItemStep
+      v-else-if="state.step === 'first_bookable_item'"
       @finish="finish"
       @back="advanceTo('business_profile')"
     />
@@ -56,15 +56,15 @@ import { api } from '../../api/client';
 import { markSetupComplete } from '../../router';
 import BookingTypeStep from './BookingTypeStep.vue';
 import BusinessProfileStep from './BusinessProfileStep.vue';
-import FirstResourceStep from './FirstResourceStep.vue';
+import FirstBookableItemStep from './FirstBookableItemStep.vue';
 
 const router = useRouter();
 
-const stepLabels = ['Booking type', 'Business profile', 'First resource'];
+const stepLabels = ['Booking type', 'Business profile', 'First bookable item'];
 const state = ref({ step: 'booking_type', skipped: false, needed: true });
 
 const currentIndex = computed(() => {
-  const order = ['booking_type', 'business_profile', 'first_resource', 'done'];
+  const order = ['booking_type', 'business_profile', 'first_bookable_item', 'done'];
   return order.indexOf(state.value.step);
 });
 

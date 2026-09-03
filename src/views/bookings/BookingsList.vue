@@ -25,12 +25,12 @@
           <Input id="f-to" v-model="filters.to" type="date" class="h-9" />
         </div>
         <div class="flex flex-col gap-1.5">
-          <Label class="text-xs text-muted-foreground">Resource</Label>
-          <Select v-model="filters.resource_id">
+          <Label class="text-xs text-muted-foreground">Bookable item</Label>
+          <Select v-model="filters.bookable_item_id">
             <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">All</SelectItem>
-              <SelectItem v-for="resource in resources" :key="resource.id" :value="String(resource.id)">{{ resource.name }}</SelectItem>
+              <SelectItem v-for="item in items" :key="item.id" :value="String(item.id)">{{ item.name }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -58,7 +58,7 @@
           <TableHeader>
             <TableRow>
               <TableHead>Customer</TableHead>
-              <TableHead>Resource</TableHead>
+              <TableHead>Bookable item</TableHead>
               <TableHead>Party</TableHead>
               <TableHead>When</TableHead>
               <TableHead>Status</TableHead>
@@ -71,7 +71,7 @@
                 <span class="block font-medium">{{ booking.customer_name }}</span>
                 <span class="block text-xs text-muted-foreground">{{ booking.customer_email }}</span>
               </TableCell>
-              <TableCell class="text-muted-foreground">{{ resourceName(booking.resource_id) }}</TableCell>
+              <TableCell class="text-muted-foreground">{{ itemName(booking.bookable_item_id) }}</TableCell>
               <TableCell class="text-muted-foreground">{{ booking.party_size }}</TableCell>
               <TableCell class="text-muted-foreground">{{ whenLabel(booking) }}</TableCell>
               <TableCell><ByzoBadge :status="booking.status">{{ booking.status.replace('_', ' ') }}</ByzoBadge></TableCell>
@@ -121,22 +121,22 @@ const TRANSITIONS = {
 };
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show'];
 
-const resources = ref([]);
+const items = ref([]);
 const bookings = ref([]);
 const loading = ref(true);
 
 const filters = reactive({
   from: '',
   to: '',
-  resource_id: '__all__',
+  bookable_item_id: '__all__',
   status: '__all__',
 });
 
-async function loadResources() {
+async function loadItems() {
   try {
-    resources.value = await api.get('/resources?per_page=100');
+    items.value = await api.get('/bookable-items?per_page=100');
   } catch (e) {
-    // Non-fatal — the resource filter just stays empty.
+    // Non-fatal — the bookable-item filter just stays empty.
   }
 }
 
@@ -146,7 +146,7 @@ async function loadBookings() {
     const params = new URLSearchParams({ per_page: '100' });
     if (filters.from) params.set('from', filters.from);
     if (filters.to) params.set('to', filters.to);
-    if (filters.resource_id !== '__all__') params.set('resource_id', filters.resource_id);
+    if (filters.bookable_item_id !== '__all__') params.set('bookable_item_id', filters.bookable_item_id);
     if (filters.status !== '__all__') params.set('status', filters.status);
     bookings.value = await api.get(`/bookings?${params.toString()}`);
   } catch (e) {
@@ -159,12 +159,12 @@ async function loadBookings() {
 function clearFilters() {
   filters.from = '';
   filters.to = '';
-  filters.resource_id = '__all__';
+  filters.bookable_item_id = '__all__';
   filters.status = '__all__';
 }
 
-function resourceName(id) {
-  return resources.value.find((r) => r.id === id)?.name || '—';
+function itemName(id) {
+  return items.value.find((i) => i.id === id)?.name || '—';
 }
 
 function whenLabel(booking) {
@@ -209,7 +209,7 @@ const exportUrl = computed(() => {
   const params = new URLSearchParams({ action: 'byzo_export_bookings', _wpnonce: nonce });
   if (filters.from) params.set('from', filters.from);
   if (filters.to) params.set('to', filters.to);
-  if (filters.resource_id !== '__all__') params.set('resource_id', filters.resource_id);
+  if (filters.bookable_item_id !== '__all__') params.set('bookable_item_id', filters.bookable_item_id);
   if (filters.status !== '__all__') params.set('status', filters.status);
   return `${base}?${params.toString()}`;
 });
@@ -221,7 +221,7 @@ watch(filters, () => {
 });
 
 onMounted(async () => {
-  await loadResources();
+  await loadItems();
   await loadBookings();
 });
 </script>

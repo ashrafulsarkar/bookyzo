@@ -2,8 +2,8 @@
   <Card class="max-w-xl">
     <CardContent class="flex flex-col gap-4 pt-6">
       <!-- Read-only — type is fixed at creation (DETAILED-SPEC.md §5 item 6:
-           "changing type would orphan the resource's schedule/slots"),
-           enforced server-side too (BYZO_REST_Resources_Controller::update_item()). -->
+           "changing type would orphan the item's schedule/slots"),
+           enforced server-side too (BYZO_REST_Bookable_Items_Controller::update_item()). -->
       <div class="flex flex-col gap-1.5">
         <Label>Type</Label>
         <div><Badge variant="secondary">{{ typeLabel }}</Badge></div>

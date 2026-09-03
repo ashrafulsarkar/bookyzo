@@ -18,8 +18,8 @@ abstract class BYZO_REST_Controller {
 	const NAMESPACE_V1 = 'bookyzo/v1';
 
 	/**
-	 * Route base, e.g. 'resources' for `/bookyzo/v1/resources`. Implemented
-	 * by each concrete controller.
+	 * Route base, e.g. 'bookable-items' for `/bookyzo/v1/bookable-items`.
+	 * Implemented by each concrete controller.
 	 */
 	abstract protected function get_rest_base();
 
@@ -30,7 +30,7 @@ abstract class BYZO_REST_Controller {
 	abstract public function register_routes();
 
 	/**
-	 * Permission callback for admin-only routes (resource/booking
+	 * Permission callback for admin-only routes (bookable-item/booking
 	 * management, settings). One real capability check, reused everywhere
 	 * — never duplicated inline per DETAILED-SPEC.md §A9's "one place"
 	 * enforcement principle.

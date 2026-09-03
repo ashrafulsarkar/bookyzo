@@ -23,7 +23,7 @@ $tables = array(
 	"{$wpdb->prefix}byzo_slots",
 	"{$wpdb->prefix}byzo_availability_exceptions",
 	"{$wpdb->prefix}byzo_schedules",
-	"{$wpdb->prefix}byzo_resources",
+	"{$wpdb->prefix}byzo_bookable_items",
 );
 
 foreach ( $tables as $table ) {

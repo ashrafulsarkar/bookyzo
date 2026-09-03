@@ -29,9 +29,9 @@ class BYZO_Public_Widget {
 	}
 
 	public static function render_shortcode( $atts ) {
-		$atts = shortcode_atts( array( 'resource_id' => '', 'type' => '' ), $atts, 'bookyzo_booking' );
+		$atts = shortcode_atts( array( 'bookable_item_id' => '', 'type' => '' ), $atts, 'bookyzo_booking' );
 
-		return self::render( array( 'resource_id' => $atts['resource_id'], 'type' => $atts['type'] ) );
+		return self::render( array( 'bookable_item_id' => $atts['bookable_item_id'], 'type' => $atts['type'] ) );
 	}
 
 	public static function register_block() {
@@ -43,9 +43,9 @@ class BYZO_Public_Widget {
 			'byzo-block-editor',
 			BYZO_PLUGIN_URL . 'blocks/booking-form/index.js',
 			// wp-api-fetch added 2026-09-03 (Phase 1.5 step 4) — the editor's
-			// new resource/type selector fetches GET /resources/public (the
-			// same guest-allowed endpoint the frontend widget itself uses,
-			// not the admin-gated /resources) so this works for any user
+			// new bookable-item/type selector fetches GET /bookable-items/public
+			// (the same guest-allowed endpoint the frontend widget itself uses,
+			// not the admin-gated /bookable-items) so this works for any user
 			// who can access the block editor, not just manage_options users.
 			array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n', 'wp-api-fetch' ),
 			BYZO_VERSION,
@@ -58,11 +58,11 @@ class BYZO_Public_Widget {
 				'editor_script'   => 'byzo-block-editor',
 				'render_callback' => array( __CLASS__, 'render_block' ),
 				'attributes'      => array(
-					'resourceId' => array(
+					'bookableItemId' => array(
 						'type'    => 'number',
 						'default' => 0,
 					),
-					'type'       => array(
+					'type'           => array(
 						'type'    => 'string',
 						'default' => '',
 					),
@@ -74,26 +74,26 @@ class BYZO_Public_Widget {
 	public static function render_block( $attributes ) {
 		return self::render(
 			array(
-				'resource_id' => ! empty( $attributes['resourceId'] ) ? $attributes['resourceId'] : '',
-				'type'        => ! empty( $attributes['type'] ) ? $attributes['type'] : '',
+				'bookable_item_id' => ! empty( $attributes['bookableItemId'] ) ? $attributes['bookableItemId'] : '',
+				'type'             => ! empty( $attributes['type'] ) ? $attributes['type'] : '',
 			)
 		);
 	}
 
 	/**
 	 * @param array $config {
-	 *     @type string|int $resource_id Optional — pins the widget to one resource, skipping the picker step.
-	 *     @type string     $type        Optional — filters the picker to one booking type (DETAILED-SPEC.md §A5).
-	 *                                   Ignored when resource_id is also set — a pinned resource already skips
-	 *                                   the picker step entirely, so there's nothing left for a type to filter.
+	 *     @type string|int $bookable_item_id Optional — pins the widget to one bookable item, skipping the picker step.
+	 *     @type string     $type             Optional — filters the picker to one booking type (DETAILED-SPEC.md §A5).
+	 *                                        Ignored when bookable_item_id is also set — a pinned item already skips
+	 *                                        the picker step entirely, so there's nothing left for a type to filter.
 	 * }
 	 */
 	private static function render( $config ) {
 		self::enqueue_assets();
 
 		$attrs = '';
-		if ( ! empty( $config['resource_id'] ) ) {
-			$attrs .= ' data-resource-id="' . esc_attr( absint( $config['resource_id'] ) ) . '"';
+		if ( ! empty( $config['bookable_item_id'] ) ) {
+			$attrs .= ' data-bookable-item-id="' . esc_attr( absint( $config['bookable_item_id'] ) ) . '"';
 		} elseif ( ! empty( $config['type'] ) ) {
 			$attrs .= ' data-type="' . esc_attr( $config['type'] ) . '"';
 		}

@@ -1,6 +1,6 @@
 ---
 name: bookyzo-design
-description: Use whenever building, styling, or reviewing the Bookyzo Vue 3 admin panel (calendar, resource/availability screens, booking list, settings, dashboard) — design tokens, component patterns, and layout conventions to keep the whole admin app visually consistent as it's built screen by screen.
+description: Use whenever building, styling, or reviewing the Bookyzo Vue 3 admin panel (calendar, bookable item/availability screens, booking list, settings, dashboard) — design tokens, component patterns, and layout conventions to keep the whole admin app visually consistent as it's built screen by screen.
 ---
 
 # Bookyzo admin design system
@@ -71,7 +71,7 @@ Practical setup notes:
 
 Reuse these across every admin screen rather than re-deriving per-page styles. Each maps to a shadcn-vue primitive plus Bookyzo-specific defaults/props — build the wrapper once, don't reconfigure the raw shadcn-vue component ad hoc on every screen:
 
-- **`ByzoPageHeader`** — icon badge (gradient `--byzo-primary`→`--byzo-primary-dark`) + title + subtitle + trailing action slot. Not a shadcn-vue primitive (no direct equivalent) — a Bookyzo-specific composite. Every top-level admin route (Dashboard, Resources, Calendar, Bookings, Settings) starts with one.
+- **`ByzoPageHeader`** — icon badge (gradient `--byzo-primary`→`--byzo-primary-dark`) + title + subtitle + trailing action slot. Not a shadcn-vue primitive (no direct equivalent) — a Bookyzo-specific composite. Every top-level admin route (Dashboard, Bookable Items, Calendar, Bookings, Settings) starts with one.
 - **`ByzoCard`** — preset over shadcn-vue's `Card`. `--byzo-surface` bg, `--byzo-border` border, `--byzo-radius`, `--byzo-shadow`, hover → `--byzo-shadow-md`. The base container for every panel.
 - **`ByzoStatCard`** / **`ByzoStatGrid`** — `ByzoCard` composite for dashboard metrics (today's bookings, this week's revenue once Pro analytics exists, etc.), `auto-fit minmax(220px,1fr)` grid.
 - **`ByzoBadge`** — preset over shadcn-vue's `Badge`. Status pills for booking status (`pending`/`confirmed`/`completed`/`cancelled`/`no_show`), using the status tokens above via a `status` prop, not ad hoc colors per usage site.
@@ -80,7 +80,7 @@ Reuse these across every admin screen rather than re-deriving per-page styles. E
 - **`ByzoCalendar`** — day/week/month booking calendar (`FEATURES.md` §A4). shadcn-vue has no calendar/scheduling-grid primitive suited to this (its `Calendar`/`RangeCalendar` are date-pickers, not event-grid views) — this is a genuinely custom component, and the single most load-bearing one in the whole admin app. Get its visual language (event blocks colored by `--byzo-status-*`, time-grid lines using `--byzo-border`) right early since Booking Management, and later Pro's drag-and-drop reschedule (`FEATURES.md` §B3), both build directly on it. Still theme it with shadcn-vue's own CSS variables/Tailwind classes rather than a separate one-off stylesheet, so it doesn't visually drift from the rest of the app.
 - **`ByzoWeeklyScheduleGrid`** — the 7-day availability editor (`DETAILED-SPEC.md` §A2/A3), custom-built (compose from shadcn-vue's `Select`/time-input primitives, no direct equivalent exists). Free renders one shift-row per day; Pro's "+ Add shift" (`ROADMAP.md` Phase 2 step 3) extends the *same* component with multiple rows per day, so build it to accept N shifts per day from the start even though Free's UI only ever adds one (mirrors the "don't gate the data model" principle from `DETAILED-SPEC.md`/the `bookyzo-dev` skill — applies to component design too, not just schema).
 
-Straightforward shadcn-vue primitives to use directly where no Bookyzo-specific preset is needed yet: `Input`/`Textarea`/`Select` (booking widget form fields, settings screens), `Tabs` (settings sections), `Table` (booking list — or WP's own list-table look, see Layout conventions below; decide per-screen), `Popover`/`Command` (resource/date pickers), `Toast`/`Sonner` (save-confirmation feedback). Wrap into a `Byzo*` preset only once a real Bookyzo-specific default (color, size, copy) would otherwise be repeated across multiple screens — don't pre-wrap everything speculatively.
+Straightforward shadcn-vue primitives to use directly where no Bookyzo-specific preset is needed yet: `Input`/`Textarea`/`Select` (booking widget form fields, settings screens), `Tabs` (settings sections), `Table` (booking list — or WP's own list-table look, see Layout conventions below; decide per-screen), `Popover`/`Command` (bookable item/date pickers), `Toast`/`Sonner` (save-confirmation feedback). Wrap into a `Byzo*` preset only once a real Bookyzo-specific default (color, size, copy) would otherwise be repeated across multiple screens — don't pre-wrap everything speculatively.
 
 ## Locked/Pro-teaser UI: do not build this pattern at all
 
@@ -89,7 +89,7 @@ Unlike `license-envato-pro`'s admin (which uses red-bold "Get Pro"/"Activate Lic
 ## Layout conventions
 
 - wp-admin chrome (WP menu/toolbar) stays native — the Vue app mounts into the page content area only, same as any other wp-admin screen, not a full takeover.
-- Internal navigation (Dashboard / Resources / Calendar / Bookings / Settings) is a client-side Vue Router inside one top-level wp-admin menu page, not five separate `add_submenu_page()` PHP routes each bootstrapping their own Vue instance — keeps state (e.g. selected date range) alive across navigation and avoids five separate script bundles.
+- Internal navigation (Dashboard / Bookable Items / Calendar / Bookings / Settings) is a client-side Vue Router inside one top-level wp-admin menu page, not five separate `add_submenu_page()` PHP routes each bootstrapping their own Vue instance — keeps state (e.g. selected date range) alive across navigation and avoids five separate script bundles.
 - Match native WP admin conventions where Vue doesn't have a strong reason to diverge (list-table-style rows for the booking list, WP's own date-picker conventions) — the goal is "feels like a well-designed part of wp-admin," not "feels like an embedded unrelated web app."
 
 ## Before building a new admin screen

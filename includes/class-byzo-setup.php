@@ -8,7 +8,7 @@ defined( 'ABSPATH' ) || exit;
  */
 class BYZO_Setup {
 
-	const STEPS = array( 'booking_type', 'business_profile', 'first_resource', 'done' );
+	const STEPS = array( 'booking_type', 'business_profile', 'first_bookable_item', 'done' );
 
 	public static function get_state() {
 		return array(

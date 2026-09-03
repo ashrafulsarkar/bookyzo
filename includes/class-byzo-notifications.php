@@ -65,14 +65,14 @@ class BYZO_Notifications {
 			return;
 		}
 
-		$resource = BYZO_Resource::get( $booking['resource_id'] );
+		$item     = BYZO_Bookable_Item::get( $booking['bookable_item_id'] );
 		$settings = BYZO_Settings::get();
 
 		$placeholders = array(
-			'{customer_name}' => $booking['customer_name'],
-			'{resource_name}' => $resource ? $resource['name'] : '',
-			'{start_time}'    => self::format_start_time( $booking['slot_start'] ),
-			'{business_name}' => $settings['business_name'],
+			'{customer_name}'      => $booking['customer_name'],
+			'{bookable_item_name}' => $item ? $item['name'] : '',
+			'{start_time}'         => self::format_start_time( $booking['slot_start'] ),
+			'{business_name}'      => $settings['business_name'],
 		);
 
 		$subject = strtr( $template['subject'], $placeholders );

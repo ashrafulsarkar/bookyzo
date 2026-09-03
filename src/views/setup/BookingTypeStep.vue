@@ -36,7 +36,7 @@ import { Button } from '@/components/ui/button';
 defineEmits(['next']);
 
 // Appointment is the only type this build actually implements
-// (ROADMAP.md Phase 1) — Table/Event/Slot exist in the resources.type
+// (ROADMAP.md Phase 1) — Table/Event/Slot exist in the bookable_items.type
 // schema enum for forward compatibility (DETAILED-SPEC.md §1.1) but have
 // no admin screens or booking flow behind them yet, so they're not
 // listed here at all. A disabled "coming soon" option would visually be

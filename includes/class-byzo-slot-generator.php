@@ -2,9 +2,9 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Turns a resource's weekly schedule + exceptions into materialized rows
- * in wp_byzo_slots, on a rolling window (DETAILED-SPEC.md §1.3). Slots are
- * materialized (not computed on the fly) so a booking can atomically
+ * Turns a bookable item's weekly schedule + exceptions into materialized
+ * rows in wp_byzo_slots, on a rolling window (DETAILED-SPEC.md §1.3). Slots
+ * are materialized (not computed on the fly) so a booking can atomically
  * decrement capacity_remaining on a real row — see the "why" note in
  * DETAILED-SPEC.md §1.3.
  *
@@ -15,15 +15,15 @@ defined( 'ABSPATH' ) || exit;
 class BYZO_Slot_Generator {
 
 	/**
-	 * Regenerates the rolling window of slots for one resource.
+	 * Regenerates the rolling window of slots for one bookable item.
 	 *
-	 * @param int      $resource_id
+	 * @param int      $bookable_item_id
 	 * @param int|null $days_ahead Defaults to byzo_settings['max_advance_days'].
 	 * @return int Number of slot rows upserted.
 	 */
-	public static function generate_for_resource( $resource_id, $days_ahead = null ) {
-		$resource = BYZO_Resource::get( $resource_id );
-		if ( ! $resource || 'active' !== $resource['status'] ) {
+	public static function generate_for_bookable_item( $bookable_item_id, $days_ahead = null ) {
+		$item = BYZO_Bookable_Item::get( $bookable_item_id );
+		if ( ! $item || 'active' !== $item['status'] ) {
 			return 0;
 		}
 
@@ -31,7 +31,7 @@ class BYZO_Slot_Generator {
 		$days_ahead = null === $days_ahead ? (int) $settings['max_advance_days'] : (int) $days_ahead;
 		$days_ahead = max( 0, $days_ahead );
 
-		$availability = BYZO_Availability::get_for_resource( $resource_id );
+		$availability = BYZO_Availability::get_for_bookable_item( $bookable_item_id );
 		$schedules_by_weekday = array();
 		foreach ( $availability['schedules'] as $row ) {
 			$schedules_by_weekday[ (int) $row['weekday'] ][] = $row;
@@ -42,7 +42,7 @@ class BYZO_Slot_Generator {
 			$exceptions_by_date[ $row['date'] ][] = $row;
 		}
 
-		$duration_minutes = max( 1, (int) $resource['duration_minutes'] );
+		$duration_minutes = max( 1, (int) $item['duration_minutes'] );
 		$buffer_minutes   = max( 0, (int) $settings['buffer_minutes'] );
 		$min_advance      = new DateTime( '+' . max( 0, (int) $settings['min_advance_hours'] ) . ' hours', wp_timezone() );
 
@@ -85,16 +85,16 @@ class BYZO_Slot_Generator {
 			foreach ( $windows as list( $start_time, $end_time ) ) {
 				$slots = array_merge(
 					$slots,
-					self::build_day_slots( $resource, $date_str, $start_time, $end_time, $duration_minutes, $buffer_minutes, $min_advance )
+					self::build_day_slots( $item, $date_str, $start_time, $end_time, $duration_minutes, $buffer_minutes, $min_advance )
 				);
 			}
 		}
 
 		if ( $blocked_dates ) {
-			self::block_slots_on_dates( $resource_id, $blocked_dates );
+			self::block_slots_on_dates( $bookable_item_id, $blocked_dates );
 		}
 
-		return self::upsert_slots( $resource_id, $slots );
+		return self::upsert_slots( $bookable_item_id, $slots );
 	}
 
 	/**
@@ -105,15 +105,15 @@ class BYZO_Slot_Generator {
 	 * cancellation decision for a human, not something the generator
 	 * should do implicitly.
 	 */
-	private static function block_slots_on_dates( $resource_id, $dates ) {
+	private static function block_slots_on_dates( $bookable_item_id, $dates ) {
 		global $wpdb;
 
 		$table        = $wpdb->prefix . 'byzo_slots';
 		$placeholders = implode( ',', array_fill( 0, count( $dates ), '%s' ) );
 
 		$sql = $wpdb->prepare(
-			"UPDATE {$table} SET status = 'blocked' WHERE resource_id = %d AND status = 'open' AND DATE(start_datetime) IN ({$placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			array_merge( array( $resource_id ), $dates )
+			"UPDATE {$table} SET status = 'blocked' WHERE bookable_item_id = %d AND status = 'open' AND DATE(start_datetime) IN ({$placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			array_merge( array( $bookable_item_id ), $dates )
 		);
 
 		$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
@@ -123,7 +123,7 @@ class BYZO_Slot_Generator {
 	 * Builds slot rows for one open window on one date, honoring the
 	 * minimum-advance-notice cutoff.
 	 */
-	private static function build_day_slots( $resource, $date_str, $start_time, $end_time, $duration_minutes, $buffer_minutes, DateTime $min_advance ) {
+	private static function build_day_slots( $item, $date_str, $start_time, $end_time, $duration_minutes, $buffer_minutes, DateTime $min_advance ) {
 		$tz = wp_timezone();
 
 		$cursor = new DateTime( "{$date_str} {$start_time}", $tz );
@@ -140,10 +140,10 @@ class BYZO_Slot_Generator {
 
 			if ( $cursor >= $min_advance ) {
 				$slots[] = array(
-					'resource_id'         => $resource['id'],
+					'bookable_item_id'    => $item['id'],
 					'start_datetime'      => $cursor->format( 'Y-m-d H:i:s' ),
 					'end_datetime'        => $slot_end->format( 'Y-m-d H:i:s' ),
-					'capacity_remaining'  => max( 1, (int) $resource['capacity'] ),
+					'capacity_remaining'  => max( 1, (int) $item['capacity'] ),
 					'status'              => 'open',
 				);
 			}
@@ -155,7 +155,7 @@ class BYZO_Slot_Generator {
 	}
 
 	/**
-	 * Idempotent upsert keyed on (resource_id, start_datetime) — the
+	 * Idempotent upsert keyed on (bookable_item_id, start_datetime) — the
 	 * unique key from DETAILED-SPEC.md §1.3 / the activator's schema.
 	 * Re-running for a date range that already has slots must not
 	 * duplicate or clobber a slot that already has bookings against it
@@ -163,7 +163,7 @@ class BYZO_Slot_Generator {
 	 * never rewrites capacity_remaining/status on an existing row, since
 	 * those reflect live booking state the generator must not stomp on).
 	 */
-	private static function upsert_slots( $resource_id, $slots ) {
+	private static function upsert_slots( $bookable_item_id, $slots ) {
 		global $wpdb;
 
 		if ( empty( $slots ) ) {
@@ -176,10 +176,10 @@ class BYZO_Slot_Generator {
 		foreach ( $slots as $slot ) {
 			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name, not user input.
 			$sql = $wpdb->prepare(
-				"INSERT INTO {$table} (resource_id, start_datetime, end_datetime, capacity_remaining, status)
+				"INSERT INTO {$table} (bookable_item_id, start_datetime, end_datetime, capacity_remaining, status)
 				 VALUES (%d, %s, %s, %d, %s)
 				 ON DUPLICATE KEY UPDATE end_datetime = VALUES(end_datetime)",
-				$slot['resource_id'],
+				$slot['bookable_item_id'],
 				$slot['start_datetime'],
 				$slot['end_datetime'],
 				$slot['capacity_remaining'],
@@ -194,19 +194,19 @@ class BYZO_Slot_Generator {
 	}
 
 	/**
-	 * Regenerates slots for every active resource. Hooked to the
+	 * Regenerates slots for every active bookable item. Hooked to the
 	 * `byzo_generate_slots` cron event (registered in BYZO_Plugin).
 	 */
 	public static function generate_all() {
-		$resources = BYZO_Resource::query(
+		$items = BYZO_Bookable_Item::query(
 			array(
 				'status'   => 'active',
 				'per_page' => 100,
 			)
 		);
 
-		foreach ( $resources['items'] as $resource ) {
-			self::generate_for_resource( $resource['id'] );
+		foreach ( $items['items'] as $item ) {
+			self::generate_for_bookable_item( $item['id'] );
 		}
 	}
 

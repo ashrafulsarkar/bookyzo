@@ -142,7 +142,7 @@
   margin-top: 20px;
 }
 
-.bookyzo-widget .resource-list,
+.bookyzo-widget .bookable-item-list,
 .bookyzo-widget .date-list,
 .bookyzo-widget .slot-list {
   display: flex;

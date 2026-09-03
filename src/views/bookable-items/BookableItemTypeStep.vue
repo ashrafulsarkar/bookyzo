@@ -2,7 +2,7 @@
   <Card>
     <CardHeader>
       <CardTitle>What are you adding?</CardTitle>
-      <CardDescription>Choose what this resource books.</CardDescription>
+      <CardDescription>Choose what this bookable item is.</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-3">
       <label
@@ -13,7 +13,7 @@
           selected === type.value ? 'border-primary bg-accent' : 'border-border',
         ]"
       >
-        <input type="radio" name="resource_type" class="mt-1" :value="type.value" v-model="selected" />
+        <input type="radio" name="bookable_item_type" class="mt-1" :value="type.value" v-model="selected" />
         <span>
           <span class="block font-medium">{{ type.label }}</span>
           <span class="block text-sm text-muted-foreground">{{ type.description }}</span>
@@ -38,11 +38,11 @@ defineEmits(['selected']);
 // deliberately still 3 options here, not 4: Event needs its own
 // occurrence-based "Dates" tab and a slot-generator that skips it
 // entirely (ROADMAP.md Phase 1.5 step 5, not built yet) — creating an
-// Event resource today would fall through to the Availability/Exceptions
+// Event-type item today would fall through to the Availability/Exceptions
 // tabs and get real weekly-recurring slots generated for it, which
 // directly violates the decided architecture (DETAILED-SPEC.md §1.3:
-// "Event-type resources bypass the generator entirely... never wire
-// event resources into the weekly-schedule path"). Appointment/Table/Slot
+// "Event-type items bypass the generator entirely... never wire
+// event items into the weekly-schedule path"). Appointment/Table/Slot
 // all safely share that same weekly-schedule engine today, so those three
 // are real, functional choices — Event is added here once step 5 lands,
 // mirroring BookingTypeStep.vue's own "don't list a choice with nothing

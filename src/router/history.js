@@ -15,8 +15,8 @@
  * registered admin page (the sidebar's screens) get that page's real
  * slug, which keeps WP's own menu highlighting correct and every URL
  * bookmarkable. Routes with no admin page of their own (`/setup`,
- * `/resources/new`, `/resources/:id/edit`) are reached from inside the
- * app and ride along on their section's slug via a `view` parameter.
+ * `/bookable-items/new`, `/bookable-items/:id/edit`) are reached from
+ * inside the app and ride along on their section's slug via a `view` parameter.
  *
  * PHP hands over the boot route in `window.byzoAdmin.initialRoute` rather
  * than this file re-deriving it from the URL, so the slug→route map lives
@@ -35,15 +35,15 @@ const SLUG_FOR_ROUTE = {
   '/': 'bookyzo',
   '/calendar': 'bookyzo-calendar',
   '/bookings': 'bookyzo-bookings',
-  '/resources': 'bookyzo-resources',
+  '/bookable-items': 'bookyzo-bookable-items',
   '/settings/email-templates': 'bookyzo-emails',
   '/settings/payments': 'bookyzo-payments',
 };
 
 /**
  * The admin page a route should live under. A sub-route with no page of
- * its own stays on its section's page — so `/resources/new` keeps the
- * Resources row highlighted — by matching the longest route prefix that
+ * its own stays on its section's page — so `/bookable-items/new` keeps the
+ * Bookable Items row highlighted — by matching the longest route prefix that
  * does have one. Anything unmatched falls back to the top-level page.
  */
 function slugFor(route) {
@@ -192,7 +192,7 @@ export function createWpAdminHistory() {
   }
 
   // The URL WordPress served may not match the route the app is opening
-  // on — a sub-route reached by deep link (`?page=bookyzo-resources&view=/resources/new`)
+  // on — a sub-route reached by deep link (`?page=bookyzo-bookable-items&view=/bookable-items/new`)
   // is the normal case. Sync the highlight once on boot so it starts
   // consistent with what's actually rendered.
   syncMenuHighlight(location);

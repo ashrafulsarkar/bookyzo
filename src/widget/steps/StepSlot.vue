@@ -1,7 +1,7 @@
 <template>
   <div>
     <h2>Pick a time</h2>
-    <p>{{ resource.name }}</p>
+    <p>{{ item.name }}</p>
 
     <div v-if="loading" class="empty">Loading…</div>
     <div v-else-if="error" class="error">{{ error }}</div>
@@ -44,7 +44,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { getSlots } from '../api';
 
 const props = defineProps({
-  resource: { type: Object, required: true },
+  item: { type: Object, required: true },
 });
 const emit = defineEmits(['selected', 'back']);
 
@@ -87,7 +87,7 @@ watch(dates, (list) => {
 
 onMounted(async () => {
   try {
-    slots.value = await getSlots(props.resource.id);
+    slots.value = await getSlots(props.item.id);
   } catch (e) {
     error.value = e.message;
   } finally {

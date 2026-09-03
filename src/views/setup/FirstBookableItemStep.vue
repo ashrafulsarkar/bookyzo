@@ -6,8 +6,8 @@
     </CardHeader>
     <CardContent class="flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
-        <Label for="resource_name">Name</Label>
-        <Input id="resource_name" v-model="form.name" type="text" />
+        <Label for="item_name">Name</Label>
+        <Input id="item_name" v-model="form.name" type="text" />
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -23,7 +23,7 @@
 
       <p class="text-xs text-muted-foreground">
         Default hours (from your business profile) will be applied automatically — you can fine-tune the weekly
-        schedule from the Resources screen after setup.
+        schedule from the Bookable Items screen after setup.
       </p>
 
       <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
@@ -64,7 +64,7 @@ async function save() {
 
   saving.value = true;
   try {
-    const resource = await api.post('/resources', {
+    const item = await api.post('/bookable-items', {
       name: form.value.name,
       type: 'appointment',
       duration_minutes: form.value.duration_minutes,
@@ -73,22 +73,22 @@ async function save() {
       status: 'active',
     });
 
-    // Apply the business profile's default hours as this resource's
-    // starting weekly schedule (every day) — otherwise "Default hours
-    // will be applied automatically" above would be an empty promise,
-    // since a resource with no schedule generates zero bookable slots.
-    // The owner can trim days/hours from the Resources screen after setup.
+    // Apply the business profile's default hours as this item's starting
+    // weekly schedule (every day) — otherwise "Default hours will be
+    // applied automatically" above would be an empty promise, since a
+    // bookable item with no schedule generates zero bookable slots. The
+    // owner can trim days/hours from the Bookable Items screen after setup.
     const settings = await api.get('/settings');
     const schedules = Array.from({ length: 7 }, (_, weekday) => ({
       weekday,
       start_time: settings.default_start_time,
       end_time: settings.default_end_time,
     }));
-    await api.put(`/resources/${resource.id}/availability`, { schedules });
+    await api.put(`/bookable-items/${item.id}/availability`, { schedules });
 
     emit('finish');
   } catch (e) {
-    error.value = e.message || 'Could not create this resource.';
+    error.value = e.message || 'Could not create this bookable item.';
   } finally {
     saving.value = false;
   }

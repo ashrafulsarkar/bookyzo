@@ -45,14 +45,14 @@ class BYZO_Plugin {
 	private function load_includes() {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-capabilities.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-install-redirect.php';
-		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-resource.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-bookable-item.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-availability.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-slot-generator.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-slot.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-controller.php';
-		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-resources-controller.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-bookable-items-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-slots-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-bookings-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-settings-controller.php';
@@ -89,21 +89,21 @@ class BYZO_Plugin {
 		add_action( 'byzo_generate_slots', array( 'BYZO_Slot_Generator', 'generate_all' ) );
 
 		/**
-		 * Newly created/reactivated resources need their slots generated
-		 * immediately rather than waiting for the next daily cron tick —
-		 * otherwise a freshly onboarded business has an empty booking
-		 * widget for up to 24h.
+		 * Newly created/reactivated bookable items need their slots
+		 * generated immediately rather than waiting for the next daily
+		 * cron tick — otherwise a freshly onboarded business has an empty
+		 * booking widget for up to 24h.
 		 */
-		add_action( 'byzo_resource_created', array( $this, 'generate_slots_for_resource' ) );
-		add_action( 'byzo_resource_activated', array( $this, 'generate_slots_for_resource' ) );
+		add_action( 'byzo_bookable_item_created', array( $this, 'generate_slots_for_bookable_item' ) );
+		add_action( 'byzo_bookable_item_activated', array( $this, 'generate_slots_for_bookable_item' ) );
 	}
 
-	public function generate_slots_for_resource( $resource_id ) {
-		BYZO_Slot_Generator::generate_for_resource( $resource_id );
+	public function generate_slots_for_bookable_item( $bookable_item_id ) {
+		BYZO_Slot_Generator::generate_for_bookable_item( $bookable_item_id );
 	}
 
 	public function register_core_rest_controllers( $controllers ) {
-		$controllers[] = new BYZO_REST_Resources_Controller();
+		$controllers[] = new BYZO_REST_Bookable_Items_Controller();
 		$controllers[] = new BYZO_REST_Slots_Controller();
 		$controllers[] = new BYZO_REST_Bookings_Controller();
 		$controllers[] = new BYZO_REST_Settings_Controller();
@@ -181,8 +181,8 @@ class BYZO_Plugin {
 	 * Matches src/components/base/ByzoSidebar.vue's item list exactly —
 	 * keep the two in sync if a route is added/renamed/removed there.
 	 *
-	 * Routes the sidebar does not link to (`/setup`, `/resources/new`,
-	 * `/resources/:id/edit`) deliberately have no slug here: they are
+	 * Routes the sidebar does not link to (`/setup`, `/bookable-items/new`,
+	 * `/bookable-items/:id/edit`) deliberately have no slug here: they are
 	 * reached from inside the app, not from the WP menu, and the Vue
 	 * Router still owns them.
 	 *
@@ -205,10 +205,10 @@ class BYZO_Plugin {
 				'label' => __( 'Bookings', 'bookyzo' ),
 				'title' => __( 'Bookyzo Bookings', 'bookyzo' ),
 			),
-			'bookyzo-resources' => array(
-				'route' => '/resources',
-				'label' => __( 'Resources', 'bookyzo' ),
-				'title' => __( 'Bookyzo Resources', 'bookyzo' ),
+			'bookyzo-bookable-items' => array(
+				'route' => '/bookable-items',
+				'label' => __( 'Bookable Items', 'bookyzo' ),
+				'title' => __( 'Bookyzo Bookable Items', 'bookyzo' ),
 			),
 			'bookyzo-emails' => array(
 				'route' => '/settings/email-templates',

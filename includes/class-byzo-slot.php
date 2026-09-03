@@ -16,21 +16,21 @@ class BYZO_Slot {
 
 	/**
 	 * @param array $args {
-	 *     @type int    $resource_id Required.
-	 *     @type string $from        Y-m-d, defaults to today.
-	 *     @type string $to          Y-m-d, defaults to byzo_settings max_advance_days out.
-	 *     @type bool   $open_only   Default true — only 'open' slots with capacity_remaining > 0 (what the public widget needs). false = admin view, all statuses.
+	 *     @type int    $bookable_item_id Required.
+	 *     @type string $from             Y-m-d, defaults to today.
+	 *     @type string $to               Y-m-d, defaults to byzo_settings max_advance_days out.
+	 *     @type bool   $open_only        Default true — only 'open' slots with capacity_remaining > 0 (what the public widget needs). false = admin view, all statuses.
 	 * }
 	 * @return array|WP_Error
 	 */
 	public static function query( $args ) {
 		global $wpdb;
 
-		if ( empty( $args['resource_id'] ) ) {
-			return new WP_Error( 'byzo_missing_resource_id', __( 'resource_id is required.', 'bookyzo' ), array( 'status' => 400 ) );
+		if ( empty( $args['bookable_item_id'] ) ) {
+			return new WP_Error( 'byzo_missing_bookable_item_id', __( 'bookable_item_id is required.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
-		$resource_id = absint( $args['resource_id'] );
+		$bookable_item_id = absint( $args['bookable_item_id'] );
 
 		$from = ! empty( $args['from'] ) ? self::sanitize_date( $args['from'] ) : ( new DateTime( 'today', wp_timezone() ) )->format( 'Y-m-d' );
 		if ( ! $from ) {
@@ -53,8 +53,8 @@ class BYZO_Slot {
 
 		$open_only = ! isset( $args['open_only'] ) || (bool) $args['open_only'];
 
-		$where  = array( 'resource_id = %d', 'start_datetime >= %s', 'start_datetime < %s' );
-		$params = array( $resource_id, "{$from} 00:00:00", ( new DateTime( $to, wp_timezone() ) )->modify( '+1 day' )->format( 'Y-m-d' ) . ' 00:00:00' );
+		$where  = array( 'bookable_item_id = %d', 'start_datetime >= %s', 'start_datetime < %s' );
+		$params = array( $bookable_item_id, "{$from} 00:00:00", ( new DateTime( $to, wp_timezone() ) )->modify( '+1 day' )->format( 'Y-m-d' ) . ' 00:00:00' );
 
 		if ( $open_only ) {
 			$where[]  = "status = 'open'";
@@ -88,7 +88,7 @@ class BYZO_Slot {
 
 	private static function cast( $row ) {
 		$row['id']                  = (int) $row['id'];
-		$row['resource_id']         = (int) $row['resource_id'];
+		$row['bookable_item_id']    = (int) $row['bookable_item_id'];
 		$row['capacity_remaining']  = (int) $row['capacity_remaining'];
 		return $row;
 	}

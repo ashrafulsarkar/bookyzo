@@ -28,8 +28,8 @@ async function request(path, options = {}) {
   return data;
 }
 
-export const getPublicResources = (type) => request(`/resources/public${type ? `?type=${encodeURIComponent(type)}` : ''}`);
-export const getSlots = (resourceId) => request(`/slots?resource_id=${resourceId}`);
+export const getPublicBookableItems = (type) => request(`/bookable-items/public${type ? `?type=${encodeURIComponent(type)}` : ''}`);
+export const getSlots = (bookableItemId) => request(`/slots?bookable_item_id=${bookableItemId}`);
 export const createBooking = (payload) => request('/bookings', { method: 'POST', body: JSON.stringify(payload) });
 export const createBookingPaymentIntent = (bookingId, customerEmail) =>
   request(`/bookings/${bookingId}/payment-intent`, { method: 'POST', body: JSON.stringify({ customer_email: customerEmail }) });

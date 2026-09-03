@@ -61,7 +61,7 @@ class BYZO_Booking {
 	 *         after the slot row was deleted — see §1.4) are excluded when
 	 *         from/to is given, since they have no date to place on a
 	 *         calendar; they still show up in an unfiltered list.
-	 *     @type int    $resource_id
+	 *     @type int    $bookable_item_id
 	 *     @type string $status
 	 *     @type int    $per_page
 	 *     @type int    $page
@@ -71,12 +71,12 @@ class BYZO_Booking {
 		global $wpdb;
 
 		$defaults = array(
-			'from'        => '',
-			'to'          => '',
-			'resource_id' => 0,
-			'status'      => '',
-			'per_page'    => 20,
-			'page'        => 1,
+			'from'             => '',
+			'to'               => '',
+			'bookable_item_id' => 0,
+			'status'           => '',
+			'per_page'         => 20,
+			'page'             => 1,
 		);
 		$args = wp_parse_args( $args, $defaults );
 
@@ -86,9 +86,9 @@ class BYZO_Booking {
 		$where  = array( '1=1' );
 		$params = array();
 
-		if ( $args['resource_id'] ) {
-			$where[]  = 'b.resource_id = %d';
-			$params[] = (int) $args['resource_id'];
+		if ( $args['bookable_item_id'] ) {
+			$where[]  = 'b.bookable_item_id = %d';
+			$params[] = (int) $args['bookable_item_id'];
 		}
 
 		if ( $args['status'] && in_array( $args['status'], self::VALID_STATUSES, true ) ) {
@@ -276,30 +276,30 @@ class BYZO_Booking {
 
 		$now = current_time( 'mysql' );
 
-		// payment_amount is ALWAYS server-computed from the resource's own
-		// price, never taken from client input (validate_for_create()
+		// payment_amount is ALWAYS server-computed from the bookable item's
+		// own price, never taken from client input (validate_for_create()
 		// doesn't even look at a client-supplied payment_amount — see its
 		// docblock) — this is what BYZO_Stripe's payment-intent creation
 		// charges, so trusting a client-suppliable amount here would let a
 		// guest pay $0.01 for an expensive service. NULL price (a free
-		// resource, DETAILED-SPEC.md §1.1) means nothing to charge.
-		$resource        = BYZO_Resource::get( $slot['resource_id'] );
-		$payment_amount  = ( $resource && null !== $resource['price'] ) ? round( $resource['price'] * $party_size, 2 ) : null;
+		// item, DETAILED-SPEC.md §1.1) means nothing to charge.
+		$item            = BYZO_Bookable_Item::get( $slot['bookable_item_id'] );
+		$payment_amount  = ( $item && null !== $item['price'] ) ? round( $item['price'] * $party_size, 2 ) : null;
 
 		$row = array(
-			'slot_id'         => $slot['id'],
-			'resource_id'     => $slot['resource_id'],
-			'customer_name'   => $validated['customer_name'],
-			'customer_email'  => $validated['customer_email'],
-			'customer_phone'  => $validated['customer_phone'],
-			'customer_notes'  => $validated['customer_notes'],
-			'party_size'      => $party_size,
-			'status'          => 'pending',
-			'payment_status'  => 'unpaid',
-			'payment_amount'  => $payment_amount,
-			'custom_fields'   => wp_json_encode( $validated['custom_fields'] ),
-			'created_at'      => $now,
-			'updated_at'      => $now,
+			'slot_id'          => $slot['id'],
+			'bookable_item_id' => $slot['bookable_item_id'],
+			'customer_name'    => $validated['customer_name'],
+			'customer_email'   => $validated['customer_email'],
+			'customer_phone'   => $validated['customer_phone'],
+			'customer_notes'   => $validated['customer_notes'],
+			'party_size'       => $party_size,
+			'status'           => 'pending',
+			'payment_status'   => 'unpaid',
+			'payment_amount'   => $payment_amount,
+			'custom_fields'    => wp_json_encode( $validated['custom_fields'] ),
+			'created_at'       => $now,
+			'updated_at'       => $now,
 		);
 
 		$inserted = $wpdb->insert( self::table(), $row );
@@ -447,7 +447,7 @@ class BYZO_Booking {
 			'customer_notes' => isset( $data['customer_notes'] ) ? wp_kses_post( $data['customer_notes'] ) : null,
 			'party_size'     => $party_size,
 			// No 'payment_amount' here — see create()'s comment; it's
-			// always server-computed from the resource's price, never
+			// always server-computed from the bookable item's price, never
 			// accepted from client input.
 			'custom_fields'  => isset( $data['custom_fields'] ) && is_array( $data['custom_fields'] ) ? $data['custom_fields'] : array(),
 		);
@@ -497,7 +497,7 @@ class BYZO_Booking {
 	private static function cast( $row ) {
 		$row['id']             = (int) $row['id'];
 		$row['slot_id']        = $row['slot_id'] ? (int) $row['slot_id'] : null;
-		$row['resource_id']    = (int) $row['resource_id'];
+		$row['bookable_item_id'] = (int) $row['bookable_item_id'];
 		$row['party_size']     = (int) $row['party_size'];
 		$row['payment_amount'] = null === $row['payment_amount'] ? null : (float) $row['payment_amount'];
 		$row['custom_fields']  = $row['custom_fields'] ? json_decode( $row['custom_fields'], true ) : array();

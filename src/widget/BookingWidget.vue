@@ -4,11 +4,11 @@
       <span v-for="n in 4" :key="n" class="dot" :class="{ active: n <= step }" />
     </div>
 
-    <StepResource v-if="step === 1" :config="config" @selected="onResourceSelected" />
-    <StepSlot v-else-if="step === 2" :resource="selectedResource" @selected="onSlotSelected" @back="step = 1" />
+    <StepBookableItem v-if="step === 1" :config="config" @selected="onItemSelected" />
+    <StepSlot v-else-if="step === 2" :item="selectedItem" @selected="onSlotSelected" @back="step = 1" />
     <StepDetails
       v-else-if="step === 3"
-      :resource="selectedResource"
+      :item="selectedItem"
       :slot="selectedSlot"
       :submitting="submitting"
       :error="error"
@@ -18,28 +18,28 @@
     <!-- step 3.5: optional card payment, between "details submitted" and
          "confirmation" — only shown when Stripe is enabled AND this
          booking actually has something to charge (DETAILED-SPEC.md §A7:
-         a NULL-price resource has nothing to pay for at all). Using 3.5
+         a NULL-price item has nothing to pay for at all). Using 3.5
          (not a separate numbered step) keeps the 4-dot progress
          indicator's `n <= step` check lighting dots 1-3 correctly during
          this step, with dot 4 lighting only once payment is done/skipped
          and confirmation is reached — no dedicated 5th dot needed for
          what's an optional detour, not a required step. -->
     <StepPayment v-else-if="step === 3.5" :booking="createdBooking" @paid="step = 4" @skip="step = 4" />
-    <StepConfirmation v-else-if="step === 4" :booking="createdBooking" :resource="selectedResource" />
+    <StepConfirmation v-else-if="step === 4" :booking="createdBooking" :item="selectedItem" />
   </div>
 </template>
 
 <script setup>
 import { ref } from 'vue';
-import StepResource from './steps/StepResource.vue';
+import StepBookableItem from './steps/StepBookableItem.vue';
 import StepSlot from './steps/StepSlot.vue';
 import StepDetails from './steps/StepDetails.vue';
 import StepPayment from './steps/StepPayment.vue';
 import StepConfirmation from './steps/StepConfirmation.vue';
 import { createBooking } from './api';
 
-// 4-step flow per DETAILED-SPEC.md §A5: resource/service picker -> slot
-// picker -> contact form -> confirmation, with an optional payment
+// 4-step flow per DETAILED-SPEC.md §A5: bookable-item/service picker ->
+// slot picker -> contact form -> confirmation, with an optional payment
 // detour (step 3.5) between details and confirmation. One SPA-like
 // component tree, no page reloads between steps.
 const props = defineProps({
@@ -47,14 +47,14 @@ const props = defineProps({
 });
 
 const step = ref(1);
-const selectedResource = ref(null);
+const selectedItem = ref(null);
 const selectedSlot = ref(null);
 const submitting = ref(false);
 const error = ref('');
 const createdBooking = ref(null);
 
-function onResourceSelected(resource) {
-  selectedResource.value = resource;
+function onItemSelected(item) {
+  selectedItem.value = item;
   step.value = 2;
 }
 

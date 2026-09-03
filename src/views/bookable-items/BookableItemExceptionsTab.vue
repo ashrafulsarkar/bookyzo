@@ -68,7 +68,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { api } from '@/api/client';
 
 const props = defineProps({
-  resourceId: { type: [String, Number], required: true },
+  bookableItemId: { type: [String, Number], required: true },
 });
 
 const exceptions = ref([]);
@@ -86,7 +86,7 @@ const draft = ref({
 async function load() {
   loading.value = true;
   try {
-    const availability = await api.get(`/resources/${props.resourceId}/availability`);
+    const availability = await api.get(`/bookable-items/${props.bookableItemId}/availability`);
     exceptions.value = availability.exceptions;
   } catch (e) {
     error.value = e.message || 'Could not load exceptions.';
@@ -104,7 +104,7 @@ async function addException() {
       payload.start_time = draft.value.start_time;
       payload.end_time = draft.value.end_time;
     }
-    const result = await api.post(`/resources/${props.resourceId}/availability/exceptions`, payload);
+    const result = await api.post(`/bookable-items/${props.bookableItemId}/availability/exceptions`, payload);
     exceptions.value = result.exceptions;
     draft.value.date = '';
   } catch (e) {
@@ -116,7 +116,7 @@ async function addException() {
 
 async function removeException(id) {
   try {
-    const result = await api.delete(`/resources/${props.resourceId}/availability/exceptions/${id}`);
+    const result = await api.delete(`/bookable-items/${props.bookableItemId}/availability/exceptions/${id}`);
     exceptions.value = result.exceptions;
   } catch (e) {
     toast.error(e.message || 'Could not remove this exception.');

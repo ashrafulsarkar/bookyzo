@@ -30,7 +30,7 @@
               <Label :for="`body-${event.id}`">Body</Label>
               <Textarea :id="`body-${event.id}`" v-model="templates[event.id].body" rows="6" class="font-mono" />
               <p class="text-xs text-muted-foreground">
-                Placeholders: <code>{customer_name}</code> <code>{resource_name}</code> <code>{start_time}</code>
+                Placeholders: <code>{customer_name}</code> <code>{bookable_item_name}</code> <code>{start_time}</code>
                 <code>{business_name}</code>
               </p>
             </div>

@@ -2,18 +2,20 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * /resources and /resources/{id} — admin CRUD for the bookable entity
- * (staff/table/room/event/rental item). See DETAILED-SPEC.md §4.
+ * /bookable-items and /bookable-items/{id} — admin CRUD for the bookable
+ * entity (staff/table/room/event/rental item). See DETAILED-SPEC.md §4.
+ * Renamed from "resource"/"resources" 2026-09-03 — read as an unclear,
+ * overly technical term to end users.
  *
- * The per-type resource cap (Free = 1, DETAILED-SPEC.md §A9) is enforced
- * here via BYZO_Capabilities::max_resources_per_type(), not in the model —
+ * The per-type cap (Free = 1, DETAILED-SPEC.md §A9) is enforced here via
+ * BYZO_Capabilities::max_bookable_items_per_type(), not in the model —
  * this is the "one real capability check" the Guideline-5 rule requires,
  * Pro removes the limit purely by filtering the capability function.
  */
-class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
+class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 
 	protected function get_rest_base() {
-		return 'resources';
+		return 'bookable-items';
 	}
 
 	public function register_routes() {
@@ -41,9 +43,9 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 		);
 
 		// Public, read-only, whitelisted-fields listing for the booking
-		// widget's resource/service picker step (DETAILED-SPEC.md §A5)
+		// widget's bookable-item/service picker step (DETAILED-SPEC.md §A5)
 		// — a real gap found while building that step: the widget has
-		// no wp-admin session, so the main GET /resources route
+		// no wp-admin session, so the main GET /bookable-items route
 		// (admin_permissions_check) isn't reachable, and even if it
 		// were, it exposes internal fields (location_id, timestamps,
 		// etc.) a guest has no reason to see.
@@ -58,7 +60,7 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 					// `type` added 2026-09-03 (ROADMAP.md Phase 1.5 step 4)
 					// for the `[bookyzo_booking type="..."]` shortcode/block
 					// variant — filters the picker to one booking type
-					// instead of pinning to one specific resource.
+					// instead of pinning to one specific bookable item.
 					'args'                => array(
 						'type' => array( 'type' => 'string' ),
 					),
@@ -131,7 +133,7 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 	}
 
 	public function get_items( WP_REST_Request $request ) {
-		$result = BYZO_Resource::query(
+		$result = BYZO_Bookable_Item::query(
 			array(
 				'type'     => $request->get_param( 'type' ),
 				'status'   => $request->get_param( 'status' ),
@@ -147,13 +149,13 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 	}
 
 	/**
-	 * GET /resources/public — see the registration comment above.
+	 * GET /bookable-items/public — see the registration comment above.
 	 * Whitelists exactly the fields the booking widget needs; never
-	 * passes a raw resource row through, so a new internal column
+	 * passes a raw bookable-item row through, so a new internal column
 	 * added later doesn't accidentally leak to guests by default.
 	 */
 	public function get_public_items( WP_REST_Request $request ) {
-		$result = BYZO_Resource::query(
+		$result = BYZO_Bookable_Item::query(
 			array(
 				'status'   => 'active',
 				'type'     => $request->get_param( 'type' ),
@@ -162,16 +164,16 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 		);
 
 		$items = array_map(
-			static function ( $resource ) {
+			static function ( $item ) {
 				return array(
-					'id'                => $resource['id'],
-					'type'              => $resource['type'],
-					'name'              => $resource['name'],
-					'description'       => $resource['description'],
-					'photo_id'          => $resource['photo_id'],
-					'duration_minutes'  => $resource['duration_minutes'],
-					'price'             => $resource['price'],
-					'capacity'          => $resource['capacity'],
+					'id'                => $item['id'],
+					'type'              => $item['type'],
+					'name'              => $item['name'],
+					'description'       => $item['description'],
+					'photo_id'          => $item['photo_id'],
+					'duration_minutes'  => $item['duration_minutes'],
+					'price'             => $item['price'],
+					'capacity'          => $item['capacity'],
 				);
 			},
 			$result['items']
@@ -181,13 +183,13 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 	}
 
 	public function get_item( WP_REST_Request $request ) {
-		$resource = BYZO_Resource::get( (int) $request->get_param( 'id' ) );
+		$item = BYZO_Bookable_Item::get( (int) $request->get_param( 'id' ) );
 
-		if ( ! $resource ) {
-			return new WP_Error( 'byzo_not_found', __( 'Resource not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		if ( ! $item ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
-		return rest_ensure_response( $resource );
+		return rest_ensure_response( $item );
 	}
 
 	public function create_item( WP_REST_Request $request ) {
@@ -198,20 +200,20 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 			return $cap_check;
 		}
 
-		$id = BYZO_Resource::create( $request->get_json_params() );
+		$id = BYZO_Bookable_Item::create( $request->get_json_params() );
 
 		if ( is_wp_error( $id ) ) {
 			return $id;
 		}
 
 		/**
-		 * Fires after a new resource is created, so slots can be
+		 * Fires after a new bookable item is created, so slots can be
 		 * generated immediately rather than waiting for the next daily
 		 * cron tick (BYZO_Plugin hooks this to BYZO_Slot_Generator).
 		 */
-		do_action( 'byzo_resource_created', $id );
+		do_action( 'byzo_bookable_item_created', $id );
 
-		$response = rest_ensure_response( BYZO_Resource::get( $id ) );
+		$response = rest_ensure_response( BYZO_Bookable_Item::get( $id ) );
 		$response->set_status( 201 );
 
 		return $response;
@@ -222,36 +224,36 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 		$data = $request->get_json_params();
 
 		// Type is immutable after creation (DETAILED-SPEC.md §5 item 6:
-		// "changing type would orphan the resource's schedule/slots" — its
+		// "changing type would orphan the item's schedule/slots" — its
 		// existing wp_byzo_schedules rows or materialized wp_byzo_slots were
 		// built for the OLD type's booking model, e.g. an event's directly-
 		// entered occurrences vs. a table's weekly-recurring generator
-		// output). ResourceDetailsTab.vue shows type read-only; this is the
-		// real, honest enforcement behind that UI choice, not just a UI
+		// output). BookableItemDetailsTab.vue shows type read-only; this is
+		// the real, honest enforcement behind that UI choice, not just a UI
 		// suggestion a direct API call could quietly bypass.
 		if ( isset( $data['type'] ) ) {
-			$existing = BYZO_Resource::get( $id );
+			$existing = BYZO_Bookable_Item::get( $id );
 			if ( $existing && $existing['type'] !== $data['type'] ) {
 				return new WP_Error(
 					'byzo_type_immutable',
-					__( "A resource's booking type cannot be changed after creation.", 'bookyzo' ),
+					__( "A bookable item's booking type cannot be changed after creation.", 'bookyzo' ),
 					array( 'status' => 400 )
 				);
 			}
 		}
 
-		$result = BYZO_Resource::update( $id, $data );
+		$result = BYZO_Bookable_Item::update( $id, $data );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
 		}
 
-		return rest_ensure_response( BYZO_Resource::get( $id ) );
+		return rest_ensure_response( BYZO_Bookable_Item::get( $id ) );
 	}
 
 	public function delete_item( WP_REST_Request $request ) {
 		$id     = (int) $request->get_param( 'id' );
-		$result = BYZO_Resource::delete( $id );
+		$result = BYZO_Bookable_Item::delete( $id );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;
@@ -263,21 +265,21 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 	public function get_availability( WP_REST_Request $request ) {
 		$id = (int) $request->get_param( 'id' );
 
-		if ( ! BYZO_Resource::get( $id ) ) {
-			return new WP_Error( 'byzo_not_found', __( 'Resource not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		if ( ! BYZO_Bookable_Item::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
-		return rest_ensure_response( BYZO_Availability::get_for_resource( $id ) );
+		return rest_ensure_response( BYZO_Availability::get_for_bookable_item( $id ) );
 	}
 
 	/**
-	 * Replaces the resource's full weekly schedule. Body: `{ "schedules": [ { weekday, start_time, end_time, shift_group? } ] }`.
+	 * Replaces the bookable item's full weekly schedule. Body: `{ "schedules": [ { weekday, start_time, end_time, shift_group? } ] }`.
 	 */
 	public function update_availability( WP_REST_Request $request ) {
 		$id = (int) $request->get_param( 'id' );
 
-		if ( ! BYZO_Resource::get( $id ) ) {
-			return new WP_Error( 'byzo_not_found', __( 'Resource not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		if ( ! BYZO_Bookable_Item::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
 		$body      = $request->get_json_params();
@@ -291,9 +293,9 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 
 		// Schedule changed — regenerate now so stale slots (from the old
 		// hours) don't linger until the next nightly cron tick.
-		BYZO_Slot_Generator::generate_for_resource( $id );
+		BYZO_Slot_Generator::generate_for_bookable_item( $id );
 
-		return rest_ensure_response( BYZO_Availability::get_for_resource( $id ) );
+		return rest_ensure_response( BYZO_Availability::get_for_bookable_item( $id ) );
 	}
 
 	/**
@@ -302,8 +304,8 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 	public function add_availability_exception( WP_REST_Request $request ) {
 		$id = (int) $request->get_param( 'id' );
 
-		if ( ! BYZO_Resource::get( $id ) ) {
-			return new WP_Error( 'byzo_not_found', __( 'Resource not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		if ( ! BYZO_Bookable_Item::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
 		$result = BYZO_Availability::add_exception( $id, $request->get_json_params() );
@@ -313,9 +315,9 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 		}
 
 		// Blocks any already-materialized open slots on the new exception date.
-		BYZO_Slot_Generator::generate_for_resource( $id );
+		BYZO_Slot_Generator::generate_for_bookable_item( $id );
 
-		$response = rest_ensure_response( BYZO_Availability::get_for_resource( $id ) );
+		$response = rest_ensure_response( BYZO_Availability::get_for_bookable_item( $id ) );
 		$response->set_status( 201 );
 
 		return $response;
@@ -331,24 +333,24 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 			return $result;
 		}
 
-		return rest_ensure_response( BYZO_Availability::get_for_resource( $id ) );
+		return rest_ensure_response( BYZO_Availability::get_for_bookable_item( $id ) );
 	}
 
 	/**
-	 * Enforces BYZO_Capabilities::max_resources_per_type() by counting
-	 * active resources of that type. Free = 1, so the 2nd active resource
+	 * Enforces BYZO_Capabilities::max_bookable_items_per_type() by counting
+	 * active bookable items of that type. Free = 1, so the 2nd active item
 	 * of the same type is the real "hit the wall" moment described in
 	 * ROADMAP.md's Free -> Pro Conversion Strategy table — not a cosmetic
 	 * block, an honest count against a real (filterable) limit.
 	 */
 	private function check_type_cap( $type ) {
-		$max = BYZO_Capabilities::max_resources_per_type();
+		$max = BYZO_Capabilities::max_bookable_items_per_type();
 
 		if ( $max <= 0 || $max >= PHP_INT_MAX ) {
 			return true;
 		}
 
-		$existing = BYZO_Resource::query(
+		$existing = BYZO_Bookable_Item::query(
 			array(
 				'type'     => $type,
 				'status'   => 'active',
@@ -358,10 +360,10 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 
 		if ( $existing['total'] >= $max ) {
 			return new WP_Error(
-				'byzo_resource_limit_reached',
+				'byzo_bookable_item_limit_reached',
 				sprintf(
-					/* translators: %d: maximum number of active resources allowed */
-					__( 'You already have %d active resource of this type. Upgrade to add more.', 'bookyzo' ),
+					/* translators: %d: maximum number of active bookable items allowed */
+					__( 'You already have %d active bookable item of this type. Upgrade to add more.', 'bookyzo' ),
 					$max
 				),
 				array( 'status' => 403 )

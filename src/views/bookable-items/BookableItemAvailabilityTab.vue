@@ -2,7 +2,7 @@
   <Card class="max-w-xl">
     <CardHeader>
       <CardTitle>Weekly availability</CardTitle>
-      <CardDescription>When this resource can be booked, every week.</CardDescription>
+      <CardDescription>When this item can be booked, every week.</CardDescription>
     </CardHeader>
     <CardContent>
       <div v-if="loading" class="py-8 text-center text-sm text-muted-foreground">Loading…</div>
@@ -23,7 +23,7 @@ import ByzoWeeklyScheduleGrid from '@/components/base/ByzoWeeklyScheduleGrid.vue
 import { api } from '@/api/client';
 
 const props = defineProps({
-  resourceId: { type: [String, Number], required: true },
+  bookableItemId: { type: [String, Number], required: true },
 });
 
 const schedules = ref([]);
@@ -33,7 +33,7 @@ const saving = ref(false);
 async function load() {
   loading.value = true;
   try {
-    const availability = await api.get(`/resources/${props.resourceId}/availability`);
+    const availability = await api.get(`/bookable-items/${props.bookableItemId}/availability`);
     schedules.value = availability.schedules.map((s) => ({
       weekday: s.weekday,
       start_time: s.start_time.slice(0, 5),
@@ -50,7 +50,7 @@ async function load() {
 async function save() {
   saving.value = true;
   try {
-    await api.put(`/resources/${props.resourceId}/availability`, { schedules: schedules.value });
+    await api.put(`/bookable-items/${props.bookableItemId}/availability`, { schedules: schedules.value });
     toast.success('Availability saved.');
   } catch (e) {
     toast.error(e.message || 'Could not save availability.');

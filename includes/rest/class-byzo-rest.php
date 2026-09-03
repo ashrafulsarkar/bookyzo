@@ -3,7 +3,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * REST API bootstrapper. Owns the `rest_api_init` hook and instantiates
- * every concrete controller. Individual endpoints (/resources, /slots,
+ * every concrete controller. Individual endpoints (/bookable-items, /slots,
  * /bookings, ...) are added controller-by-controller starting Phase 0
  * step 3 — this step only stands up the namespace + registration pattern.
  */

@@ -24,12 +24,12 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 					'callback'            => array( $this, 'get_items' ),
 					'permission_callback' => array( $this, 'admin_permissions_check' ),
 					'args'                => array(
-						'from'        => array( 'type' => 'string' ),
-						'to'          => array( 'type' => 'string' ),
-						'resource_id' => array( 'type' => 'integer' ),
-						'status'      => array( 'type' => 'string' ),
-						'per_page'    => array( 'type' => 'integer', 'default' => 20 ),
-						'page'        => array( 'type' => 'integer', 'default' => 1 ),
+						'from'             => array( 'type' => 'string' ),
+						'to'               => array( 'type' => 'string' ),
+						'bookable_item_id' => array( 'type' => 'integer' ),
+						'status'           => array( 'type' => 'string' ),
+						'per_page'         => array( 'type' => 'integer', 'default' => 20 ),
+						'page'             => array( 'type' => 'integer', 'default' => 1 ),
 					),
 				),
 				array(
@@ -96,12 +96,12 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 	public function get_items( WP_REST_Request $request ) {
 		$result = BYZO_Booking::query(
 			array(
-				'from'        => $request->get_param( 'from' ),
-				'to'          => $request->get_param( 'to' ),
-				'resource_id' => $request->get_param( 'resource_id' ),
-				'status'      => $request->get_param( 'status' ),
-				'per_page'    => $request->get_param( 'per_page' ),
-				'page'        => $request->get_param( 'page' ),
+				'from'             => $request->get_param( 'from' ),
+				'to'               => $request->get_param( 'to' ),
+				'bookable_item_id' => $request->get_param( 'bookable_item_id' ),
+				'status'           => $request->get_param( 'status' ),
+				'per_page'         => $request->get_param( 'per_page' ),
+				'page'             => $request->get_param( 'page' ),
 			)
 		);
 

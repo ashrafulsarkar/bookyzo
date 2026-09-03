@@ -9,7 +9,7 @@ import './widget.css';
 // attributes, so instances never share state.
 document.querySelectorAll('.bookyzo-widget-mount').forEach((el) => {
   const config = {
-    resourceId: el.dataset.resourceId ? Number(el.dataset.resourceId) : null,
+    bookableItemId: el.dataset.bookableItemId ? Number(el.dataset.bookableItemId) : null,
     type: el.dataset.type || null,
   };
   createApp(BookingWidget, { config }).mount(el);

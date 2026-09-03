@@ -26,7 +26,7 @@ class BYZO_Stripe {
 	/**
 	 * Creates a Stripe PaymentIntent for a booking's server-computed
 	 * amount. Never accepts a client-supplied amount — booking['payment_amount']
-	 * was itself already server-computed from the resource's price at
+	 * was itself already server-computed from the bookable item's price at
 	 * booking-creation time (BYZO_Booking::create()).
 	 *
 	 * @return array|WP_Error { client_secret, payment_intent_id } on success.

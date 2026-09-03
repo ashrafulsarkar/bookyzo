@@ -3,7 +3,7 @@
     <div class="check">✓</div>
     <h2>Booking received</h2>
     <p>
-      We've received your booking for <strong>{{ resource?.name }}</strong>
+      We've received your booking for <strong>{{ item?.name }}</strong>
       <template v-if="booking?.slot_start">
         on {{ formatDate(booking.slot_start) }} at {{ formatTime(booking.slot_start) }}
       </template>.
@@ -15,7 +15,7 @@
 <script setup>
 defineProps({
   booking: { type: Object, default: null },
-  resource: { type: Object, default: null },
+  item: { type: Object, default: null },
 });
 
 function toLocalDate(iso) {

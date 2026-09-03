@@ -2,8 +2,8 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Data-access layer for a resource's availability: the recurring weekly
- * pattern (wp_byzo_schedules) and blackout/holiday overrides
+ * Data-access layer for a bookable item's availability: the recurring
+ * weekly pattern (wp_byzo_schedules) and blackout/holiday overrides
  * (wp_byzo_availability_exceptions). See DETAILED-SPEC.md §1.2.
  *
  * Free always writes shift_group = 0 (one shift/day, enforced here via
@@ -22,21 +22,21 @@ class BYZO_Availability {
 		return $wpdb->prefix . 'byzo_availability_exceptions';
 	}
 
-	public static function get_for_resource( $resource_id ) {
+	public static function get_for_bookable_item( $bookable_item_id ) {
 		global $wpdb;
 
 		$schedules = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT id, weekday, start_time, end_time, shift_group FROM ' . self::schedules_table() . ' WHERE resource_id = %d ORDER BY weekday ASC, shift_group ASC', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-				$resource_id
+				'SELECT id, weekday, start_time, end_time, shift_group FROM ' . self::schedules_table() . ' WHERE bookable_item_id = %d ORDER BY weekday ASC, shift_group ASC', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+				$bookable_item_id
 			),
 			ARRAY_A
 		);
 
 		$exceptions = $wpdb->get_results(
 			$wpdb->prepare(
-				'SELECT id, date, is_closed, start_time, end_time FROM ' . self::exceptions_table() . ' WHERE resource_id = %d OR resource_id IS NULL ORDER BY date ASC', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-				$resource_id
+				'SELECT id, date, is_closed, start_time, end_time FROM ' . self::exceptions_table() . ' WHERE bookable_item_id = %d OR bookable_item_id IS NULL ORDER BY date ASC', // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+				$bookable_item_id
 			),
 			ARRAY_A
 		);
@@ -48,16 +48,16 @@ class BYZO_Availability {
 	}
 
 	/**
-	 * Replaces the full weekly schedule for a resource (PUT semantics —
-	 * simplest correct model for a 7-day grid the Vue admin submits as a
+	 * Replaces the full weekly schedule for a bookable item (PUT semantics
+	 * — simplest correct model for a 7-day grid the Vue admin submits as a
 	 * whole, rather than per-row PATCHes). Delete + re-insert inside a
 	 * transaction-like pair of queries; wp_byzo_schedules is small per
-	 * resource (max 7 rows on Free, a few dozen on Pro) so this is cheap.
+	 * item (max 7 rows on Free, a few dozen on Pro) so this is cheap.
 	 *
 	 * @param array $rows Each: weekday (0-6), start_time (H:i or H:i:s), end_time, shift_group (optional, default 0).
 	 * @return true|WP_Error
 	 */
-	public static function set_schedules( $resource_id, $rows ) {
+	public static function set_schedules( $bookable_item_id, $rows ) {
 		global $wpdb;
 
 		$max_shifts   = BYZO_Capabilities::max_shifts_per_day();
@@ -99,15 +99,15 @@ class BYZO_Availability {
 			}
 
 			$validated[] = array(
-				'resource_id' => $resource_id,
-				'weekday'     => $weekday,
-				'start_time'  => $start,
-				'end_time'    => $end,
-				'shift_group' => $shift_group,
+				'bookable_item_id' => $bookable_item_id,
+				'weekday'          => $weekday,
+				'start_time'       => $start,
+				'end_time'         => $end,
+				'shift_group'      => $shift_group,
 			);
 		}
 
-		$wpdb->delete( self::schedules_table(), array( 'resource_id' => $resource_id ) );
+		$wpdb->delete( self::schedules_table(), array( 'bookable_item_id' => $bookable_item_id ) );
 
 		foreach ( $validated as $row ) {
 			$wpdb->insert( self::schedules_table(), $row );
@@ -121,7 +121,7 @@ class BYZO_Availability {
 	 *
 	 * @return int|WP_Error New exception ID, or WP_Error.
 	 */
-	public static function add_exception( $resource_id, $data ) {
+	public static function add_exception( $bookable_item_id, $data ) {
 		global $wpdb;
 
 		if ( empty( $data['date'] ) ) {
@@ -136,9 +136,9 @@ class BYZO_Availability {
 		$is_closed = ! isset( $data['is_closed'] ) || (bool) $data['is_closed'];
 
 		$row = array(
-			'resource_id' => $resource_id,
-			'date'        => $date,
-			'is_closed'   => $is_closed ? 1 : 0,
+			'bookable_item_id' => $bookable_item_id,
+			'date'             => $date,
+			'is_closed'        => $is_closed ? 1 : 0,
 		);
 
 		if ( ! $is_closed ) {
@@ -163,14 +163,14 @@ class BYZO_Availability {
 	/**
 	 * @return true|WP_Error
 	 */
-	public static function delete_exception( $resource_id, $exception_id ) {
+	public static function delete_exception( $bookable_item_id, $exception_id ) {
 		global $wpdb;
 
 		$deleted = $wpdb->delete(
 			self::exceptions_table(),
 			array(
-				'id'          => $exception_id,
-				'resource_id' => $resource_id,
+				'id'                => $exception_id,
+				'bookable_item_id'  => $bookable_item_id,
 			)
 		);
 

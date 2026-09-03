@@ -47,16 +47,16 @@ class BYZO_Booking_Export {
 	}
 
 	/**
-	 * @param array $raw Typically $_GET — from/to/resource_id/status, same shape BYZO_Booking::query() accepts.
+	 * @param array $raw Typically $_GET — from/to/bookable_item_id/status, same shape BYZO_Booking::query() accepts.
 	 */
 	public static function args_from_request( $raw ) {
 		return array(
-			'from'        => isset( $raw['from'] ) ? sanitize_text_field( wp_unslash( $raw['from'] ) ) : '',
-			'to'          => isset( $raw['to'] ) ? sanitize_text_field( wp_unslash( $raw['to'] ) ) : '',
-			'resource_id' => isset( $raw['resource_id'] ) ? absint( $raw['resource_id'] ) : 0,
-			'status'      => isset( $raw['status'] ) ? sanitize_text_field( wp_unslash( $raw['status'] ) ) : '',
-			'per_page'    => 100,
-			'page'        => 1,
+			'from'             => isset( $raw['from'] ) ? sanitize_text_field( wp_unslash( $raw['from'] ) ) : '',
+			'to'               => isset( $raw['to'] ) ? sanitize_text_field( wp_unslash( $raw['to'] ) ) : '',
+			'bookable_item_id' => isset( $raw['bookable_item_id'] ) ? absint( $raw['bookable_item_id'] ) : 0,
+			'status'           => isset( $raw['status'] ) ? sanitize_text_field( wp_unslash( $raw['status'] ) ) : '',
+			'per_page'         => 100,
+			'page'             => 1,
 		);
 	}
 
@@ -70,10 +70,10 @@ class BYZO_Booking_Export {
 	 * @return int Number of booking rows written.
 	 */
 	public static function stream_csv( $out, $args ) {
-		fputcsv( $out, array( 'ID', 'Customer Name', 'Customer Email', 'Customer Phone', 'Resource', 'Party Size', 'Date', 'Time', 'Status', 'Payment Status', 'Payment Amount' ) );
+		fputcsv( $out, array( 'ID', 'Customer Name', 'Customer Email', 'Customer Phone', 'Bookable Item', 'Party Size', 'Date', 'Time', 'Status', 'Payment Status', 'Payment Amount' ) );
 
-		$resources_by_id = self::resources_by_id();
-		$written         = 0;
+		$items_by_id = self::items_by_id();
+		$written     = 0;
 
 		// Paginates through BYZO_Booking::query() rather than one giant
 		// unbounded SELECT * — matches the same 100-per-page cap the
@@ -85,9 +85,9 @@ class BYZO_Booking_Export {
 			$result       = BYZO_Booking::query( $args );
 
 			foreach ( $result['items'] as $booking ) {
-				$resource_name = $resources_by_id[ $booking['resource_id'] ]['name'] ?? '';
-				$date          = '';
-				$time          = '';
+				$item_name = $items_by_id[ $booking['bookable_item_id'] ]['name'] ?? '';
+				$date      = '';
+				$time      = '';
 				if ( $booking['slot_start'] ) {
 					$start = new DateTime( $booking['slot_start'], wp_timezone() );
 					$date  = $start->format( 'Y-m-d' );
@@ -101,7 +101,7 @@ class BYZO_Booking_Export {
 						$booking['customer_name'],
 						$booking['customer_email'],
 						$booking['customer_phone'],
-						$resource_name,
+						$item_name,
 						$booking['party_size'],
 						$date,
 						$time,
@@ -119,11 +119,11 @@ class BYZO_Booking_Export {
 		return $written;
 	}
 
-	private static function resources_by_id() {
-		$all = BYZO_Resource::query( array( 'per_page' => 100 ) );
+	private static function items_by_id() {
+		$all = BYZO_Bookable_Item::query( array( 'per_page' => 100 ) );
 		$map = array();
-		foreach ( $all['items'] as $resource ) {
-			$map[ $resource['id'] ] = $resource;
+		foreach ( $all['items'] as $item ) {
+			$map[ $item['id'] ] = $item;
 		}
 		return $map;
 	}

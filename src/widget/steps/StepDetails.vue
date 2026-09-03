@@ -51,25 +51,26 @@
 import { reactive, computed } from 'vue';
 
 const props = defineProps({
-  resource: { type: Object, required: true },
+  item: { type: Object, required: true },
   slot: { type: Object, required: true },
   submitting: { type: Boolean, default: false },
   error: { type: String, default: '' },
 });
 defineEmits(['submit', 'back']);
 
-// Party size / quantity input for capacity>1 resources (DETAILED-SPEC.md
-// §A5) — hidden for Appointment (always 1), max = the chosen slot's
-// remaining capacity. The server re-validates this regardless
-// (BYZO_Booking::create()'s atomic capacity_remaining check), this is
-// only a UX guide against picking a number that's already known to fail.
+// Party size / quantity input for capacity>1 bookable items
+// (DETAILED-SPEC.md §A5) — hidden for Appointment (always 1), max = the
+// chosen slot's remaining capacity. The server re-validates this
+// regardless (BYZO_Booking::create()'s atomic capacity_remaining check),
+// this is only a UX guide against picking a number that's already known
+// to fail.
 const PARTY_SIZE_LABELS = {
   table: 'Party size',
   event: 'Tickets',
   slot: 'Spots',
 };
-const showPartySize = computed(() => props.resource.type !== 'appointment');
-const partySizeLabel = computed(() => PARTY_SIZE_LABELS[props.resource.type] || 'Party size');
+const showPartySize = computed(() => props.item.type !== 'appointment');
+const partySizeLabel = computed(() => PARTY_SIZE_LABELS[props.item.type] || 'Party size');
 const partySizeMax = computed(() => Math.max(1, props.slot.capacity_remaining || 1));
 
 const form = reactive({

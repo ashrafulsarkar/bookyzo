@@ -2,19 +2,21 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Data-access layer for wp_byzo_resources (DETAILED-SPEC.md §1.1). Plain
- * static methods over $wpdb rather than a full ORM/WP_Post shape — the
- * table is custom SQL by design (WooCommerce-independent core), and the
- * REST controller is the only caller for now so an ORM would be premature.
+ * Data-access layer for wp_byzo_bookable_items (DETAILED-SPEC.md §1.1;
+ * table/class renamed from "resource" 2026-09-03 — "resource" read as an
+ * unclear, overly technical term to end users). Plain static methods over
+ * $wpdb rather than a full ORM/WP_Post shape — the table is custom SQL by
+ * design (WooCommerce-independent core), and the REST controller is the
+ * only caller for now so an ORM would be premature.
  */
-class BYZO_Resource {
+class BYZO_Bookable_Item {
 
 	const VALID_TYPES    = array( 'appointment', 'table', 'event', 'slot' );
 	const VALID_STATUSES = array( 'active', 'inactive', 'archived' );
 
 	public static function table() {
 		global $wpdb;
-		return $wpdb->prefix . 'byzo_resources';
+		return $wpdb->prefix . 'byzo_bookable_items';
 	}
 
 	public static function get( $id ) {
@@ -30,7 +32,7 @@ class BYZO_Resource {
 
 	/**
 	 * @param array $args {
-	 *     @type string $type     Filter by resource type.
+	 *     @type string $type     Filter by booking type.
 	 *     @type string $status   Filter by status.
 	 *     @type int    $per_page Default 20, max 100.
 	 *     @type int    $page     1-indexed.
@@ -85,7 +87,7 @@ class BYZO_Resource {
 	}
 
 	/**
-	 * @return int|WP_Error New resource ID, or WP_Error on validation failure.
+	 * @return int|WP_Error New bookable item ID, or WP_Error on validation failure.
 	 */
 	public static function create( $data ) {
 		global $wpdb;
@@ -102,7 +104,7 @@ class BYZO_Resource {
 		$inserted = $wpdb->insert( self::table(), $validated );
 
 		if ( false === $inserted ) {
-			return new WP_Error( 'byzo_db_error', __( 'Could not create resource.', 'bookyzo' ) );
+			return new WP_Error( 'byzo_db_error', __( 'Could not create bookable item.', 'bookyzo' ) );
 		}
 
 		return (int) $wpdb->insert_id;
@@ -116,7 +118,7 @@ class BYZO_Resource {
 
 		$existing = self::get( $id );
 		if ( ! $existing ) {
-			return new WP_Error( 'byzo_not_found', __( 'Resource not found.', 'bookyzo' ), array( 'status' => 404 ) );
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
 		$validated = self::validate( $data, false );
@@ -133,18 +135,18 @@ class BYZO_Resource {
 		$updated = $wpdb->update( self::table(), $validated, array( 'id' => $id ) );
 
 		if ( false === $updated ) {
-			return new WP_Error( 'byzo_db_error', __( 'Could not update resource.', 'bookyzo' ) );
+			return new WP_Error( 'byzo_db_error', __( 'Could not update bookable item.', 'bookyzo' ) );
 		}
 
-		// Fires when a resource transitions INTO 'active' from something
-		// else (not on every save of an already-active resource) — this
-		// is the "reactivated" half of the doc comment on
-		// BYZO_Plugin::register_hooks()'s byzo_resource_activated
+		// Fires when a bookable item transitions INTO 'active' from
+		// something else (not on every save of an already-active item) —
+		// this is the "reactivated" half of the doc comment on
+		// BYZO_Plugin::register_hooks()'s byzo_bookable_item_activated
 		// listener; without this the listener was wired to an event that
-		// never actually fired, and reactivating an inactive resource
-		// silently generated no slots until the next nightly cron.
+		// never actually fired, and reactivating an inactive item silently
+		// generated no slots until the next nightly cron.
 		if ( isset( $validated['status'] ) && 'active' === $validated['status'] && 'active' !== $existing['status'] ) {
-			do_action( 'byzo_resource_activated', $id );
+			do_action( 'byzo_bookable_item_activated', $id );
 		}
 
 		return true;
@@ -157,7 +159,7 @@ class BYZO_Resource {
 		global $wpdb;
 
 		if ( ! self::get( $id ) ) {
-			return new WP_Error( 'byzo_not_found', __( 'Resource not found.', 'bookyzo' ), array( 'status' => 404 ) );
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
 		$wpdb->delete( self::table(), array( 'id' => $id ) );
@@ -177,16 +179,16 @@ class BYZO_Resource {
 		if ( isset( $data['name'] ) ) {
 			$name = sanitize_text_field( $data['name'] );
 			if ( '' === $name ) {
-				return new WP_Error( 'byzo_invalid_name', __( 'Resource name cannot be empty.', 'bookyzo' ), array( 'status' => 400 ) );
+				return new WP_Error( 'byzo_invalid_name', __( 'Bookable item name cannot be empty.', 'bookyzo' ), array( 'status' => 400 ) );
 			}
 			$out['name'] = $name;
 		} elseif ( $require_all ) {
-			return new WP_Error( 'byzo_missing_name', __( 'Resource name is required.', 'bookyzo' ), array( 'status' => 400 ) );
+			return new WP_Error( 'byzo_missing_name', __( 'Bookable item name is required.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
 		if ( isset( $data['type'] ) ) {
 			if ( ! in_array( $data['type'], self::VALID_TYPES, true ) ) {
-				return new WP_Error( 'byzo_invalid_type', __( 'Invalid resource type.', 'bookyzo' ), array( 'status' => 400 ) );
+				return new WP_Error( 'byzo_invalid_type', __( 'Invalid booking type.', 'bookyzo' ), array( 'status' => 400 ) );
 			}
 			$out['type'] = $data['type'];
 		} elseif ( $require_all ) {
@@ -227,7 +229,7 @@ class BYZO_Resource {
 
 		if ( isset( $data['status'] ) ) {
 			if ( ! in_array( $data['status'], self::VALID_STATUSES, true ) ) {
-				return new WP_Error( 'byzo_invalid_status', __( 'Invalid resource status.', 'bookyzo' ), array( 'status' => 400 ) );
+				return new WP_Error( 'byzo_invalid_status', __( 'Invalid bookable item status.', 'bookyzo' ), array( 'status' => 400 ) );
 			}
 			$out['status'] = $data['status'];
 		} elseif ( $require_all ) {

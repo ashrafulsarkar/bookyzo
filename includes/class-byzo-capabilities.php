@@ -10,16 +10,16 @@ defined( 'ABSPATH' ) || exit;
 class BYZO_Capabilities {
 
 	/**
-	 * How many resources of a single type Free allows active at once.
+	 * How many bookable items of a single type Free allows active at once.
 	 * Free = 1 (per FEATURES.md §A9). Pro overrides via the
-	 * `byzo_max_resources_per_type` filter to return an unlimited value.
+	 * `byzo_max_bookable_items_per_type` filter to return an unlimited value.
 	 */
-	public static function max_resources_per_type() {
-		return (int) apply_filters( 'byzo_max_resources_per_type', 1 );
+	public static function max_bookable_items_per_type() {
+		return (int) apply_filters( 'byzo_max_bookable_items_per_type', 1 );
 	}
 
 	/**
-	 * How many shifts per day a resource's weekly schedule may have.
+	 * How many shifts per day a bookable item's weekly schedule may have.
 	 * Free = 1 (FEATURES.md §A3). Pro overrides via
 	 * `byzo_max_shifts_per_day` — the schema (`shift_group` column)
 	 * already supports this in Free, only the UI/generation logic is gated.

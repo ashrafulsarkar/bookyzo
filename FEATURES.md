@@ -2,9 +2,11 @@
 
 **Positioning:** One WordPress plugin covering Appointment + Table + Event + Generic Slot booking. WooCommerce-independent core, with an optional WooCommerce bridge. Built for SMBs that currently juggle multiple booking tools.
 
-> **DIRECTION CHANGE 2026-09-02 (supersedes the original staged plan):** ALL FOUR booking types ship in the **Free** plugin together. Pro no longer gates booking types at all — Pro is extra features only (more resources per type, multi-shift, deposits, SMS/WhatsApp, self-service, analytics, and the type-specific Pro modules in B7). Free's per-type limit (one active resource per type) is the honest upgrade wall: 1 staff + 1 table + 1 event + 1 slot resource free; a 2nd of *any* type needs Pro.
+> **DIRECTION CHANGE 2026-09-02 (supersedes the original staged plan):** ALL FOUR booking types ship in the **Free** plugin together. Pro no longer gates booking types at all — Pro is extra features only (more bookable items per type, multi-shift, deposits, SMS/WhatsApp, self-service, analytics, and the type-specific Pro modules in B7). Free's per-type limit (one active bookable item per type) is the honest upgrade wall: 1 staff + 1 table + 1 event + 1 slot-type bookable item free; a 2nd of *any* type needs Pro.
 
 > **COMPETITOR GAP-FILL 2026-09-03:** cross-checked this spec against Bookly, Booking Calendar (wpdevelop), and Amelia — the three leading WordPress booking plugins — feature by feature (see the "Booking Plugin Ladder" audit). Added everything real that was missing: custom form field builder, seasonal pricing, cart checkout, timeline view, availability search, webhooks, marketing pixels, multi-user staff logins, tax handling, customer CSV import/export, bulk marketing campaigns, and multilingual content. One deliberate tier change: **booking confirmation's "add to calendar" link moved from Pro to Free** (A5) — all three competitors give this away free, so gating it was an unnecessary wall, not a real limit.
+
+> **ONBOARDING & DASHBOARD DEEPENED 2026-09-03:** user supplied a full onboarding-wizard + dashboard UX spec (welcome → type → booking details → availability → customer fields → pricing → confirmation/notifications → review → create → success → dashboard). Reconciled against Bookyzo's already-decided architecture rather than adopted verbatim — three real deviations, called out here so they're not missed on a skim: **(1)** the source spec's 7 booking-type options collapse onto Bookyzo's existing 4 (`Time Slot`→Slot, `Table Reservation`→Table, `Event/Ticket`→Event, `Room/Resource`→Slot, `Service`→ Appointment's own service field) — **`Custom Booking` (freeform user-defined types) is explicitly NOT adopted**, it would need a dynamic type system instead of the fixed `type` enum column every table/query is built around (§1.1); flag to the user if they actually want that later, it's a bigger architectural call than this pass makes alone. **(2)** the spec's flat "Availability" top-level nav item stays **bookable item-scoped** (a tab on each bookable item's edit screen, A2/A3) rather than becoming its own admin page — matches Bookyzo's existing bookable item-centric model, not the source spec's flatter one. **(3)** the spec's dashboard "Revenue" stat is added to **Free** (new A8) as one summed total for the period — Amelia's own free tier already does this (see the competitor audit above) — while the *breakdown* by bookable item/type/date-range stays Pro (B8), unchanged. Genuinely new (not a reconciliation, an actual gap): **auto-confirm vs. manual-approval** as a real Free setting (A4) — every booking previously always landed on `pending` with no way to skip that.
 
 **Stack:** WordPress plugin (PHP + custom DB tables), REST API, Vue 3 admin dashboard, optional WooCommerce integration, PayPal and Stripe for payments.
 
@@ -15,21 +17,32 @@
 The free version should be genuinely usable for a small single-location business, not a crippled demo. Goal: real value + a natural upgrade path.
 
 ### A1. Setup & Onboarding
-- Setup wizard on first activation: choose the FIRST booking type (real 4-option choice: Appointment / Table / Event / Slot — all four available on Free; more types can be added later from the Resources screen, the wizard just picks which one to start with)
-- Business profile (name, timezone, currency, working hours)
-- Guided resource creation (first staff/table/event walkthrough, copy and defaults matching the chosen type)
 
-### A2. Resource Management (Core)
-- **Type-first creation flow (decided 2026-09-02):** "Add New" starts with a booking-type picker (Appointment / Table / Event / Slot), THEN shows the type-specific form — the fields shown depend on the chosen type (see A9 for what each type's form needs). Type is fixed after creation (changing type would orphan the resource's schedule/slots).
-- Create/edit resources (staff, table, room, rental item, event — one core entity, type-specific fields)
-- All four booking types available on Free; **one active resource per type** (the Free cap — enforced centrally per A9, so up to 4 active resources total, one of each type)
-- Resource photo, description, short tags
+**Deepened 2026-09-03** from the 3-step version (type → business profile → first bookable item) into a fuller guided flow — the goal stated by the source spec holds exactly: *Install → Choose type → Configure → Create → Dashboard*, no settings-page dump on first activation.
+
+- **Welcome screen**: "Let's set up your first booking" — one line of framing before anything is asked.
+- **Type picker**: "What do you want to accept bookings for?" — the real 4-option choice (Appointment / Table / Event / Slot). More types (a 2nd bookable item of a different type) can be added later from Bookable Items → Add New; the wizard just picks which one to start with.
+- **Step 1 — Booking details**: name, description, duration, capacity, price — only the fields the chosen type actually needs, per the existing A2 per-type field matrix (already built, wizard now reuses it instead of a fixed "Staff Member 1" form).
+- **Step 2 — Availability**: weekly days + hours, buffer time, blackout dates, min/max advance window — the existing weekly-schedule grid (A3), now surfaced *during* the wizard instead of only reachable afterward via Bookable Items → Edit → Availability. Event-type bookable items skip this step entirely and land on their Dates tab instead (per A9's occurrence model — an event has no weekly schedule to configure).
+- **Step 3 — Customer information**: name and email are always required (can't be turned off — a booking is meaningless without them); phone can be toggled required/optional. **No custom-field UI shown here** — Free has no custom-field builder (that's B11/Pro), so the step must not tease one, per the Guideline-5 rule.
+- **Step 4 — Pricing**: free-or-paid toggle; if paid, price + currency (currency inherited from the business profile) + the new flat tax rate (A7). Payment-gateway choice defaults to whichever one gateway is configured (A7) — no gateway picker needed since Free only ever has one. Deposit/partial-payment is Pro and simply isn't shown, not shown-disabled.
+- **Step 5 — Confirmation & notifications**: auto-confirm vs. manual-approval toggle (new — see A4); "send confirmation email to customer" and "send notification email to admin" toggles (both default on — see A6); cancellation policy's single time-limit rule (A4, e.g. "allow cancellation up to 24h before"). Kept to these essentials on purpose — anything beyond this (multiple reminder timings, SMS, visual template editing) stays in Settings for later, not the wizard.
+- **Review**: a plain summary card of everything just configured (e.g. "Appointment · 30 minutes · Mon–Fri 9:00–17:00 · $25") before the final create action.
+- **Create**: saves the settings and creates the first bookable item + its schedule in one action (already how `FirstBookableItemStep` works today — extended to also write availability/pricing/notification settings instead of just business-profile defaults).
+- **Success screen**: "Your booking is ready!" with next actions — View Dashboard, Manage Booking, View Booking Form (copies the bookable item's shortcode, A5), Add Another Booking Type (re-enters the type picker for a *different* type — a 2nd bookable item of the *same* type still needs Pro, per A9's cap).
+- Business profile (name, timezone, currency, working hours) collected once, upfront, before the type-specific steps — unchanged from the current wizard.
+
+### A2. Bookable Item Management (Core)
+- **Type-first creation flow (decided 2026-09-02):** "Add New" starts with a booking-type picker (Appointment / Table / Event / Slot), THEN shows the type-specific form — the fields shown depend on the chosen type (see A9 for what each type's form needs). Type is fixed after creation (changing type would orphan the bookable item's schedule/slots).
+- Create/edit bookable items (staff, table, room, rental item, event — one core entity, type-specific fields)
+- All four booking types available on Free; **one active bookable item per type** (the Free cap — enforced centrally per A9, so up to 4 active bookable items total, one of each type)
+- Bookable Item photo, description, short tags
 - Capacity setting (1 person / N people) — editable for Table (seats), Event (total tickets/seats) and Slot; fixed at 1 for Appointment (one-on-one by definition)
-- Resource status (active/inactive/archived)
-- Resources list shows each resource's own copyable shortcode (see A5) plus a type column/filter
+- Bookable Item status (active/inactive/archived)
+- Bookable Items list shows each bookable item's own copyable shortcode (see A5) plus a type column/filter
 
 ### A3. Availability Engine
-- Weekly recurring schedule per resource
+- Weekly recurring schedule per bookable item
 - Holiday / blackout date exceptions
 - One shift/time-block per day (Free); multiple shifts reserved for Pro
 - Minimum advance booking notice (e.g. "must book at least 2 hours ahead")
@@ -41,25 +54,27 @@ The free version should be genuinely usable for a small single-location business
 - Unified calendar view (day/week/month)
 - Manual booking creation/edit from admin (for phone/walk-in bookings)
 - Booking statuses: pending, confirmed, completed, cancelled, no-show
-- Basic booking list with filters (date, status, resource)
+- **Auto-confirm vs. manual approval (added 2026-09-03):** a site-wide `byzo_settings` toggle, set during onboarding (A1) or later in Settings. Manual approval (default) creates every booking as `pending`, same as today. Auto-confirm creates it straight as `confirmed`, skipping the admin-review step — for businesses with no capacity/legitimacy concerns who find manual approval pure friction. Per-bookable item override is a natural Pro extension (not built now — flag if it comes up).
+- Basic booking list with filters (date, status, bookable item)
 - Single cancellation policy (fixed time-limit rule)
 
 ### A5. Customer-Facing Booking Widget
 - Gutenberg block + shortcode for the booking form
-- **Per-resource shortcodes (decided 2026-09-02):** every bookable resource gets its own shortcode (`[bookyzo_booking resource_id="X"]`, pins the widget to that resource and skips the picker step), displayed with a copy button in the Resources list — Contact-Form-7 style. Also: `[bookyzo_booking type="table"]` (picker filtered to one type) and bare `[bookyzo_booking]` (all active resources). The Gutenberg block gets the same resource/type selection.
-- Multi-step booking flow (select resource/service → pick slot → enter details → confirm)
-- **Party size / quantity input** for capacity>1 resources (Table: "Party size", Event: "Tickets", Slot: "Spots") — capped by the slot's remaining capacity; hidden entirely for Appointment (always 1). Widget labels are type-aware.
+- **Per-bookable item shortcodes (decided 2026-09-02):** every bookable item gets its own shortcode (`[bookyzo_booking bookable_item_id="X"]`, pins the widget to that bookable item and skips the picker step), displayed with a copy button in the Bookable Items list — Contact-Form-7 style. Also: `[bookyzo_booking type="table"]` (picker filtered to one type) and bare `[bookyzo_booking]` (all active bookable items). The Gutenberg block gets the same bookable item/type selection.
+- Multi-step booking flow (select bookable item/service → pick slot → enter details → confirm)
+- **Party size / quantity input** for capacity>1 bookable items (Table: "Party size", Event: "Tickets", Slot: "Spots") — capped by the slot's remaining capacity; hidden entirely for Appointment (always 1). Widget labels are type-aware.
 - Guest checkout (no account required)
 - Basic custom form fields (name, email, phone, notes)
 - Mobile-responsive booking widget
-- Elementor widget, in addition to the Gutenberg block — same resource/type selection
-- Translation-ready (WPML / Loco Translate compatible, ships with a .pot file) — this covers UI strings; translating the site owner's own service/category/resource *content* per visitor language is a Pro feature (B11)
+- Elementor widget, in addition to the Gutenberg block — same bookable item/type selection
+- Translation-ready (WPML / Loco Translate compatible, ships with a .pot file) — this covers UI strings; translating the site owner's own service/category/bookable item *content* per visitor language is a Pro feature (B11)
 
 ### A6. Notifications
 - Email confirmation on booking
 - Email reminder (single, fixed timing — e.g. 24h before)
 - Email cancellation notice
 - Basic email template editing (text only, no visual builder)
+- **Admin notification email on new booking (added 2026-09-03)**, togglable (default on) — separate from B5's Pro "real-time in-app alerts": this is a plain email to the business owner, that stays Free; a live toast/badge in the admin UI is the Pro upgrade on top of it.
 - **"Add to calendar" link (Google / Outlook / .ics) on the booking confirmation** — moved here from Pro on 2026-09-03: Bookly, Booking Calendar, and Amelia all give this away free, so gating a single per-booking calendar link isn't a real limit
 
 ### A7. Payments
@@ -68,20 +83,38 @@ The free version should be genuinely usable for a small single-location business
 - No deposits/partial payments on Free (Pro feature)
 - Optional flat tax/VAT rate, applied site-wide to every booking (single percentage — per-service/per-region rules are Pro, see B6)
 
-### A8. Basic Reporting
-- Total bookings count (day/week/month)
-- Simple booking list export (CSV)
+### A8. Dashboard
+
+**Expanded 2026-09-03** from a bare count widget into the plugin's real home screen — what an admin sees immediately after Setup finishes, and every time they open Bookyzo afterward.
+
+- **Welcome header**: current setup at a glance — the bookable item's type, schedule summary, and price (e.g. "Appointment · Mon–Fri 9:00–17:00 · $25"), pulled from existing bookable item/settings data, no new schema.
+- **Stat cards**: Total Bookings, Today's Bookings, Pending, Confirmed — already shipped (`BYZO_Reports::get_dashboard_summary()`) — plus **Revenue (this period), added 2026-09-03**: one summed total (`SUM(payment_amount)` for paid bookings in the period), not a breakdown. Matches Amelia's own free-tier precedent (see the competitor audit) — the per-bookable item/per-type/date-range *breakdown* stays Pro (B8), only the single total is Free.
+- **Upcoming bookings widget**: next N bookings across every active bookable item — date, time, customer, booking type, status, payment, quick actions (same row shape as the full Bookings list, just capped and unfiltered) — a summary, not a replacement for the full A4 booking list/calendar.
+- Simple booking list export (CSV) — unchanged.
+
+### Admin Navigation (Free, documented 2026-09-03)
+
+Bookyzo's admin IA, reconciled against the source onboarding spec's flatter nav (see the callout at the top of this doc for what changed and why):
+
+- **Dashboard** — A8 above
+- **Bookings** — All Bookings (A4 list) · Calendar (A4) · Add Booking (manual entry)
+- **Bookable Items** — one screen for every booking type, with the existing type column/filter (A2) standing in for the source spec's separate "Appointments / Time Slots / Table Reservations / Events" menu items — Bookyzo's four types share one screen, not four
+- **Customers** — A10
+- **Payments** — payment gateway settings (A7)
+- **Notifications** — email template settings (A6)
+- **Settings** — business profile, tax rate, auto-confirm toggle, cancellation policy
+- **Availability is NOT its own top-level item** — it stays a tab on each bookable item's edit screen (A2/A3), since Bookyzo's model is bookable item-scoped, not one shared business-wide calendar of availability rules
 
 ### A9. Type-Specific Free Scope
 
-All four types are IN Free (direction change 2026-09-02). Free's cap is **one active resource per type**, and each type's Free scope is deliberately basic:
+All four types are IN Free (direction change 2026-09-02). Free's cap is **one active bookable item per type**, and each type's Free scope is deliberately basic:
 
 - **Appointment:** 1 staff member, 1 service, fixed duration, capacity fixed at 1. Weekly recurring schedule.
 - **Table:** 1 table, capacity = seats, single service window (one shift/day — e.g. dinner only), party-size booking, no floor plan visual. Weekly recurring schedule.
-- **Event:** 1 event, single ticket tier (one flat price), capacity = total seats/tickets, quantity booking, no QR check-in. **One-off dated occurrences, NOT a weekly schedule** — an event happens on specific date(s), so event resources use direct occurrence entry (a "Dates" tab) instead of the weekly availability grid; each occurrence is materialized straight into the slots table.
+- **Event:** 1 event, single ticket tier (one flat price), capacity = total seats/tickets, quantity booking, no QR check-in. **One-off dated occurrences, NOT a weekly schedule** — an event happens on specific date(s), so event bookable items use direct occurrence entry (a "Dates" tab) instead of the weekly availability grid; each occurrence is materialized straight into the slots table.
 - **Slot:** 1 bookable item, basic fixed-duration slots, capacity = spots per slot, no recurring class series. Weekly recurring schedule.
 
-The per-type cap (1 resource per type) stays enforced centrally via `BYZO_Capabilities::max_resources_per_type()` — a real filterable capability, never scattered checks or visible locks (Guideline 5 rule, see `.claude/skills/bookyzo-dev/SKILL.md`).
+The per-type cap (1 bookable item per type) stays enforced centrally via `BYZO_Capabilities::max_bookable_items_per_type()` — a real filterable capability, never scattered checks or visible locks (Guideline 5 rule, see `.claude/skills/bookyzo-dev/SKILL.md`).
 
 ### A10. Customer Management
 - Customer list auto-populated from bookings, searchable and sortable
@@ -94,16 +127,16 @@ The per-type cap (1 resource per type) stays enforced centrally via `BYZO_Capabi
 Pro should unlock everything a growing/multi-location business actually needs — the things that create real operational pain when missing.
 
 ### B1. Multi-Everything
-- **Unlimited resources per type** (multiple staff, multiple tables, multiple events, multiple bookable items — Free allows exactly one of each; this is the primary volume-based upgrade wall, hit the day a business hires a 2nd staff member or adds a 2nd table)
-- ~~All booking types active at once~~ — **moved to Free 2026-09-02.** All four types are Free now; Pro's differentiator is depth per type (unlimited resources + the B7 type-specific modules), not type access.
+- **Unlimited bookable items per type** (multiple staff, multiple tables, multiple events, multiple bookable items — Free allows exactly one of each; this is the primary volume-based upgrade wall, hit the day a business hires a 2nd staff member or adds a 2nd table)
+- ~~All booking types active at once~~ — **moved to Free 2026-09-02.** All four types are Free now; Pro's differentiator is depth per type (unlimited bookable items + the B7 type-specific modules), not type access.
 - Multi-location/multi-branch support with per-location schedules
-- Resource grouping/categories
-- Multi-user staff logins — link a WordPress user account to a resource so a staff member or branch manager can log in and see/manage only their own bookings (mirrors Booking Calendar's MultiUser edition)
+- Bookable Item grouping/categories
+- Multi-user staff logins — link a WordPress user account to a bookable item so a staff member or branch manager can log in and see/manage only their own bookings (mirrors Booking Calendar's MultiUser edition)
 
 ### B2. Advanced Availability
 - Multiple shifts per day (e.g. lunch + dinner service windows)
 - Per-staff individual schedules that differ from the business default
-- Custom availability rules per resource (overrides)
+- Custom availability rules per bookable item (overrides)
 - Recurring bookings (weekly class, monthly appointment series)
 - Waitlist with automatic notification when a slot opens up
 - Group bookings (multiple attendees under one booking)
@@ -113,9 +146,9 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Bulk actions (bulk cancel, bulk status change)
 - Booking notes/internal tags (staff-only visibility)
 - Customer booking history and profile (repeat customer detection)
-- Multiple cancellation/refund policy tiers (flexible per resource type)
-- Timeline view — all resources of a type shown as rows with time across the top, for scanning multi-resource availability at a glance (only useful once Pro's unlimited resources are in play)
-- Availability search — customers filter bookable resources by date, capacity, or tags once more than one resource of a type exists
+- Multiple cancellation/refund policy tiers (flexible per bookable item type)
+- Timeline view — all bookable items of a type shown as rows with time across the top, for scanning multi-bookable item availability at a glance (only useful once Pro's unlimited bookable items are in play)
+- Availability search — customers filter bookable items by date, capacity, or tags once more than one bookable item of a type exists
 - Export the customer list to CSV, including each customer's booking and payment history
 
 ### B4. Customer Account & Self-Service
@@ -138,7 +171,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Package/membership pre-purchase (buy 10 sessions, redeem over time)
 - Automated refund handling on cancellation
 - Seasonal/dynamic pricing — different price by date range, day of week, or booking lead time (early-bird and last-minute rate adjustments)
-- Cart checkout — book multiple resources, services, or event tickets in one transaction and pay once
+- Cart checkout — book multiple bookable items, services, or event tickets in one transaction and pay once
 - Per-service or per-region tax/VAT rules, with the rate broken out on the invoice (Free covers one flat site-wide rate, see A7)
 
 ### B7. Type-Specific Pro Modules
@@ -165,23 +198,23 @@ Pro should unlock everything a growing/multi-location business actually needs �
 #### Slot/Class Pro
 - Recurring class series (e.g. weekly yoga class with a fixed roster)
 - Class package redemption (use credits from a pre-purchased pack)
-- Instructor/resource rotation for recurring series
+- Instructor/bookable item rotation for recurring series
 
 ### B8. Advanced Analytics & Reporting
-- Revenue dashboard (by resource, by booking type, by date range)
+- Revenue dashboard (by bookable item, by booking type, by date range)
 - Occupancy rate / utilization rate
 - No-show rate tracking and trends
 - Customer retention/repeat-booking metrics
 - Exportable reports (CSV, scheduled email reports)
 
 ### B9. Integrations
-- WooCommerce bridge (map resources to WC products, use WC cart/checkout, reuse WC payment gateways)
+- WooCommerce bridge (map bookable items to WC products, use WC cart/checkout, reuse WC payment gateways)
 - Zapier/Make integration
 - REST API access for custom integrations
 - Google Calendar / Outlook two-way sync
 - Webhooks — fire an HTTP callback on booking created/updated/cancelled/completed for custom integrations
 - Marketing pixel integration (Facebook Pixel, Google Analytics, Google Tag Manager) on the booking widget
-- Subscribable calendar feed — one .ics URL covering all of a resource's (or the whole business's) bookings, for feeding into Airbnb/Booking.com-style external calendars
+- Subscribable calendar feed — one .ics URL covering all of a bookable item's (or the whole business's) bookings, for feeding into Airbnb/Booking.com-style external calendars
 
 ### B10. Branding & Customization
 - White-label booking widget (remove plugin branding)
@@ -190,7 +223,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 
 ### B11. Advanced Form Builder & Localization
 - Custom form field builder — add arbitrary fields (dropdown, checkbox, file upload, number, date, address with a Google Maps link) beyond Free's fixed name/email/phone/notes set; fields can be scoped per-service and shown conditionally
-- Multilingual booking-facing content — translate service, category, resource, and event names per visitor language (this is translating the site owner's own content; UI-string translation via WPML/Loco Translate already works in Free, see A5)
+- Multilingual booking-facing content — translate service, category, bookable item, and event names per visitor language (this is translating the site owner's own content; UI-string translation via WPML/Loco Translate already works in Free, see A5)
 
 ### B12. Multi-Site / Agency Features (higher tier)
 - License covering multiple client sites
@@ -202,11 +235,11 @@ Pro should unlock everything a growing/multi-location business actually needs �
 
 **REVISED 2026-09-02** — the original plan shipped one booking type at a time (Appointment Free → Appointment Pro → add types one by one). Superseded: all four types now go into Free BEFORE the first WordPress.org submission, and the "all-in-one" positioning is the launch story from day one, not a later phase.
 
-1. ✅ **Core engine only** — Resource, Availability, Slot, Booking entities + REST API + Vue admin shell (no public release) — DONE 2026-09-02
-2. ✅ **Appointment built first as the reference implementation** — full vertical slice (wizard → resource → availability → calendar → widget → notifications → payments → reporting) proving the engine end to end — DONE 2026-09-02 (ROADMAP.md Phase 1)
-3. **Extend Free to all four types** (ROADMAP.md Phase 1.5): type-first Add New flow, per-resource shortcodes, capacity/party-size plumbing, Event's one-off date mode, type-aware widget/emails/copy, plus the standing Free gaps (cancellation policy, resource photo). This happens BEFORE submission — the WP.org listing leads with "all-in-one" from its first day.
+1. ✅ **Core engine only** — Bookable Item, Availability, Slot, Booking entities + REST API + Vue admin shell (no public release) — DONE 2026-09-02
+2. ✅ **Appointment built first as the reference implementation** — full vertical slice (wizard → bookable item → availability → calendar → widget → notifications → payments → reporting) proving the engine end to end — DONE 2026-09-02 (ROADMAP.md Phase 1)
+3. **Extend Free to all four types** (ROADMAP.md Phase 1.5): type-first Add New flow, per-bookable item shortcodes, capacity/party-size plumbing, Event's one-off date mode, type-aware widget/emails/copy, plus the standing Free gaps (cancellation policy, bookable item photo). This happens BEFORE submission — the WP.org listing leads with "all-in-one" from its first day.
 4. **Submit Free to WordPress.org** — readme/screenshots/plugin-check redone for the four-type positioning
-5. **Add Pro tier** — extra features only, across all types (unlimited resources per type, multi-shift, deposits, SMS/WhatsApp, self-service, analytics, and the B7 type-specific modules) — validate people will actually pay
+5. **Add Pro tier** — extra features only, across all types (unlimited bookable items per type, multi-shift, deposits, SMS/WhatsApp, self-service, analytics, and the B7 type-specific modules) — validate people will actually pay
 6. **WooCommerce bridge** as a separate optional add-on once core is stable
 7. **Agency/multi-site tier** last, once there's a base of paying single-site customers
 

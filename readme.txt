@@ -39,7 +39,7 @@ Add `[bookyzo_booking]` anywhere with the shortcode, or use the **Booking Form**
 
 = Email notifications =
 
-Automatic emails when a booking is received, confirmed or cancelled, plus a reminder email sent the day before the appointment. Every email's subject and body is a plain-text template you can edit yourself, with placeholders for the customer's name, the resource, the appointment time and your business name.
+Automatic emails when a booking is received, confirmed or cancelled, plus a reminder email sent the day before the appointment. Every email's subject and body is a plain-text template you can edit yourself, with placeholders for the customer's name, the bookable item, the appointment time and your business name.
 
 = Payments =
 
@@ -77,7 +77,7 @@ Yes. Booking is a guest checkout by default — a customer only needs to give th
 
 = Can I edit the confirmation and reminder emails? =
 
-Yes, from **Bookyzo → Emails** in the admin panel. Every email is a plain-text template with placeholders for the customer's name, the resource, the appointment time and your business name.
+Yes, from **Bookyzo → Emails** in the admin panel. Every email is a plain-text template with placeholders for the customer's name, the bookable item, the appointment time and your business name.
 
 = How do reminder emails work? =
 
@@ -89,12 +89,12 @@ No. Every feature listed above is fully usable with no artificial limits, nag sc
 
 = What happens if I need more than one staff member or more than one booking type? =
 
-Free supports one active staff member (or table/event/slot resource, once those types ship) at a time. This maps to when most small businesses genuinely need to upgrade — hiring a second staff member, adding a second service, wanting SMS reminders instead of just email. A Pro version with these is planned for a future release.
+Free supports one active staff member (or table/event/slot bookable item, once those types ship) per type at a time. This maps to when most small businesses genuinely need to upgrade — hiring a second staff member, adding a second service, wanting SMS reminders instead of just email. A Pro version with these is planned for a future release.
 
 == Screenshots ==
 
 1. The booking calendar — day/week/month view, color-coded by booking status.
-2. The staff/resource edit screen — details, weekly availability and date exceptions.
+2. The staff/bookable item edit screen — details, weekly availability and date exceptions.
 3. The customer-facing booking widget — pick a time, enter details, confirm.
 4. The booking list with filters and CSV export.
 5. The Dashboard showing today's, this week's and this month's booking counts.
@@ -114,8 +114,8 @@ Initial release.
 
 = Filters =
 
-* `byzo_max_resources_per_type` — ( int $max ) Active resources allowed per booking type. Default `1`.
-* `byzo_max_shifts_per_day` — ( int $max ) Shifts per day in a resource's weekly schedule. Default `1`.
+* `byzo_max_bookable_items_per_type` — ( int $max ) Active bookable items allowed per booking type. Default `1`.
+* `byzo_max_shifts_per_day` — ( int $max ) Shifts per day in a bookable item's weekly schedule. Default `1`.
 * `byzo_deposits_enabled` — ( bool $enabled ) Whether deposit/partial payments are available. Default `false`.
 * `byzo_default_settings` — ( array $defaults ) Default values seeded into the business-settings option on activation.
 * `byzo_rest_controllers` — ( array $controllers ) REST controller instances registered on `rest_api_init`.
@@ -127,8 +127,8 @@ Initial release.
 = Actions =
 
 * `byzo_loaded` — Fires once the plugin is fully loaded.
-* `byzo_resource_created` — ( int $resource_id ) After a new resource is created.
-* `byzo_resource_activated` — ( int $resource_id ) After a resource transitions from inactive to active.
+* `byzo_bookable_item_created` — ( int $bookable_item_id ) After a new bookable item is created.
+* `byzo_bookable_item_activated` — ( int $bookable_item_id ) After a bookable item transitions from inactive to active.
 * `byzo_booking_created` — ( int $booking_id ) After a new booking is created.
 * `byzo_booking_status_changed` — ( int $booking_id, string $new_status, string $old_status ) After a booking's status changes.
 * `byzo_booking_payment_status_changed` — ( int $booking_id, string $new_status, string $old_status ) After a booking's payment status changes.

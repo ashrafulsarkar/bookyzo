@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge';
 
 // bookyzo-design skill's ByzoBadge: status pills using the shared color
 // tokens via a `status` prop, never ad hoc colors per usage site. Covers
-// both resource statuses (active/inactive/archived) and — once the
+// both bookable-item statuses (active/inactive/archived) and — once the
 // bookings screens land in later Phase 1 steps — booking statuses
 // (pending/confirmed/completed/cancelled/no_show) via the same map.
 const props = defineProps({

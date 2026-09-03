@@ -1,8 +1,8 @@
 import { createRouter } from 'vue-router';
 import Dashboard from '../views/Dashboard.vue';
 import SetupWizard from '../views/setup/SetupWizard.vue';
-import ResourcesList from '../views/resources/ResourcesList.vue';
-import ResourceForm from '../views/resources/ResourceForm.vue';
+import BookableItemsList from '../views/bookable-items/BookableItemsList.vue';
+import BookableItemForm from '../views/bookable-items/BookableItemForm.vue';
 import BookingCalendar from '../views/calendar/BookingCalendar.vue';
 import BookingsList from '../views/bookings/BookingsList.vue';
 import EmailTemplates from '../views/settings/EmailTemplates.vue';
@@ -17,15 +17,16 @@ import { createWpAdminHistory } from './history';
 // the correct left-nav row, every screen is bookmarkable, and no
 // server-side handling of arbitrary paths is needed — which wp-admin has
 // no hook for. Routes with no admin page of their own (/setup,
-// /resources/new, /resources/:id/edit) ride on their section's page via a
-// `view` parameter. PHP picks the boot route (window.byzoAdmin.initialRoute)
-// from the requested slug; the router owns every navigation after that.
+// /bookable-items/new, /bookable-items/:id/edit) ride on their section's
+// page via a `view` parameter. PHP picks the boot route
+// (window.byzoAdmin.initialRoute) from the requested slug; the router owns
+// every navigation after that.
 const routes = [
   { path: '/', name: 'dashboard', component: Dashboard },
   { path: '/setup', name: 'setup', component: SetupWizard },
-  { path: '/resources', name: 'resources', component: ResourcesList },
-  { path: '/resources/new', name: 'resources.new', component: ResourceForm },
-  { path: '/resources/:id/edit', name: 'resources.edit', component: ResourceForm },
+  { path: '/bookable-items', name: 'bookable-items', component: BookableItemsList },
+  { path: '/bookable-items/new', name: 'bookable-items.new', component: BookableItemForm },
+  { path: '/bookable-items/:id/edit', name: 'bookable-items.edit', component: BookableItemForm },
   { path: '/calendar', name: 'calendar', component: BookingCalendar },
   { path: '/bookings', name: 'bookings', component: BookingsList },
   { path: '/settings/email-templates', name: 'settings.email-templates', component: EmailTemplates },

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader :title="isEdit ? 'Edit resource' : 'Add resource'" subtitle="Staff member, table, or bookable item.">
+    <ByzoPageHeader :title="isEdit ? 'Edit bookable item' : 'Add bookable item'" subtitle="Staff member, table, or bookable item.">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -10,47 +10,47 @@
     </ByzoPageHeader>
 
     <div class="px-6 pb-8">
-      <!-- Availability/Exceptions need a saved resource id (DETAILED-SPEC.md
+      <!-- Availability/Exceptions need a saved bookable item id (DETAILED-SPEC.md
            §A2/A3's Details/Availability/Exceptions tabs) — only shown once
-           editing an existing resource, not while creating a new one. -->
+           editing an existing item, not while creating a new one. -->
       <div v-if="loading" class="py-12 text-center text-sm text-muted-foreground">Loading…</div>
 
       <!-- Type-first Add New flow (DETAILED-SPEC.md §A2/§5 item 6): the
            picker is the very first thing shown when creating, before any
            other field. Not shown on edit — type is immutable after
-           creation (see ResourceDetailsTab.vue's read-only type badge and
-           BYZO_REST_Resources_Controller::update_item()'s matching
+           creation (see BookableItemDetailsTab.vue's read-only type badge
+           and BYZO_REST_Bookable_Items_Controller::update_item()'s matching
            server-side rejection of a type change). -->
-      <ResourceTypeStep v-else-if="!isEdit && !form.type" @selected="onTypeSelected" />
+      <BookableItemTypeStep v-else-if="!isEdit && !form.type" @selected="onTypeSelected" />
 
       <Tabs v-else-if="isEdit" v-model="activeTab">
         <TabsList class="mb-4">
           <TabsTrigger v-for="tab in tabs" :key="tab.id" :value="tab.id">{{ tab.label }}</TabsTrigger>
         </TabsList>
         <TabsContent value="details">
-          <ResourceDetailsTab
+          <BookableItemDetailsTab
             :form="form"
             :saving="saving"
             :error="error"
             @save="save"
-            @cancel="router.push({ name: 'resources' })"
+            @cancel="router.push({ name: 'bookable-items' })"
           />
         </TabsContent>
         <TabsContent value="availability">
-          <ResourceAvailabilityTab :resource-id="route.params.id" />
+          <BookableItemAvailabilityTab :bookable-item-id="route.params.id" />
         </TabsContent>
         <TabsContent value="exceptions">
-          <ResourceExceptionsTab :resource-id="route.params.id" />
+          <BookableItemExceptionsTab :bookable-item-id="route.params.id" />
         </TabsContent>
       </Tabs>
 
-      <ResourceDetailsTab
+      <BookableItemDetailsTab
         v-else
         :form="form"
         :saving="saving"
         :error="error"
         @save="save"
-        @cancel="router.push({ name: 'resources' })"
+        @cancel="router.push({ name: 'bookable-items' })"
       />
     </div>
   </div>
@@ -61,10 +61,10 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
-import ResourceTypeStep from './ResourceTypeStep.vue';
-import ResourceDetailsTab from './ResourceDetailsTab.vue';
-import ResourceAvailabilityTab from './ResourceAvailabilityTab.vue';
-import ResourceExceptionsTab from './ResourceExceptionsTab.vue';
+import BookableItemTypeStep from './BookableItemTypeStep.vue';
+import BookableItemDetailsTab from './BookableItemDetailsTab.vue';
+import BookableItemAvailabilityTab from './BookableItemAvailabilityTab.vue';
+import BookableItemExceptionsTab from './BookableItemExceptionsTab.vue';
 import { api } from '@/api/client';
 
 const route = useRoute();
@@ -83,7 +83,7 @@ const tabs = [
 ];
 
 const form = ref({
-  // Empty on a fresh create — ResourceTypeStep must be answered first
+  // Empty on a fresh create — BookableItemTypeStep must be answered first
   // (the `!form.type` check above gates on exactly this). Overwritten
   // with the real value on edit (see onMounted below).
   type: '',
@@ -101,19 +101,19 @@ onMounted(async () => {
     return;
   }
   try {
-    const resource = await api.get(`/resources/${route.params.id}`);
+    const item = await api.get(`/bookable-items/${route.params.id}`);
     form.value = {
-      type: resource.type,
-      name: resource.name,
-      description: resource.description || '',
-      tags: resource.tags || '',
-      duration_minutes: resource.duration_minutes,
-      price: resource.price === null ? '' : resource.price,
-      capacity: resource.capacity || 1,
-      status: resource.status,
+      type: item.type,
+      name: item.name,
+      description: item.description || '',
+      tags: item.tags || '',
+      duration_minutes: item.duration_minutes,
+      price: item.price === null ? '' : item.price,
+      capacity: item.capacity || 1,
+      status: item.status,
     };
   } catch (e) {
-    error.value = e.message || 'Could not load this resource.';
+    error.value = e.message || 'Could not load this bookable item.';
   } finally {
     loading.value = false;
   }
@@ -150,17 +150,17 @@ async function save() {
   saving.value = true;
   try {
     if (isEdit.value) {
-      await api.put(`/resources/${route.params.id}`, payload);
-      router.push({ name: 'resources' });
+      await api.put(`/bookable-items/${route.params.id}`, payload);
+      router.push({ name: 'bookable-items' });
     } else {
-      const created = await api.post('/resources', payload);
-      // Straight to the new resource's Availability tab — a resource
+      const created = await api.post('/bookable-items', payload);
+      // Straight to the new item's Availability tab — a bookable item
       // with no schedule generates zero slots (BYZO_Slot_Generator), so
       // this is the natural next step, not a dead end at the list.
-      router.push({ name: 'resources.edit', params: { id: created.id } });
+      router.push({ name: 'bookable-items.edit', params: { id: created.id } });
     }
   } catch (e) {
-    error.value = e.message || 'Could not save this resource.';
+    error.value = e.message || 'Could not save this bookable item.';
   } finally {
     saving.value = false;
   }

@@ -3,7 +3,7 @@ defined( 'ABSPATH' ) || exit;
 
 /**
  * Free's editable notification content (DETAILED-SPEC.md §A6): plain
- * textarea subject/body per event, `{customer_name}`/`{resource_name}`/
+ * textarea subject/body per event, `{customer_name}`/`{bookable_item_name}`/
  * `{start_time}`/`{business_name}` placeholders, no visual builder (Pro
  * feature — this class's own shape doesn't change for Pro, Pro adds a
  * separate builder UI on top of the same stored subject/body values,
@@ -64,19 +64,19 @@ class BYZO_Email_Templates {
 		return array(
 			'booking_created'   => array(
 				'subject' => __( 'Your booking request has been received', 'bookyzo' ),
-				'body'    => __( "Hi {customer_name},\n\nWe've received your booking request with {business_name} for {resource_name} on {start_time}.\n\nYou'll receive another email once it's confirmed.\n\nThanks,\n{business_name}", 'bookyzo' ),
+				'body'    => __( "Hi {customer_name},\n\nWe've received your booking request with {business_name} for {bookable_item_name} on {start_time}.\n\nYou'll receive another email once it's confirmed.\n\nThanks,\n{business_name}", 'bookyzo' ),
 			),
 			'booking_confirmed' => array(
 				'subject' => __( 'Your booking is confirmed', 'bookyzo' ),
-				'body'    => __( "Hi {customer_name},\n\nGood news — your booking with {business_name} for {resource_name} on {start_time} is confirmed.\n\nSee you then!\n{business_name}", 'bookyzo' ),
+				'body'    => __( "Hi {customer_name},\n\nGood news — your booking with {business_name} for {bookable_item_name} on {start_time} is confirmed.\n\nSee you then!\n{business_name}", 'bookyzo' ),
 			),
 			'booking_cancelled' => array(
 				'subject' => __( 'Your booking has been cancelled', 'bookyzo' ),
-				'body'    => __( "Hi {customer_name},\n\nYour booking with {business_name} for {resource_name} on {start_time} has been cancelled.\n\nIf this wasn't expected, please get in touch.\n\n{business_name}", 'bookyzo' ),
+				'body'    => __( "Hi {customer_name},\n\nYour booking with {business_name} for {bookable_item_name} on {start_time} has been cancelled.\n\nIf this wasn't expected, please get in touch.\n\n{business_name}", 'bookyzo' ),
 			),
 			'booking_reminder'  => array(
 				'subject' => __( 'Reminder: your booking is tomorrow', 'bookyzo' ),
-				'body'    => __( "Hi {customer_name},\n\nJust a reminder about your booking with {business_name} for {resource_name} on {start_time}.\n\nSee you soon!\n{business_name}", 'bookyzo' ),
+				'body'    => __( "Hi {customer_name},\n\nJust a reminder about your booking with {business_name} for {bookable_item_name} on {start_time}.\n\nSee you soon!\n{business_name}", 'bookyzo' ),
 			),
 		);
 	}

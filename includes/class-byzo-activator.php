@@ -34,8 +34,12 @@ class BYZO_Activator {
 
 		$sql = array();
 
-		// wp_byzo_resources
-		$sql[] = "CREATE TABLE {$prefix}byzo_resources (
+		// wp_byzo_bookable_items — renamed from wp_byzo_resources 2026-09-03
+		// (ROADMAP.md's naming pass: "resource" read as an unclear, overly
+		// technical term to end users). See maybe_rename_legacy_schema()
+		// below for the one-time migration of any install that already has
+		// the old table/columns.
+		$sql[] = "CREATE TABLE {$prefix}byzo_bookable_items (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			type VARCHAR(20) NOT NULL DEFAULT 'appointment',
 			name VARCHAR(255) NOT NULL,
@@ -58,39 +62,39 @@ class BYZO_Activator {
 		// wp_byzo_schedules (recurring weekly pattern)
 		$sql[] = "CREATE TABLE {$prefix}byzo_schedules (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			resource_id BIGINT UNSIGNED NOT NULL,
+			bookable_item_id BIGINT UNSIGNED NOT NULL,
 			weekday TINYINT NOT NULL,
 			start_time TIME NOT NULL,
 			end_time TIME NOT NULL,
 			shift_group TINYINT NOT NULL DEFAULT 0,
 			PRIMARY KEY  (id),
-			KEY resource_id (resource_id),
+			KEY bookable_item_id (bookable_item_id),
 			KEY weekday (weekday)
 		) {$charset_collate};";
 
 		// wp_byzo_availability_exceptions (blackout / holiday overrides)
 		$sql[] = "CREATE TABLE {$prefix}byzo_availability_exceptions (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			resource_id BIGINT UNSIGNED NULL,
+			bookable_item_id BIGINT UNSIGNED NULL,
 			date DATE NOT NULL,
 			is_closed TINYINT(1) NOT NULL DEFAULT 1,
 			start_time TIME NULL,
 			end_time TIME NULL,
 			PRIMARY KEY  (id),
-			KEY resource_id (resource_id),
+			KEY bookable_item_id (bookable_item_id),
 			KEY date (date)
 		) {$charset_collate};";
 
 		// wp_byzo_slots (materialized bookable time slots)
 		$sql[] = "CREATE TABLE {$prefix}byzo_slots (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-			resource_id BIGINT UNSIGNED NOT NULL,
+			bookable_item_id BIGINT UNSIGNED NOT NULL,
 			start_datetime DATETIME NOT NULL,
 			end_datetime DATETIME NOT NULL,
 			capacity_remaining SMALLINT UNSIGNED NOT NULL DEFAULT 1,
 			status VARCHAR(20) NOT NULL DEFAULT 'open',
 			PRIMARY KEY  (id),
-			UNIQUE KEY resource_start (resource_id, start_datetime),
+			UNIQUE KEY bookable_item_start (bookable_item_id, start_datetime),
 			KEY status (status)
 		) {$charset_collate};";
 
@@ -98,7 +102,7 @@ class BYZO_Activator {
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
-			resource_id BIGINT UNSIGNED NOT NULL,
+			bookable_item_id BIGINT UNSIGNED NOT NULL,
 			customer_name VARCHAR(255) NOT NULL,
 			customer_email VARCHAR(255) NOT NULL,
 			customer_phone VARCHAR(50) NULL,
@@ -114,14 +118,74 @@ class BYZO_Activator {
 			reminder_sent_at DATETIME NULL,
 			PRIMARY KEY  (id),
 			KEY slot_id (slot_id),
-			KEY resource_id (resource_id),
+			KEY bookable_item_id (bookable_item_id),
 			KEY status (status),
 			KEY customer_email (customer_email)
 		) {$charset_collate};";
 
+		self::maybe_rename_legacy_schema( $prefix );
+
 		foreach ( $sql as $table_sql ) {
 			dbDelta( $table_sql );
 		}
+	}
+
+	/**
+	 * One-time migration for any install created before the 2026-09-03
+	 * "resource" -> "bookable item" rename (BYZO_DB_VERSION 1.3). dbDelta()
+	 * only ever ADDS tables/columns — it cannot rename an existing one, so
+	 * without this step a pre-rename install would end up with an orphaned
+	 * `byzo_resources` table plus a brand new, empty `byzo_bookable_items`
+	 * table sitting next to it. Guarded on the OLD table's existence so it
+	 * runs at most once and is a no-op on both a fresh install and an
+	 * already-migrated one.
+	 */
+	private static function maybe_rename_legacy_schema( $prefix ) {
+		global $wpdb;
+
+		$old_table_exists = $wpdb->get_var(
+			$wpdb->prepare( 'SHOW TABLES LIKE %s', $prefix . 'byzo_resources' ) // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+		);
+
+		if ( ! $old_table_exists ) {
+			return;
+		}
+
+		$wpdb->query( "RENAME TABLE {$prefix}byzo_resources TO {$prefix}byzo_bookable_items" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		foreach ( array( 'byzo_schedules', 'byzo_availability_exceptions', 'byzo_slots', 'byzo_bookings' ) as $table ) {
+			$wpdb->query( "ALTER TABLE {$prefix}{$table} CHANGE COLUMN resource_id bookable_item_id BIGINT UNSIGNED " . ( 'byzo_availability_exceptions' === $table ? 'NULL' : 'NOT NULL' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		}
+
+		// Index names don't follow CHANGE COLUMN automatically — rename them
+		// too so a fresh install and a migrated one end up byte-identical.
+		// `RENAME INDEX` (MySQL 5.7+ / MariaDB 10.5.2+) isn't available on
+		// every supported target (this dev environment runs MariaDB 10.4),
+		// so DROP + re-ADD is the portable equivalent.
+		self::rename_index( "{$prefix}byzo_schedules", 'resource_id', 'bookable_item_id', '(bookable_item_id)' );
+		self::rename_index( "{$prefix}byzo_availability_exceptions", 'resource_id', 'bookable_item_id', '(bookable_item_id)' );
+		self::rename_index( "{$prefix}byzo_slots", 'resource_start', 'bookable_item_start', '(bookable_item_id, start_datetime)', true );
+		self::rename_index( "{$prefix}byzo_bookings", 'resource_id', 'bookable_item_id', '(bookable_item_id)' );
+	}
+
+	/**
+	 * Portable index rename (DROP + re-ADD) — see maybe_rename_legacy_schema()
+	 * for why RENAME INDEX isn't used. Guarded on the OLD index name still
+	 * existing, so repeated activation calls stay a no-op once migrated.
+	 */
+	private static function rename_index( $table, $old_name, $new_name, $columns_sql, $unique = false ) {
+		global $wpdb;
+
+		$exists = $wpdb->get_var(
+			$wpdb->prepare( 'SHOW INDEX FROM ' . $table . ' WHERE Key_name = %s', $old_name ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+		);
+
+		if ( ! $exists ) {
+			return;
+		}
+
+		$wpdb->query( "ALTER TABLE {$table} DROP INDEX {$old_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( 'ALTER TABLE ' . $table . ' ADD ' . ( $unique ? 'UNIQUE ' : '' ) . "INDEX {$new_name} {$columns_sql}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 	}
 
 	/**

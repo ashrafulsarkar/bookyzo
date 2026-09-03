@@ -8,11 +8,11 @@
         </svg>
       </template>
       <template #actions>
-        <Select v-model="resourceFilter">
+        <Select v-model="itemFilter">
           <SelectTrigger class="h-9 w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All resources</SelectItem>
-            <SelectItem v-for="resource in resources" :key="resource.id" :value="String(resource.id)">{{ resource.name }}</SelectItem>
+            <SelectItem value="__all__">All bookable items</SelectItem>
+            <SelectItem v-for="item in items" :key="item.id" :value="String(item.id)">{{ item.name }}</SelectItem>
           </SelectContent>
         </Select>
         <Button @click="showManualBooking = true">+ New booking</Button>
@@ -29,7 +29,7 @@
     <BookingDetailModal v-if="activeBooking" :booking="activeBooking" @close="activeBooking = null" @updated="onBookingUpdated" />
     <ManualBookingModal
       v-if="showManualBooking"
-      :initial-resource-id="resourceFilter !== '__all__' ? resourceFilter : null"
+      :initial-bookable-item-id="itemFilter !== '__all__' ? itemFilter : null"
       @close="showManualBooking = false"
       @created="onBookingCreated"
     />
@@ -48,17 +48,17 @@ import ManualBookingModal from './ManualBookingModal.vue';
 import { api } from '@/api/client';
 import { toDateKey } from '@/lib/date';
 
-const resources = ref([]);
-const resourceFilter = ref('__all__');
+const items = ref([]);
+const itemFilter = ref('__all__');
 const bookings = ref([]);
 const error = ref('');
 const activeBooking = ref(null);
 const showManualBooking = ref(false);
 let currentRange = null;
 
-async function loadResources() {
+async function loadItems() {
   try {
-    resources.value = await api.get('/resources?per_page=100');
+    items.value = await api.get('/bookable-items?per_page=100');
   } catch (e) {
     // Non-fatal — the filter dropdown just stays empty; the calendar
     // itself still works unfiltered.
@@ -76,8 +76,8 @@ async function loadBookings() {
       to: toDateKey(currentRange.to),
       per_page: '100',
     });
-    if (resourceFilter.value !== '__all__') {
-      params.set('resource_id', resourceFilter.value);
+    if (itemFilter.value !== '__all__') {
+      params.set('bookable_item_id', itemFilter.value);
     }
     bookings.value = await api.get(`/bookings?${params.toString()}`);
   } catch (e) {
@@ -109,14 +109,14 @@ function onBookingCreated() {
 
 function onSelectSlot() {
   // Clicking an empty calendar cell opens the same manual-booking flow —
-  // resource/time are picked inside the modal rather than trying to
-  // infer an exact slot from a click position (buffer time and shift
+  // the bookable item/time are picked inside the modal rather than trying
+  // to infer an exact slot from a click position (buffer time and shift
   // boundaries make that error-prone; the modal's own slot dropdown is
   // the source of truth for what's actually bookable).
   showManualBooking.value = true;
 }
 
 onMounted(async () => {
-  await loadResources();
+  await loadItems();
 });
 </script>
