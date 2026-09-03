@@ -4,6 +4,8 @@
 
 > **DIRECTION CHANGE 2026-09-02 (supersedes the original staged plan):** ALL FOUR booking types ship in the **Free** plugin together. Pro no longer gates booking types at all — Pro is extra features only (more resources per type, multi-shift, deposits, SMS/WhatsApp, self-service, analytics, and the type-specific Pro modules in B7). Free's per-type limit (one active resource per type) is the honest upgrade wall: 1 staff + 1 table + 1 event + 1 slot resource free; a 2nd of *any* type needs Pro.
 
+> **COMPETITOR GAP-FILL 2026-09-03:** cross-checked this spec against Bookly, Booking Calendar (wpdevelop), and Amelia — the three leading WordPress booking plugins — feature by feature (see the "Booking Plugin Ladder" audit). Added everything real that was missing: custom form field builder, seasonal pricing, cart checkout, timeline view, availability search, webhooks, marketing pixels, multi-user staff logins, tax handling, customer CSV import/export, bulk marketing campaigns, and multilingual content. One deliberate tier change: **booking confirmation's "add to calendar" link moved from Pro to Free** (A5) — all three competitors give this away free, so gating it was an unnecessary wall, not a real limit.
+
 **Stack:** WordPress plugin (PHP + custom DB tables), REST API, Vue 3 admin dashboard, optional WooCommerce integration, PayPal and Stripe for payments.
 
 ---
@@ -50,17 +52,21 @@ The free version should be genuinely usable for a small single-location business
 - Guest checkout (no account required)
 - Basic custom form fields (name, email, phone, notes)
 - Mobile-responsive booking widget
+- Elementor widget, in addition to the Gutenberg block — same resource/type selection
+- Translation-ready (WPML / Loco Translate compatible, ships with a .pot file) — this covers UI strings; translating the site owner's own service/category/resource *content* per visitor language is a Pro feature (B11)
 
 ### A6. Notifications
 - Email confirmation on booking
 - Email reminder (single, fixed timing — e.g. 24h before)
 - Email cancellation notice
 - Basic email template editing (text only, no visual builder)
+- **"Add to calendar" link (Google / Outlook / .ics) on the booking confirmation** — moved here from Pro on 2026-09-03: Bookly, Booking Calendar, and Amelia all give this away free, so gating a single per-booking calendar link isn't a real limit
 
 ### A7. Payments
 - Manual/offline payment option (cash, bank transfer — mark as paid manually)
 - One payment gateway integration (Stripe, pick one for Free)
 - No deposits/partial payments on Free (Pro feature)
+- Optional flat tax/VAT rate, applied site-wide to every booking (single percentage — per-service/per-region rules are Pro, see B6)
 
 ### A8. Basic Reporting
 - Total bookings count (day/week/month)
@@ -77,6 +83,10 @@ All four types are IN Free (direction change 2026-09-02). Free's cap is **one ac
 
 The per-type cap (1 resource per type) stays enforced centrally via `BYZO_Capabilities::max_resources_per_type()` — a real filterable capability, never scattered checks or visible locks (Guideline 5 rule, see `.claude/skills/bookyzo-dev/SKILL.md`).
 
+### A10. Customer Management
+- Customer list auto-populated from bookings, searchable and sortable
+- Import an existing customer list from CSV (lowers the switching cost from another booking tool)
+
 ---
 
 ## PART B — PRO PLUGIN (Paid upgrade)
@@ -88,6 +98,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - ~~All booking types active at once~~ — **moved to Free 2026-09-02.** All four types are Free now; Pro's differentiator is depth per type (unlimited resources + the B7 type-specific modules), not type access.
 - Multi-location/multi-branch support with per-location schedules
 - Resource grouping/categories
+- Multi-user staff logins — link a WordPress user account to a resource so a staff member or branch manager can log in and see/manage only their own bookings (mirrors Booking Calendar's MultiUser edition)
 
 ### B2. Advanced Availability
 - Multiple shifts per day (e.g. lunch + dinner service windows)
@@ -103,11 +114,13 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Booking notes/internal tags (staff-only visibility)
 - Customer booking history and profile (repeat customer detection)
 - Multiple cancellation/refund policy tiers (flexible per resource type)
+- Timeline view — all resources of a type shown as rows with time across the top, for scanning multi-resource availability at a glance (only useful once Pro's unlimited resources are in play)
+- Availability search — customers filter bookable resources by date, capacity, or tags once more than one resource of a type exists
+- Export the customer list to CSV, including each customer's booking and payment history
 
 ### B4. Customer Account & Self-Service
 - Customer dashboard (view/reschedule/cancel own bookings)
 - Self-service reschedule within policy rules
-- Booking confirmation page with calendar add-to-calendar links (Google/Outlook/iCal)
 - Saved customer details for faster repeat booking
 
 ### B5. Notifications & Communication
@@ -116,6 +129,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Multiple, customizable reminder timings (e.g. 48h + 2h before)
 - Visual email template builder (branding, logo, colors)
 - Admin real-time alerts (new booking, cancellation, no-show)
+- Bulk/marketing campaigns — send a one-off email or SMS blast to a filtered customer segment (e.g. no-shows in the last 90 days)
 
 ### B6. Payments
 - Deposit / partial payment support
@@ -123,6 +137,9 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Coupon/discount codes
 - Package/membership pre-purchase (buy 10 sessions, redeem over time)
 - Automated refund handling on cancellation
+- Seasonal/dynamic pricing — different price by date range, day of week, or booking lead time (early-bird and last-minute rate adjustments)
+- Cart checkout — book multiple resources, services, or event tickets in one transaction and pay once
+- Per-service or per-region tax/VAT rules, with the rate broken out on the invoice (Free covers one flat site-wide rate, see A7)
 
 ### B7. Type-Specific Pro Modules
 
@@ -162,13 +179,20 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Zapier/Make integration
 - REST API access for custom integrations
 - Google Calendar / Outlook two-way sync
+- Webhooks — fire an HTTP callback on booking created/updated/cancelled/completed for custom integrations
+- Marketing pixel integration (Facebook Pixel, Google Analytics, Google Tag Manager) on the booking widget
+- Subscribable calendar feed — one .ics URL covering all of a resource's (or the whole business's) bookings, for feeding into Airbnb/Booking.com-style external calendars
 
 ### B10. Branding & Customization
 - White-label booking widget (remove plugin branding)
 - Custom CSS/theme options for the booking form
 - Custom domain for standalone booking page (if a hosted booking page option exists)
 
-### B11. Multi-Site / Agency Features (higher tier)
+### B11. Advanced Form Builder & Localization
+- Custom form field builder — add arbitrary fields (dropdown, checkbox, file upload, number, date, address with a Google Maps link) beyond Free's fixed name/email/phone/notes set; fields can be scoped per-service and shown conditionally
+- Multilingual booking-facing content — translate service, category, resource, and event names per visitor language (this is translating the site owner's own content; UI-string translation via WPML/Loco Translate already works in Free, see A5)
+
+### B12. Multi-Site / Agency Features (higher tier)
 - License covering multiple client sites
 - Centralized management across sites (for agencies managing several client installs)
 
