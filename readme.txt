@@ -115,7 +115,6 @@ Initial release.
 = Filters =
 
 * `byzo_max_resources_per_type` — ( int $max ) Active resources allowed per booking type. Default `1`.
-* `byzo_max_active_resource_types` — ( int $max ) Booking types active at once. Default `1`.
 * `byzo_max_shifts_per_day` — ( int $max ) Shifts per day in a resource's weekly schedule. Default `1`.
 * `byzo_deposits_enabled` — ( bool $enabled ) Whether deposit/partial payments are available. Default `false`.
 * `byzo_default_settings` — ( array $defaults ) Default values seeded into the business-settings option on activation.

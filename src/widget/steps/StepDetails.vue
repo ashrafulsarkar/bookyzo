@@ -2,6 +2,11 @@
   <div>
     <h2>Your details</h2>
 
+    <div v-if="showPartySize" class="field">
+      <label for="bw-party-size">{{ partySizeLabel }}</label>
+      <input id="bw-party-size" v-model.number="form.party_size" type="number" min="1" :max="partySizeMax" />
+    </div>
+
     <div class="field">
       <label for="bw-name">Name</label>
       <input id="bw-name" v-model="form.name" type="text" autocomplete="name" />
@@ -46,12 +51,29 @@
 import { reactive, computed } from 'vue';
 
 const props = defineProps({
+  resource: { type: Object, required: true },
+  slot: { type: Object, required: true },
   submitting: { type: Boolean, default: false },
   error: { type: String, default: '' },
 });
 defineEmits(['submit', 'back']);
 
+// Party size / quantity input for capacity>1 resources (DETAILED-SPEC.md
+// §A5) — hidden for Appointment (always 1), max = the chosen slot's
+// remaining capacity. The server re-validates this regardless
+// (BYZO_Booking::create()'s atomic capacity_remaining check), this is
+// only a UX guide against picking a number that's already known to fail.
+const PARTY_SIZE_LABELS = {
+  table: 'Party size',
+  event: 'Tickets',
+  slot: 'Spots',
+};
+const showPartySize = computed(() => props.resource.type !== 'appointment');
+const partySizeLabel = computed(() => PARTY_SIZE_LABELS[props.resource.type] || 'Party size');
+const partySizeMax = computed(() => Math.max(1, props.slot.capacity_remaining || 1));
+
 const form = reactive({
+  party_size: 1,
   name: '',
   email: '',
   phone: '',
@@ -59,5 +81,11 @@ const form = reactive({
   website: '',
 });
 
-const canSubmit = computed(() => form.name.trim() !== '' && /\S+@\S+\.\S+/.test(form.email));
+const canSubmit = computed(
+  () =>
+    form.name.trim() !== '' &&
+    /\S+@\S+\.\S+/.test(form.email) &&
+    form.party_size >= 1 &&
+    form.party_size <= partySizeMax.value
+);
 </script>

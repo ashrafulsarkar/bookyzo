@@ -49,7 +49,7 @@ function formatPrice(price) {
 
 onMounted(async () => {
   try {
-    resources.value = await getPublicResources();
+    resources.value = await getPublicResources(props.config.type);
 
     let target = null;
     if (props.config.resourceId) {

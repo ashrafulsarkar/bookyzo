@@ -19,15 +19,6 @@ class BYZO_Capabilities {
 	}
 
 	/**
-	 * How many resource *types* (appointment/table/event/slot) can be
-	 * active simultaneously. Free = 1 (FEATURES.md §A2). Pro overrides to
-	 * allow all types at once (FEATURES.md §B1).
-	 */
-	public static function max_active_resource_types() {
-		return (int) apply_filters( 'byzo_max_active_resource_types', 1 );
-	}
-
-	/**
 	 * How many shifts per day a resource's weekly schedule may have.
 	 * Free = 1 (FEATURES.md §A3). Pro overrides via
 	 * `byzo_max_shifts_per_day` — the schema (`shift_group` column)

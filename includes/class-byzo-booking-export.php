@@ -70,7 +70,7 @@ class BYZO_Booking_Export {
 	 * @return int Number of booking rows written.
 	 */
 	public static function stream_csv( $out, $args ) {
-		fputcsv( $out, array( 'ID', 'Customer Name', 'Customer Email', 'Customer Phone', 'Resource', 'Date', 'Time', 'Status', 'Payment Status', 'Payment Amount' ) );
+		fputcsv( $out, array( 'ID', 'Customer Name', 'Customer Email', 'Customer Phone', 'Resource', 'Party Size', 'Date', 'Time', 'Status', 'Payment Status', 'Payment Amount' ) );
 
 		$resources_by_id = self::resources_by_id();
 		$written         = 0;
@@ -102,6 +102,7 @@ class BYZO_Booking_Export {
 						$booking['customer_email'],
 						$booking['customer_phone'],
 						$resource_name,
+						$booking['party_size'],
 						$date,
 						$time,
 						$booking['status'],

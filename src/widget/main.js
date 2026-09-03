@@ -10,6 +10,7 @@ import './widget.css';
 document.querySelectorAll('.bookyzo-widget-mount').forEach((el) => {
   const config = {
     resourceId: el.dataset.resourceId ? Number(el.dataset.resourceId) : null,
+    type: el.dataset.type || null,
   };
   createApp(BookingWidget, { config }).mount(el);
 });

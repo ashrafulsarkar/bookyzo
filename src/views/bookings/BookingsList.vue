@@ -59,6 +59,7 @@
             <TableRow>
               <TableHead>Customer</TableHead>
               <TableHead>Resource</TableHead>
+              <TableHead>Party</TableHead>
               <TableHead>When</TableHead>
               <TableHead>Status</TableHead>
               <TableHead></TableHead>
@@ -71,6 +72,7 @@
                 <span class="block text-xs text-muted-foreground">{{ booking.customer_email }}</span>
               </TableCell>
               <TableCell class="text-muted-foreground">{{ resourceName(booking.resource_id) }}</TableCell>
+              <TableCell class="text-muted-foreground">{{ booking.party_size }}</TableCell>
               <TableCell class="text-muted-foreground">{{ whenLabel(booking) }}</TableCell>
               <TableCell><ByzoBadge :status="booking.status">{{ booking.status.replace('_', ' ') }}</ByzoBadge></TableCell>
               <TableCell class="text-right">

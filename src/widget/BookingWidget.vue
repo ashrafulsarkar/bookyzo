@@ -8,6 +8,8 @@
     <StepSlot v-else-if="step === 2" :resource="selectedResource" @selected="onSlotSelected" @back="step = 1" />
     <StepDetails
       v-else-if="step === 3"
+      :resource="selectedResource"
+      :slot="selectedSlot"
       :submitting="submitting"
       :error="error"
       @submit="onDetailsSubmit"
@@ -67,6 +69,7 @@ async function onDetailsSubmit(form) {
   try {
     const booking = await createBooking({
       slot_id: selectedSlot.value.id,
+      party_size: form.party_size,
       customer_name: form.name,
       customer_email: form.email,
       customer_phone: form.phone,

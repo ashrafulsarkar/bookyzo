@@ -29,9 +29,9 @@ class BYZO_Public_Widget {
 	}
 
 	public static function render_shortcode( $atts ) {
-		$atts = shortcode_atts( array( 'resource_id' => '' ), $atts, 'bookyzo_booking' );
+		$atts = shortcode_atts( array( 'resource_id' => '', 'type' => '' ), $atts, 'bookyzo_booking' );
 
-		return self::render( array( 'resource_id' => $atts['resource_id'] ) );
+		return self::render( array( 'resource_id' => $atts['resource_id'], 'type' => $atts['type'] ) );
 	}
 
 	public static function register_block() {
@@ -42,7 +42,12 @@ class BYZO_Public_Widget {
 		wp_register_script(
 			'byzo-block-editor',
 			BYZO_PLUGIN_URL . 'blocks/booking-form/index.js',
-			array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n' ),
+			// wp-api-fetch added 2026-09-03 (Phase 1.5 step 4) — the editor's
+			// new resource/type selector fetches GET /resources/public (the
+			// same guest-allowed endpoint the frontend widget itself uses,
+			// not the admin-gated /resources) so this works for any user
+			// who can access the block editor, not just manage_options users.
+			array( 'wp-blocks', 'wp-element', 'wp-block-editor', 'wp-components', 'wp-i18n', 'wp-api-fetch' ),
 			BYZO_VERSION,
 			true
 		);
@@ -57,17 +62,31 @@ class BYZO_Public_Widget {
 						'type'    => 'number',
 						'default' => 0,
 					),
+					'type'       => array(
+						'type'    => 'string',
+						'default' => '',
+					),
 				),
 			)
 		);
 	}
 
 	public static function render_block( $attributes ) {
-		return self::render( array( 'resource_id' => ! empty( $attributes['resourceId'] ) ? $attributes['resourceId'] : '' ) );
+		return self::render(
+			array(
+				'resource_id' => ! empty( $attributes['resourceId'] ) ? $attributes['resourceId'] : '',
+				'type'        => ! empty( $attributes['type'] ) ? $attributes['type'] : '',
+			)
+		);
 	}
 
 	/**
-	 * @param array $config { @type string|int $resource_id Optional — pins the widget to one resource, skipping the picker step. }
+	 * @param array $config {
+	 *     @type string|int $resource_id Optional — pins the widget to one resource, skipping the picker step.
+	 *     @type string     $type        Optional — filters the picker to one booking type (DETAILED-SPEC.md §A5).
+	 *                                   Ignored when resource_id is also set — a pinned resource already skips
+	 *                                   the picker step entirely, so there's nothing left for a type to filter.
+	 * }
 	 */
 	private static function render( $config ) {
 		self::enqueue_assets();
@@ -75,6 +94,8 @@ class BYZO_Public_Widget {
 		$attrs = '';
 		if ( ! empty( $config['resource_id'] ) ) {
 			$attrs .= ' data-resource-id="' . esc_attr( absint( $config['resource_id'] ) ) . '"';
+		} elseif ( ! empty( $config['type'] ) ) {
+			$attrs .= ' data-type="' . esc_attr( $config['type'] ) . '"';
 		}
 
 		return '<div class="bookyzo-widget-mount"' . $attrs . '></div>';

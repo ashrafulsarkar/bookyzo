@@ -28,6 +28,11 @@
           </Select>
         </div>
 
+        <div v-if="showPartySize" class="flex flex-col gap-1.5">
+          <Label for="mb-party-size">{{ partySizeLabel }}</Label>
+          <Input id="mb-party-size" v-model.number="form.party_size" type="number" min="1" :max="partySizeMax" />
+        </div>
+
         <div class="flex flex-col gap-1.5">
           <Label for="mb-name">Customer name</Label>
           <Input id="mb-name" v-model="form.customer_name" type="text" />
@@ -62,7 +67,7 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue';
+import { ref, computed, watch, onMounted } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -90,11 +95,27 @@ const saving = ref(false);
 const error = ref('');
 
 const form = ref({
+  party_size: 1,
   customer_name: '',
   customer_email: '',
   customer_phone: '',
   customer_notes: '',
 });
+
+// Same party-size input as the public widget's StepDetails.vue — this
+// modal posts to the exact same POST /bookings route (DETAILED-SPEC.md
+// §A4), so it needs the same type-aware label/hidden-for-Appointment/
+// max-by-remaining-capacity behavior.
+const PARTY_SIZE_LABELS = {
+  table: 'Party size',
+  event: 'Tickets',
+  slot: 'Spots',
+};
+const selectedResource = computed(() => resources.value.find((r) => r.id === selectedResourceId.value));
+const selectedSlot = computed(() => slots.value.find((s) => s.id === selectedSlotId.value));
+const showPartySize = computed(() => selectedResource.value && selectedResource.value.type !== 'appointment');
+const partySizeLabel = computed(() => PARTY_SIZE_LABELS[selectedResource.value?.type] || 'Party size');
+const partySizeMax = computed(() => Math.max(1, selectedSlot.value?.capacity_remaining || 1));
 
 async function loadResources() {
   resources.value = await api.get('/resources?status=active&per_page=100');
@@ -141,6 +162,12 @@ async function save() {
 }
 
 watch(selectedResourceId, loadSlots);
+// A newly picked slot may have less remaining capacity than whatever was
+// typed for the previous one — reset rather than silently clamp, so the
+// customer's actual pick decision isn't guessed at.
+watch(selectedSlotId, () => {
+  form.value.party_size = 1;
+});
 onMounted(async () => {
   await loadResources();
   await loadSlots();

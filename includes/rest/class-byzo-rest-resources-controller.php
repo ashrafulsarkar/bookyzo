@@ -55,6 +55,13 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_public_items' ),
 					'permission_callback' => array( $this, 'public_permissions_check' ),
+					// `type` added 2026-09-03 (ROADMAP.md Phase 1.5 step 4)
+					// for the `[bookyzo_booking type="..."]` shortcode/block
+					// variant — filters the picker to one booking type
+					// instead of pinning to one specific resource.
+					'args'                => array(
+						'type' => array( 'type' => 'string' ),
+					),
 				),
 			)
 		);
@@ -146,7 +153,13 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 	 * added later doesn't accidentally leak to guests by default.
 	 */
 	public function get_public_items( WP_REST_Request $request ) {
-		$result = BYZO_Resource::query( array( 'status' => 'active', 'per_page' => 100 ) );
+		$result = BYZO_Resource::query(
+			array(
+				'status'   => 'active',
+				'type'     => $request->get_param( 'type' ),
+				'per_page' => 100,
+			)
+		);
 
 		$items = array_map(
 			static function ( $resource ) {
@@ -208,14 +221,22 @@ class BYZO_REST_Resources_Controller extends BYZO_REST_Controller {
 		$id   = (int) $request->get_param( 'id' );
 		$data = $request->get_json_params();
 
-		// Changing type on an existing resource still has to respect the cap on the *new* type.
-		if ( ! empty( $data['type'] ) ) {
+		// Type is immutable after creation (DETAILED-SPEC.md §5 item 6:
+		// "changing type would orphan the resource's schedule/slots" — its
+		// existing wp_byzo_schedules rows or materialized wp_byzo_slots were
+		// built for the OLD type's booking model, e.g. an event's directly-
+		// entered occurrences vs. a table's weekly-recurring generator
+		// output). ResourceDetailsTab.vue shows type read-only; this is the
+		// real, honest enforcement behind that UI choice, not just a UI
+		// suggestion a direct API call could quietly bypass.
+		if ( isset( $data['type'] ) ) {
 			$existing = BYZO_Resource::get( $id );
 			if ( $existing && $existing['type'] !== $data['type'] ) {
-				$cap_check = $this->check_type_cap( $data['type'] );
-				if ( is_wp_error( $cap_check ) ) {
-					return $cap_check;
-				}
+				return new WP_Error(
+					'byzo_type_immutable',
+					__( "A resource's booking type cannot be changed after creation.", 'bookyzo' ),
+					array( 'status' => 400 )
+				);
 			}
 		}
 

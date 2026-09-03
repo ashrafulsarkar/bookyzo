@@ -15,6 +15,14 @@
            editing an existing resource, not while creating a new one. -->
       <div v-if="loading" class="py-12 text-center text-sm text-muted-foreground">Loading…</div>
 
+      <!-- Type-first Add New flow (DETAILED-SPEC.md §A2/§5 item 6): the
+           picker is the very first thing shown when creating, before any
+           other field. Not shown on edit — type is immutable after
+           creation (see ResourceDetailsTab.vue's read-only type badge and
+           BYZO_REST_Resources_Controller::update_item()'s matching
+           server-side rejection of a type change). -->
+      <ResourceTypeStep v-else-if="!isEdit && !form.type" @selected="onTypeSelected" />
+
       <Tabs v-else-if="isEdit" v-model="activeTab">
         <TabsList class="mb-4">
           <TabsTrigger v-for="tab in tabs" :key="tab.id" :value="tab.id">{{ tab.label }}</TabsTrigger>
@@ -53,6 +61,7 @@ import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
+import ResourceTypeStep from './ResourceTypeStep.vue';
 import ResourceDetailsTab from './ResourceDetailsTab.vue';
 import ResourceAvailabilityTab from './ResourceAvailabilityTab.vue';
 import ResourceExceptionsTab from './ResourceExceptionsTab.vue';
@@ -74,11 +83,16 @@ const tabs = [
 ];
 
 const form = ref({
+  // Empty on a fresh create — ResourceTypeStep must be answered first
+  // (the `!form.type` check above gates on exactly this). Overwritten
+  // with the real value on edit (see onMounted below).
+  type: '',
   name: '',
   description: '',
   tags: '',
   duration_minutes: 30,
   price: '',
+  capacity: 1,
   status: 'active',
 });
 
@@ -89,11 +103,13 @@ onMounted(async () => {
   try {
     const resource = await api.get(`/resources/${route.params.id}`);
     form.value = {
+      type: resource.type,
       name: resource.name,
       description: resource.description || '',
       tags: resource.tags || '',
       duration_minutes: resource.duration_minutes,
       price: resource.price === null ? '' : resource.price,
+      capacity: resource.capacity || 1,
       status: resource.status,
     };
   } catch (e) {
@@ -102,6 +118,10 @@ onMounted(async () => {
     loading.value = false;
   }
 });
+
+function onTypeSelected(type) {
+  form.value.type = type;
+}
 
 async function save() {
   error.value = '';
@@ -117,13 +137,14 @@ async function save() {
     duration_minutes: form.value.duration_minutes,
     price: form.value.price === '' ? null : form.value.price,
     status: form.value.status,
-    // Free v1 (Appointment) is single-person by definition (DETAILED-SPEC.md
-    // §A9) — not exposed as a form field since there's nothing to choose yet.
-    capacity: 1,
+    // Appointment is single-person by definition (DETAILED-SPEC.md §A2/A3
+    // field matrix) regardless of what the hidden field holds; every other
+    // type sends its real capacity.
+    capacity: form.value.type === 'appointment' ? 1 : Math.max(1, Number(form.value.capacity) || 1),
   };
 
   if (!isEdit.value) {
-    payload.type = 'appointment';
+    payload.type = form.value.type;
   }
 
   saving.value = true;

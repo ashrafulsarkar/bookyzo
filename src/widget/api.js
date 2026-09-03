@@ -28,7 +28,7 @@ async function request(path, options = {}) {
   return data;
 }
 
-export const getPublicResources = () => request('/resources/public');
+export const getPublicResources = (type) => request(`/resources/public${type ? `?type=${encodeURIComponent(type)}` : ''}`);
 export const getSlots = (resourceId) => request(`/slots?resource_id=${resourceId}`);
 export const createBooking = (payload) => request('/bookings', { method: 'POST', body: JSON.stringify(payload) });
 export const createBookingPaymentIntent = (bookingId, customerEmail) =>

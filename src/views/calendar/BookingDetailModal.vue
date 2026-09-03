@@ -13,6 +13,7 @@
       <div class="flex flex-col gap-2 text-sm">
         <p><span class="text-muted-foreground">Email:</span> {{ booking.customer_email }}</p>
         <p v-if="booking.customer_phone"><span class="text-muted-foreground">Phone:</span> {{ booking.customer_phone }}</p>
+        <p v-if="booking.party_size > 1"><span class="text-muted-foreground">Party size:</span> {{ booking.party_size }}</p>
         <p v-if="booking.customer_notes"><span class="text-muted-foreground">Notes:</span> {{ booking.customer_notes }}</p>
         <p v-if="booking.payment_amount !== null" class="flex items-center gap-2">
           <span class="text-muted-foreground">Payment:</span> {{ Number(booking.payment_amount).toFixed(2) }} ({{ booking.payment_status }})
