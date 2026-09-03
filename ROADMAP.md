@@ -10,6 +10,8 @@ Scope for now: **Phase 0–2** is the actionable near-term plan. Phases 3+ are s
 
 > **ONBOARDING & DASHBOARD DEEPENED 2026-09-03:** user-supplied wizard+dashboard UX spec, reconciled against Bookyzo's decided architecture (see `FEATURES.md`'s callout for the 3 deviations — 4 types not 7/no custom type, Availability stays bookable item-scoped, Free gets one Revenue total not a breakdown) and one genuinely new setting (auto-confirm vs. manual approval). Rewrites **Phase 1.5 step 6** (the wizard, now 5 in-wizard steps + review + success instead of 3 steps) and adds **Phase 1.5 step 10** (Dashboard + admin nav enrichment).
 
+> **NAMING: "resource" → "bookable item" (2026-09-03, user-directed).** "Resource" read as an unclear, overly technical term to an end user (what does a business owner think a "resource" is?) — renamed everywhere, not just the UI label: DB table (`wp_byzo_resources` → `wp_byzo_bookable_items`, `resource_id` columns → `bookable_item_id`, real migration for pre-existing installs, `BYZO_DB_VERSION` → `1.3`), PHP classes (`BYZO_Resource` → `BYZO_Bookable_Item`, `BYZO_REST_Resources_Controller` → `BYZO_REST_Bookable_Items_Controller`), REST routes (`/resources` → `/bookable-items`), hooks/filters, shortcode/block attributes, every Vue component under `src/views/resources/` → `src/views/bookable-items/`, and this whole doc set (`FEATURES.md`/`DETAILED-SPEC.md`/`ROADMAP.md`/`readme.txt`/both skill files). Full regression suite (25 scratchpad smoke tests) and both Vite bundles verified clean after the rename. Every step below already reflects the new terminology — this note exists so the history of *why* isn't lost, not because any step needs re-reading differently.
+
 ---
 
 ## Phase 0 — Core Engine (no public release)
