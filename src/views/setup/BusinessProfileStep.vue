@@ -75,7 +75,10 @@ async function save() {
   saving.value = true;
   try {
     await api.put('/settings', form.value);
-    emit('next');
+    // Later steps (AvailabilityStep's default hours, PricingStep's
+    // currency label) need these without re-fetching /settings
+    // themselves — pass them up alongside the unchanged `next` signal.
+    emit('next', { currency: form.value.currency, default_start_time: form.value.default_start_time, default_end_time: form.value.default_end_time });
   } catch (e) {
     error.value = e.message || 'Could not save your business profile. Please check the fields above.';
   } finally {

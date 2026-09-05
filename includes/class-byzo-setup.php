@@ -8,11 +8,13 @@ defined( 'ABSPATH' ) || exit;
  */
 class BYZO_Setup {
 
-	const STEPS = array( 'booking_type', 'business_profile', 'first_bookable_item', 'done' );
+	// Deepened 2026-09-03 (DETAILED-SPEC.md §A1) from the old 3-step
+	// version (booking_type -> business_profile -> first_bookable_item).
+	const STEPS = array( 'welcome', 'booking_type', 'business_profile', 'booking_details', 'availability', 'customer_fields', 'pricing', 'confirmation', 'review', 'done' );
 
 	public static function get_state() {
 		return array(
-			'step'    => get_option( 'byzo_setup_step', 'booking_type' ),
+			'step'    => get_option( 'byzo_setup_step', 'welcome' ),
 			'skipped' => (bool) get_option( 'byzo_setup_skipped' ),
 			'needed'  => BYZO_Install_Redirect::needs_setup(),
 		);

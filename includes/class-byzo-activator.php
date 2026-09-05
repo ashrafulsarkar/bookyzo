@@ -17,7 +17,7 @@ class BYZO_Activator {
 		update_option( 'byzo_db_version', BYZO_DB_VERSION );
 
 		if ( false === get_option( 'byzo_setup_step' ) ) {
-			add_option( 'byzo_setup_step', 'booking_type' );
+			add_option( 'byzo_setup_step', 'welcome' );
 			set_transient( 'byzo_activation_redirect', 1, 30 );
 		}
 

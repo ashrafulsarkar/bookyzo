@@ -18,15 +18,57 @@ class BYZO_Notifications {
 	}
 
 	public static function on_booking_created( $booking_id ) {
-		self::send( 'booking_created', $booking_id );
+		$booking = BYZO_Booking::get( $booking_id );
+		if ( ! $booking ) {
+			return;
+		}
+
+		// byzo_settings.auto_confirm (DETAILED-SPEC.md §A4) can create a
+		// booking already 'confirmed' rather than 'pending' — send the
+		// matching template for whichever it actually is, rather than
+		// always sending "request received" (which would be misleading
+		// for a booking that was never pending in the first place).
+		$event = 'confirmed' === $booking['status'] ? 'booking_confirmed' : 'booking_created';
+		self::maybe_send_customer( $event, $booking_id );
+
+		self::maybe_send_admin( $booking_id );
 	}
 
 	public static function on_status_changed( $booking_id, $new_status, $old_status ) {
 		if ( 'confirmed' === $new_status ) {
-			self::send( 'booking_confirmed', $booking_id );
+			self::maybe_send_customer( 'booking_confirmed', $booking_id );
 		} elseif ( 'cancelled' === $new_status ) {
 			self::send( 'booking_cancelled', $booking_id );
 		}
+	}
+
+	/**
+	 * Gates the customer-facing "confirmation" emails (created + confirmed
+	 * — the two that tell the customer their booking status) on
+	 * byzo_settings.send_confirmation_email (default true, DETAILED-SPEC.md
+	 * §A6). Cancellation and reminder stay unconditional — that toggle is
+	 * specifically about the confirmation messages, not every email.
+	 */
+	private static function maybe_send_customer( $event, $booking_id ) {
+		if ( empty( BYZO_Settings::get()['send_confirmation_email'] ) ) {
+			return;
+		}
+
+		self::send( $event, $booking_id );
+	}
+
+	/**
+	 * Sends the admin-facing "New booking received" notification (added
+	 * for the deepened onboarding wizard, DETAILED-SPEC.md §A6) — gated by
+	 * its own toggle, separate from the customer-facing one, and to
+	 * get_option('admin_email') rather than the booking's customer_email.
+	 */
+	private static function maybe_send_admin( $booking_id ) {
+		if ( empty( BYZO_Settings::get()['send_admin_notification'] ) ) {
+			return;
+		}
+
+		self::send( 'admin_new_booking', $booking_id, get_option( 'admin_email' ) );
 	}
 
 	/**
@@ -54,7 +96,14 @@ class BYZO_Notifications {
 		}
 	}
 
-	private static function send( $event, $booking_id ) {
+	/**
+	 * @param string      $event
+	 * @param int         $booking_id
+	 * @param string|null $to Defaults to the booking's own customer_email —
+	 *     pass an explicit address (e.g. get_option('admin_email')) for the
+	 *     admin-facing notification, which isn't addressed to the customer.
+	 */
+	private static function send( $event, $booking_id, $to = null ) {
 		$booking = BYZO_Booking::get( $booking_id );
 		if ( ! $booking ) {
 			return;
@@ -83,7 +132,7 @@ class BYZO_Notifications {
 			$message = $body; // Template file missing/unreadable — fall back to the raw body rather than sending an empty email.
 		}
 
-		wp_mail( $booking['customer_email'], $subject, $message );
+		wp_mail( $to ?? $booking['customer_email'], $subject, $message );
 
 		/**
 		 * Fires after a notification email is sent (or attempted —

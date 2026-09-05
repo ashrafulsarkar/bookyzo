@@ -25,6 +25,14 @@ class BYZO_Settings {
 			'buffer_minutes'     => 0,
 			'default_start_time' => '09:00',
 			'default_end_time'   => '17:00',
+			// Added 2026-09-03 (onboarding wizard deepening, DETAILED-SPEC.md
+			// §A1/§A4/§A6) — surfaced in the wizard's Customer Information and
+			// Confirmation & Notifications steps, but real settings fields in
+			// their own right, editable later outside the wizard too.
+			'require_phone'           => false,
+			'auto_confirm'            => false,
+			'send_confirmation_email' => true,
+			'send_admin_notification' => true,
 		);
 
 		return wp_parse_args( get_option( 'byzo_settings', array() ), $defaults );
@@ -92,6 +100,12 @@ class BYZO_Settings {
 				return new WP_Error( 'byzo_invalid_time', __( 'default_end_time must be a valid time (H:i).', 'bookyzo' ), array( 'status' => 400 ) );
 			}
 			$patch['default_end_time'] = $time;
+		}
+
+		foreach ( array( 'require_phone', 'auto_confirm', 'send_confirmation_email', 'send_admin_notification' ) as $bool_field ) {
+			if ( isset( $data[ $bool_field ] ) ) {
+				$patch[ $bool_field ] = (bool) $data[ $bool_field ];
+			}
 		}
 
 		$updated = array_merge( $current, $patch );

@@ -1,9 +1,9 @@
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>What do you want to book?</CardTitle>
+      <CardTitle>What do you want to accept bookings for?</CardTitle>
       <CardDescription>
-        Choose the type of booking your business needs. You can add more types later with Bookyzo Pro.
+        You can add more types later from Bookable Items → Add New — this just picks which one to start with.
       </CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-3">
@@ -23,7 +23,7 @@
       </label>
     </CardContent>
     <CardFooter class="justify-end">
-      <Button @click="$emit('next')">Continue</Button>
+      <Button @click="$emit('next', selected)">Continue</Button>
     </CardFooter>
   </Card>
 </template>
@@ -35,20 +35,15 @@ import { Button } from '@/components/ui/button';
 
 defineEmits(['next']);
 
-// Appointment is the only type this build actually implements
-// (ROADMAP.md Phase 1) — Table/Event/Slot exist in the bookable_items.type
-// schema enum for forward compatibility (DETAILED-SPEC.md §1.1) but have
-// no admin screens or booking flow behind them yet, so they're not
-// listed here at all. A disabled "coming soon" option would visually be
-// the exact locked/greyed-out pattern the bookyzo-design skill's
-// Guideline 5 rule forbids, even though this isn't a Pro-vs-Free gate —
-// showing a choice with nothing behind it reads the same way to a
-// reviewer (and a user) as showing a Pro tease. The radio UI still
-// renders as a real (if single-option) choice, matching DETAILED-SPEC.md
-// §A1's "radio, not checkbox" — this list just grows honestly as each
-// type actually ships (Phase 3+), never by un-disabling a placeholder.
+// Same 4 real options as BookableItemTypeStep.vue's Add New picker and
+// the block editor's type selector (all landed across Phase 1.5 steps
+// 3-5) — kept in sync by hand across the 3 pickers, matching how
+// BookableItemTypeStep.vue's own comment already flags this duplication.
 const types = [
   { value: 'appointment', label: 'Appointment', description: 'One-on-one bookings with staff — salons, clinics, consultants.' },
+  { value: 'table', label: 'Table', description: 'Reservations for a table, room, or group — restaurants, venues.' },
+  { value: 'event', label: 'Event', description: 'Ticketed, dated occurrences — concerts, workshops, one-off sessions.' },
+  { value: 'slot', label: 'Slot', description: 'Fixed-capacity time slots — classes, workshops, rental sessions.' },
 ];
 
 const selected = ref('appointment');

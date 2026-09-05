@@ -286,6 +286,14 @@ class BYZO_Booking {
 		$item            = BYZO_Bookable_Item::get( $slot['bookable_item_id'] );
 		$payment_amount  = ( $item && null !== $item['price'] ) ? round( $item['price'] * $party_size, 2 ) : null;
 
+		// byzo_settings.auto_confirm (DETAILED-SPEC.md §A4, added for the
+		// deepened onboarding wizard's Confirmation step) — skips the
+		// admin-review step entirely for businesses with no
+		// capacity/legitimacy concerns. The TRANSITIONS state machine
+		// itself is unchanged; this only picks the booking's *starting*
+		// status, same capacity-decrement/payment logic either way.
+		$status = ! empty( BYZO_Settings::get()['auto_confirm'] ) ? 'confirmed' : 'pending';
+
 		$row = array(
 			'slot_id'          => $slot['id'],
 			'bookable_item_id' => $slot['bookable_item_id'],
@@ -294,7 +302,7 @@ class BYZO_Booking {
 			'customer_phone'   => $validated['customer_phone'],
 			'customer_notes'   => $validated['customer_notes'],
 			'party_size'       => $party_size,
-			'status'           => 'pending',
+			'status'           => $status,
 			'payment_status'   => 'unpaid',
 			'payment_amount'   => $payment_amount,
 			'custom_fields'    => wp_json_encode( $validated['custom_fields'] ),
@@ -314,9 +322,12 @@ class BYZO_Booking {
 		$booking_id = (int) $wpdb->insert_id;
 
 		/**
-		 * Fires after a booking is created (still in 'pending' status).
-		 * Notification/payment logic (Phase 1 steps 7-8) hooks this
-		 * rather than living inside create().
+		 * Fires after a booking is created — status is 'pending' unless
+		 * byzo_settings.auto_confirm made it 'confirmed' immediately (see
+		 * $status above). Notification/payment logic (Phase 1 steps 7-8,
+		 * Phase 1.5 step 6) hooks this rather than living inside create();
+		 * BYZO_Notifications checks the booking's actual status to decide
+		 * which customer template to send.
 		 */
 		do_action( 'byzo_booking_created', $booking_id );
 
@@ -435,6 +446,13 @@ class BYZO_Booking {
 
 		if ( empty( $data['customer_email'] ) || ! is_email( $data['customer_email'] ) ) {
 			return new WP_Error( 'byzo_invalid_email', __( 'A valid customer_email is required.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		// byzo_settings.require_phone (DETAILED-SPEC.md §A1's Customer
+		// Information wizard step) — name/email are always required
+		// regardless of this setting, phone is the only one that toggles.
+		if ( ! empty( BYZO_Settings::get()['require_phone'] ) && empty( $data['customer_phone'] ) ) {
+			return new WP_Error( 'byzo_missing_phone', __( 'customer_phone is required.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
 		$party_size = isset( $data['party_size'] ) ? max( 1, absint( $data['party_size'] ) ) : 1;

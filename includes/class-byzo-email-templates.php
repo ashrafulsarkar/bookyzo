@@ -13,7 +13,12 @@ class BYZO_Email_Templates {
 
 	const OPTION = 'byzo_email_templates';
 
-	const EVENTS = array( 'booking_created', 'booking_confirmed', 'booking_cancelled', 'booking_reminder' );
+	// 'admin_new_booking' added 2026-09-03 (onboarding/dashboard deepening,
+	// DETAILED-SPEC.md §A6) — the only one of the five sent to the site
+	// admin (get_option('admin_email')) rather than the customer, gated by
+	// byzo_settings.send_admin_notification instead of
+	// send_confirmation_email (see BYZO_Notifications).
+	const EVENTS = array( 'booking_created', 'booking_confirmed', 'booking_cancelled', 'booking_reminder', 'admin_new_booking' );
 
 	public static function get() {
 		$defaults = self::defaults();
@@ -77,6 +82,10 @@ class BYZO_Email_Templates {
 			'booking_reminder'  => array(
 				'subject' => __( 'Reminder: your booking is tomorrow', 'bookyzo' ),
 				'body'    => __( "Hi {customer_name},\n\nJust a reminder about your booking with {business_name} for {bookable_item_name} on {start_time}.\n\nSee you soon!\n{business_name}", 'bookyzo' ),
+			),
+			'admin_new_booking' => array(
+				'subject' => __( 'New booking received', 'bookyzo' ),
+				'body'    => __( "Hi,\n\n{customer_name} just booked {bookable_item_name} for {start_time}.\n\nLog in to {business_name}'s Bookyzo dashboard to review it.", 'bookyzo' ),
 			),
 		);
 	}
