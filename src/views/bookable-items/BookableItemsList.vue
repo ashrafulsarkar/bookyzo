@@ -67,7 +67,7 @@
                 </div>
               </TableCell>
               <TableCell class="text-right">
-                <Button variant="ghost" size="sm" @click="router.push({ name: 'bookable-items.edit', params: { id: item.id } })">
+                <Button variant="ghost" size="sm" @click="openEdit(item)">
                   Edit
                 </Button>
                 <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="askDelete(item)">
@@ -96,12 +96,13 @@
     </Dialog>
 
     <BookableItemAddWizard :open="showAddWizard" @update:open="(v) => (showAddWizard = v)" @created="load" />
+    <BookableItemEditDialog :open="editId !== null" :item-id="editId" @update:open="(v) => !v && closeEdit()" @saved="load" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -113,17 +114,39 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
 import BookableItemAddWizard from './BookableItemAddWizard.vue';
+import BookableItemEditDialog from './BookableItemEditDialog.vue';
 import { api } from '@/api/client';
 
 const TYPES = ['appointment', 'table', 'event', 'slot'];
 const TYPE_LABELS = { appointment: 'Appointment', table: 'Table', event: 'Event', slot: 'Slot' };
 
+const route = useRoute();
 const router = useRouter();
 const items = ref([]);
 const loading = ref(true);
 const deleteTarget = ref(null);
 const typeFilter = ref('__all__');
-const showAddWizard = ref(false);
+// Both popups are driven by the ROUTE, not local state, so a reload or a
+// shared link lands on the same open dialog, and other screens can open
+// them by navigating (SetupWizard.vue's "Manage" / "Add another" push to
+// bookable-items.edit / bookable-items.new). Both of those routes render
+// this list component (see router/index.js), so opening or closing a
+// dialog is just a URL swap — `replace`, not `push`, so a dialog doesn't
+// pile up history entries and the browser's Back still leaves the list.
+const showAddWizard = computed({
+  get: () => route.name === 'bookable-items.new',
+  set: (isOpen) => router.replace({ name: isOpen ? 'bookable-items.new' : 'bookable-items' }),
+});
+
+const editId = computed(() => (route.name === 'bookable-items.edit' && route.params.id ? String(route.params.id) : null));
+
+function openEdit(item) {
+  router.replace({ name: 'bookable-items.edit', params: { id: item.id } });
+}
+
+function closeEdit() {
+  router.replace({ name: 'bookable-items' });
+}
 
 const filteredItems = computed(() =>
   typeFilter.value === '__all__' ? items.value : items.value.filter((i) => i.type === typeFilter.value)

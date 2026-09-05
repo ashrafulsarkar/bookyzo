@@ -8,6 +8,8 @@
           class="flex items-center gap-2"
         >
           <div
+            :title="label"
+            :aria-current="index === currentIndex ? 'step' : undefined"
             :class="[
               'flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium',
               index < currentIndex
@@ -36,10 +38,16 @@
       </button>
     </div>
 
+    <!-- Each step is v-if-mounted, so its local form state dies on Back.
+         `:initial` hands the accumulated wizardData back in and every step
+         seeds itself from it — Back shows what the owner already
+         chose/typed, not the defaults. (BusinessProfileStep saves to
+         /settings and re-reads it on mount, so it persists on its own.) -->
     <WelcomeStep v-if="state.step === 'welcome'" @next="advanceTo('booking_type')" />
 
     <BookingTypeStep
       v-else-if="state.step === 'booking_type'"
+      :initial="wizardData.type"
       @next="(type) => { wizardData.type = type; advanceTo('business_profile'); }"
     />
 
@@ -52,6 +60,7 @@
     <BookingDetailsStep
       v-else-if="state.step === 'booking_details'"
       :type="wizardData.type"
+      :initial="wizardData"
       @next="(details) => { Object.assign(wizardData, details); advanceTo('availability'); }"
       @back="advanceTo('business_profile')"
     />
@@ -61,12 +70,14 @@
       :type="wizardData.type"
       :default-start-time="wizardData.default_start_time"
       :default-end-time="wizardData.default_end_time"
+      :initial="wizardData"
       @next="(availability) => { Object.assign(wizardData, availability); advanceTo('customer_fields'); }"
       @back="advanceTo('booking_details')"
     />
 
     <CustomerFieldsStep
       v-else-if="state.step === 'customer_fields'"
+      :initial="wizardData"
       @next="(fields) => { Object.assign(wizardData, fields); advanceTo('pricing'); }"
       @back="advanceTo('availability')"
     />
@@ -75,14 +86,16 @@
       v-else-if="state.step === 'pricing'"
       :type="wizardData.type"
       :currency="wizardData.currency"
+      :initial="wizardData"
       @next="(pricing) => { Object.assign(wizardData, pricing); advanceTo('confirmation'); }"
       @back="advanceTo('customer_fields')"
     />
 
     <ConfirmationStep
       v-else-if="state.step === 'confirmation'"
+      :initial="wizardData"
       @next="(confirmation) => { Object.assign(wizardData, confirmation); advanceTo('review'); }"
-      @back="advanceTo('customer_fields')"
+      @back="advanceTo('pricing')"
     />
 
     <ReviewStep
@@ -138,16 +151,23 @@ const state = ref({ step: 'welcome', skipped: false, needed: true });
 // this accumulated data does not survive a real page reload, only a
 // same-session step-back/forward. Not built out further since nothing
 // in the spec calls for full draft persistence.
+//
+// `schedules: null` (not []) until the Availability step has been visited
+// — AvailabilityStep.vue reads null as "seed every day from the default
+// hours" and an array (even empty = closed every day) as "the owner's
+// last answer, show it as left".
 const wizardData = reactive({
   type: '',
   name: '',
   description: '',
   duration_minutes: 30,
   capacity: 1,
-  schedules: [],
+  schedules: null,
   occurrence: { date: '', start_time: '19:00', end_time: '22:00' },
   require_phone: false,
   price: null,
+  location: '',
+  meeting_link: '',
   currency: 'USD',
   default_start_time: '09:00',
   default_end_time: '17:00',
@@ -159,6 +179,15 @@ const wizardData = reactive({
 const creating = ref(false);
 const createError = ref('');
 const createdItemId = ref(null);
+
+// Set once POST /bookable-items succeeds. Create is several calls (settings,
+// the item, then its availability or first occurrence); if a later one
+// fails, a retry must UPDATE the existing item rather than POST a second
+// one — which, on Free's 1-active-per-type cap (BYZO_Capabilities), would
+// otherwise fail with "Upgrade to add more" and strand a half-configured
+// item behind it. Same guard as BookableItemAddWizard.vue's createItem().
+const createdId = ref(null);
+const createdType = ref('');
 
 const currentIndex = computed(() => {
   const order = ['welcome', 'booking_type', 'business_profile', 'booking_details', 'availability', 'customer_fields', 'pricing', 'confirmation', 'review', 'done'];
@@ -201,14 +230,32 @@ async function createEverything() {
       description: wizardData.description,
       status: 'active',
       price: wizardData.price === '' || wizardData.price === null ? null : wizardData.price,
-      // Same appointment-is-always-1 rule as BookableItemForm.vue's own save().
+      // Same appointment-is-always-1 rule as BookableItemEditDialog.vue's own save().
       capacity: wizardData.type === 'appointment' ? 1 : Math.max(1, Number(wizardData.capacity) || 1),
+      location: wizardData.location || null,
+      meeting_link: wizardData.meeting_link || null,
     };
     if ('event' !== wizardData.type) {
       payload.duration_minutes = wizardData.duration_minutes;
     }
 
-    const created = await api.post('/bookable-items', payload);
+    // Type is immutable server-side (update_item's byzo_type_immutable),
+    // so if the owner went Back after a partial failure and switched type,
+    // the half-created item can't be reused — drop it and start clean.
+    if (createdId.value && createdType.value !== wizardData.type) {
+      await api.delete(`/bookable-items/${createdId.value}`);
+      createdId.value = null;
+      createdType.value = '';
+    }
+
+    let created;
+    if (createdId.value) {
+      created = await api.put(`/bookable-items/${createdId.value}`, payload);
+    } else {
+      created = await api.post('/bookable-items', payload);
+      createdId.value = created.id;
+      createdType.value = wizardData.type;
+    }
 
     if ('event' === wizardData.type) {
       await api.post(`/bookable-items/${created.id}/slots`, { ...wizardData.occurrence });
@@ -217,6 +264,8 @@ async function createEverything() {
     }
 
     createdItemId.value = created.id;
+    createdId.value = null;
+    createdType.value = '';
     state.value = await api.put('/setup', { step: 'done' });
     // Tell the route guard setup is done now, even though SuccessStep is
     // shown in place rather than redirecting immediately — its own

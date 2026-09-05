@@ -29,6 +29,14 @@
         <span class="text-muted-foreground">Price</span>
         <span class="font-medium">{{ data.price ? `${data.currency} ${Number(data.price).toFixed(2)}` : 'Free' }}</span>
       </div>
+      <div v-if="data.location" class="flex justify-between gap-4 border-b border-border pb-2">
+        <span class="shrink-0 text-muted-foreground">Location</span>
+        <span class="break-words text-right font-medium">{{ data.location }}</span>
+      </div>
+      <div v-if="data.meeting_link" class="flex justify-between gap-4 border-b border-border pb-2">
+        <span class="shrink-0 text-muted-foreground">Meeting link</span>
+        <span class="break-words text-right font-medium">{{ data.meeting_link }}</span>
+      </div>
       <div class="flex justify-between border-b border-border pb-2">
         <span class="text-muted-foreground">Phone required</span>
         <span class="font-medium">{{ data.require_phone ? 'Yes' : 'No' }}</span>

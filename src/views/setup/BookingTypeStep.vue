@@ -33,6 +33,12 @@ import { ref } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
+const props = defineProps({
+  // The type picked on an earlier pass, so Back from Business profile
+  // re-selects it instead of snapping to Appointment (SetupWizard.vue
+  // v-if-mounts each step, so local state alone doesn't survive Back).
+  initial: { type: String, default: '' },
+});
 defineEmits(['next']);
 
 // Same 4 real options as BookableItemTypeStep.vue's Add New picker and
@@ -46,5 +52,5 @@ const types = [
   { value: 'slot', label: 'Slot', description: 'Fixed-capacity time slots — classes, workshops, rental sessions.' },
 ];
 
-const selected = ref('appointment');
+const selected = ref(types.some((t) => t.value === props.initial) ? props.initial : 'appointment');
 </script>

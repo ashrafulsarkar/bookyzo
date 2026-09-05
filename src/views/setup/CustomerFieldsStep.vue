@@ -26,7 +26,12 @@ import { Switch } from '@/components/ui/switch';
 // No custom-field UI here — Free has no custom-field builder (that's
 // B11/Pro), so this step must not tease one, per the Guideline-5 rule
 // (DETAILED-SPEC.md §A1).
+const props = defineProps({
+  // Wizard data from an earlier pass, so Back from Pricing keeps the
+  // toggle where the owner left it (SetupWizard.vue v-if-mounts steps).
+  initial: { type: Object, default: null },
+});
 defineEmits(['next', 'back']);
 
-const requirePhone = ref(false);
+const requirePhone = ref(Boolean(props.initial?.require_phone));
 </script>

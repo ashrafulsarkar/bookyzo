@@ -38,11 +38,16 @@ import { Switch } from '@/components/ui/switch';
 // it, belongs to Phase 1.5 step 7 (not built as of this step); adding
 // just the wizard field ahead of the feature it configures would be a
 // setting nobody reads yet.
+const props = defineProps({
+  // Wizard data from an earlier pass, so Back from Review keeps the
+  // toggles where the owner left them (SetupWizard.vue v-if-mounts steps).
+  initial: { type: Object, default: null },
+});
 defineEmits(['next', 'back']);
 
 const form = ref({
-  auto_confirm: false,
-  send_confirmation_email: true,
-  send_admin_notification: true,
+  auto_confirm: props.initial?.auto_confirm ?? false,
+  send_confirmation_email: props.initial?.send_confirmation_email ?? true,
+  send_admin_notification: props.initial?.send_admin_notification ?? true,
 });
 </script>

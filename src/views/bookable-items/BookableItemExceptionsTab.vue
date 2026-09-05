@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-4">
-    <Card class="max-w-xl">
+    <Card :class="embedded ? 'border-0 shadow-none' : 'max-w-xl'">
       <CardHeader>
         <CardTitle>Add a date exception</CardTitle>
         <CardDescription>Block a holiday, or override hours for a specific date.</CardDescription>
@@ -29,7 +29,7 @@
       </CardFooter>
     </Card>
 
-    <Card v-if="!loading && exceptions.length > 0" class="max-w-xl overflow-hidden">
+    <Card v-if="!loading && exceptions.length > 0" :class="['overflow-hidden', embedded ? 'mx-6' : 'max-w-xl']">
       <Table>
         <TableHeader>
           <TableRow>
@@ -69,6 +69,13 @@ import { api } from '@/api/client';
 
 const props = defineProps({
   bookableItemId: { type: [String, Number], required: true },
+  // True when rendered inside BookableItemEditDialog.vue: drops the form
+  // card's own border/shadow (it would otherwise sit as a bordered card
+  // inside the dialog's bordered surface) and the max-w-xl cap, so the
+  // tab fills the dialog. The class can't just fall through from the
+  // parent as it does for the single-Card tabs — this root is a wrapper
+  // <div> with several cards inside.
+  embedded: { type: Boolean, default: false },
 });
 
 const exceptions = ref([]);

@@ -35,17 +35,24 @@ import { Switch } from '@/components/ui/switch';
 const props = defineProps({
   type: { type: String, required: true },
   currency: { type: String, default: 'USD' },
+  // The parent wizard's accumulated data from an earlier pass, so Back
+  // from Review keeps the paid toggle and price. `price: null` means both
+  // "not visited yet" and "Free", so the toggle only comes back on for a
+  // real price — which is exactly the Free-by-default rule below anyway.
+  initial: { type: Object, default: null },
 });
 const emit = defineEmits(['next', 'back']);
 
-// Same "Ticket price" relabel as BookableItemDetailsTab.vue's field
+// Same "Ticket price" relabel as BookingDetailsStep.vue's edit-mode field
 // matrix — Event is the only type with its own price label.
 const priceLabel = computed(() => ('event' === props.type ? 'Ticket price' : 'Price'));
 
 // Defaults to Free — an owner opting into charging is an explicit
 // action, not assumed (matches "genuinely usable free plan" framing).
-const isPaid = ref(false);
-const price = ref('');
+const initialPrice = props.initial?.price;
+const hasInitialPrice = initialPrice !== null && initialPrice !== undefined && initialPrice !== '';
+const isPaid = ref(hasInitialPrice);
+const price = ref(hasInitialPrice ? String(initialPrice) : '');
 const error = ref('');
 
 function continueStep() {

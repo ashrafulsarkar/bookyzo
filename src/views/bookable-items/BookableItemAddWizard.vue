@@ -1,6 +1,6 @@
 <template>
   <Dialog :open="open" @update:open="(v) => !v && close()">
-    <DialogScrollContent class="max-w-xl">
+    <DialogScrollContent class="max-w-xl" @pointer-down-outside="onPointerDownOutside">
       <DialogHeader>
         <DialogTitle>Add bookable item</DialogTitle>
         <DialogDescription>Set it up in a few quick steps — you can fine-tune everything later.</DialogDescription>
@@ -9,6 +9,8 @@
       <div class="flex items-center gap-1.5">
         <template v-for="(label, index) in stepLabels" :key="label">
           <div
+            :title="label"
+            :aria-current="index === currentIndex ? 'step' : undefined"
             :class="[
               'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium',
               index < currentIndex
@@ -33,19 +35,27 @@
            ends up in exactly the shape SetupWizard.vue's createEverything()
            produces — one accumulate-then-create flow, not two divergent
            ones. `class="border-0 shadow-none"` falls through each step's
-           root Card (Card.vue reads $attrs.class, same pattern already used
-           by `<Card class="max-w-xl">` in BookableItemDetailsTab.vue) so the
+           root Card (Card.vue reads $attrs.class — the same fallthrough
+           BookableItemEditDialog.vue relies on for its steps) so the
            step doesn't render as a bordered card nested inside the dialog's
-           own bordered surface. -->
+           own bordered surface.
+
+           Each step is v-if-mounted, so its local form state dies on Back.
+           `:initial` hands the accumulated wizardData back in, and every
+           step seeds itself from it — Back shows what the owner already
+           chose/typed, not the defaults. -->
       <BookableItemTypeStep
         v-if="step === 'type'"
         class="border-0 shadow-none"
+        :initial="wizardData.type"
         @selected="onTypeSelected"
       />
       <BookingDetailsStep
         v-else-if="step === 'details'"
         class="border-0 shadow-none"
+        context="add"
         :type="wizardData.type"
+        :initial="wizardData"
         @next="onDetailsNext"
         @back="step = 'type'"
       />
@@ -55,6 +65,7 @@
         :type="wizardData.type"
         :default-start-time="defaultStartTime"
         :default-end-time="defaultEndTime"
+        :initial="wizardData"
         @next="onAvailabilityNext"
         @back="step = 'details'"
       />
@@ -63,6 +74,7 @@
         class="border-0 shadow-none"
         :type="wizardData.type"
         :currency="currency"
+        :initial="wizardData"
         @next="onPricingNext"
         @back="step = 'availability'"
       />
@@ -101,15 +113,21 @@ const stepLabels = ['Type', 'Details', 'Availability', 'Pricing', 'Review'];
 const step = ref('type');
 const currentIndex = computed(() => STEP_ORDER.indexOf(step.value));
 
+// `schedules: null` (not []) until the Availability step has been visited
+// — AvailabilityStep.vue reads null as "seed every day from the default
+// hours" and an array (even empty = closed every day) as "the owner's
+// last answer, show it as left".
 const wizardData = reactive({
   type: '',
   name: '',
   description: '',
   duration_minutes: 30,
   capacity: 1,
-  schedules: [],
+  schedules: null,
   occurrence: { date: '', start_time: '19:00', end_time: '22:00' },
   price: null,
+  location: '',
+  meeting_link: '',
 });
 
 // Seeded from /settings each time the dialog opens (same fields
@@ -122,6 +140,14 @@ const defaultEndTime = ref('17:00');
 
 const creating = ref(false);
 const createError = ref('');
+
+// Set once POST /bookable-items succeeds. Create is two calls (the item,
+// then its availability or first occurrence); if the second one fails, a
+// retry must UPDATE this item rather than POST a second one — which, on
+// Free's 1-active-per-type cap (BYZO_Capabilities), would otherwise fail
+// with "Upgrade to add more" and strand a half-configured item behind it.
+const createdId = ref(null);
+const createdType = ref('');
 
 watch(
   () => props.open,
@@ -140,10 +166,14 @@ function resetWizard() {
   wizardData.description = '';
   wizardData.duration_minutes = 30;
   wizardData.capacity = 1;
-  wizardData.schedules = [];
+  wizardData.schedules = null;
   wizardData.occurrence = { date: '', start_time: '19:00', end_time: '22:00' };
   wizardData.price = null;
+  wizardData.location = '';
+  wizardData.meeting_link = '';
   createError.value = '';
+  createdId.value = null;
+  createdType.value = '';
 }
 
 async function loadDefaults() {
@@ -181,6 +211,7 @@ function onPricingNext(pricing) {
 async function createItem() {
   createError.value = '';
   creating.value = true;
+  let succeeded = false;
   try {
     const payload = {
       type: wizardData.type,
@@ -188,14 +219,33 @@ async function createItem() {
       description: wizardData.description,
       status: 'active',
       price: wizardData.price === '' || wizardData.price === null ? null : wizardData.price,
-      // Same appointment-is-always-1 rule as BookableItemForm.vue's save().
+      // Same appointment-is-always-1 rule as BookableItemEditDialog.vue's save().
       capacity: wizardData.type === 'appointment' ? 1 : Math.max(1, Number(wizardData.capacity) || 1),
+      location: wizardData.location || null,
+      meeting_link: wizardData.meeting_link || null,
     };
     if (wizardData.type !== 'event') {
       payload.duration_minutes = wizardData.duration_minutes;
     }
 
-    const created = await api.post('/bookable-items', payload);
+    // Type is immutable server-side (update_item's byzo_type_immutable),
+    // so if the owner went Back after a partial failure and switched type,
+    // the half-created item from the earlier attempt can't be reused —
+    // drop it and start clean rather than leave an orphan.
+    if (createdId.value && createdType.value !== wizardData.type) {
+      await api.delete(`/bookable-items/${createdId.value}`);
+      createdId.value = null;
+      createdType.value = '';
+    }
+
+    let created;
+    if (createdId.value) {
+      created = await api.put(`/bookable-items/${createdId.value}`, payload);
+    } else {
+      created = await api.post('/bookable-items', payload);
+      createdId.value = created.id;
+      createdType.value = wizardData.type;
+    }
 
     if (wizardData.type === 'event') {
       await api.post(`/bookable-items/${created.id}/slots`, { ...wizardData.occurrence });
@@ -203,17 +253,50 @@ async function createItem() {
       await api.put(`/bookable-items/${created.id}/availability`, { schedules: wizardData.schedules });
     }
 
+    createdId.value = null;
+    createdType.value = '';
     toast.success(`"${created.name}" created.`);
     emit('created', created);
-    close();
+    succeeded = true;
   } catch (e) {
     createError.value = e.message || 'Could not create this bookable item. Please check your answers and try again.';
   } finally {
     creating.value = false;
   }
+  // close() refuses to run while `creating` is true (see below), so it has
+  // to come after the finally above has cleared it.
+  if (succeeded) {
+    close();
+  }
+}
+
+// Once the owner is past the type picker there's real typed data on the
+// table — a stray click on the overlay shouldn't throw it away. Esc and
+// the X button still close (those are deliberate gestures).
+function onPointerDownOutside(event) {
+  if (currentIndex.value > 0 || creating.value) {
+    event.preventDefault();
+  }
 }
 
 function close() {
+  // Ignore X/Esc/outside-click while the create calls are in flight —
+  // the Dialog is controlled by `open`, so returning here keeps it up
+  // and the owner sees the outcome (or the error) instead of nothing.
+  if (creating.value) {
+    return;
+  }
+
+  // Closing after a partial failure: the item itself exists (without
+  // its availability/first date). Say so and refresh the list, so it
+  // shows up where the owner can finish it from the edit screen instead
+  // of silently vanishing until the next reload.
+  if (createdId.value) {
+    const missing = wizardData.type === 'event' ? 'first date' : 'availability';
+    toast.warning(`"${wizardData.name}" was created, but its ${missing} was not saved — open it from the list to finish setting it up.`);
+    emit('created', { id: createdId.value, name: wizardData.name, type: createdType.value });
+  }
+
   emit('update:open', false);
 }
 </script>

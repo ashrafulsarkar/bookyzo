@@ -2,7 +2,6 @@ import { createRouter } from 'vue-router';
 import Dashboard from '../views/Dashboard.vue';
 import SetupWizard from '../views/setup/SetupWizard.vue';
 import BookableItemsList from '../views/bookable-items/BookableItemsList.vue';
-import BookableItemForm from '../views/bookable-items/BookableItemForm.vue';
 import CustomersList from '../views/customers/CustomersList.vue';
 import BookingCalendar from '../views/calendar/BookingCalendar.vue';
 import BookingsList from '../views/bookings/BookingsList.vue';
@@ -27,8 +26,14 @@ const routes = [
   { path: '/', name: 'dashboard', component: Dashboard },
   { path: '/setup', name: 'setup', component: SetupWizard },
   { path: '/bookable-items', name: 'bookable-items', component: BookableItemsList },
-  { path: '/bookable-items/new', name: 'bookable-items.new', component: BookableItemForm },
-  { path: '/bookable-items/:id/edit', name: 'bookable-items.edit', component: BookableItemForm },
+  // Add / Edit are popups on the list screen (BookableItemAddWizard.vue /
+  // BookableItemEditDialog.vue), so these two routes render the list
+  // itself — BookableItemsList.vue reads route.name/params to open the
+  // right dialog. Kept as real routes (not local state) so a reload or a
+  // shared link reopens the same dialog, and SetupWizard.vue's "Manage" /
+  // "Add another" can navigate straight into either.
+  { path: '/bookable-items/new', name: 'bookable-items.new', component: BookableItemsList },
+  { path: '/bookable-items/:id/edit', name: 'bookable-items.edit', component: BookableItemsList },
   { path: '/calendar', name: 'calendar', component: BookingCalendar },
   { path: '/bookings', name: 'bookings', component: BookingsList },
   { path: '/customers', name: 'customers', component: CustomersList },

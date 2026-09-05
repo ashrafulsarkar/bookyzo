@@ -31,6 +31,13 @@ import { ref } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
+const props = defineProps({
+  // The type picked on an earlier pass through this step. The parent
+  // wizard v-if-mounts each step, so without this a Back from Details
+  // remounted the picker on its 'appointment' default and the owner's
+  // choice looked lost.
+  initial: { type: String, default: '' },
+});
 defineEmits(['selected']);
 
 // Same radio-card pattern as the setup wizard's BookingTypeStep.vue
@@ -46,5 +53,5 @@ const types = [
   { value: 'slot', label: 'Slot', description: 'Fixed-capacity time slots — classes, workshops, rental sessions.' },
 ];
 
-const selected = ref('appointment');
+const selected = ref(types.some((t) => t.value === props.initial) ? props.initial : 'appointment');
 </script>

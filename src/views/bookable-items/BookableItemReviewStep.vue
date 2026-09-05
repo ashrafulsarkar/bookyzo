@@ -2,39 +2,23 @@
   <Card>
     <CardHeader>
       <CardTitle>Review</CardTitle>
-      <CardDescription>Everything look right? Create this bookable item.</CardDescription>
+      <CardDescription>{{ description }}</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-3 text-sm">
-      <div class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">Type</span>
-        <span class="font-medium">{{ typeLabel }}</span>
-      </div>
-      <div class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">Name</span>
-        <span class="font-medium">{{ data.name }}</span>
-      </div>
-      <div v-if="data.type !== 'event'" class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">Duration</span>
-        <span class="font-medium">{{ data.duration_minutes }} minutes</span>
-      </div>
-      <div v-if="data.type !== 'appointment'" class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">Capacity</span>
-        <span class="font-medium">{{ data.capacity }}</span>
-      </div>
-      <div class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">{{ data.type === 'event' ? 'Date' : 'Availability' }}</span>
-        <span class="font-medium">{{ availabilitySummary }}</span>
-      </div>
-      <div class="flex justify-between">
-        <span class="text-muted-foreground">Price</span>
-        <span class="font-medium">{{ data.price ? `${data.currency} ${Number(data.price).toFixed(2)}` : 'Free' }}</span>
+      <div
+        v-for="row in rows"
+        :key="row.label"
+        class="flex justify-between gap-4 border-b border-border pb-2 last:border-0 last:pb-0"
+      >
+        <span class="shrink-0 text-muted-foreground">{{ row.label }}</span>
+        <span class="break-words text-right font-medium">{{ row.value }}</span>
       </div>
 
       <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
     </CardContent>
     <CardFooter class="justify-between">
       <Button variant="outline" :disabled="saving" @click="$emit('back')">Back</Button>
-      <Button :disabled="saving" @click="$emit('create')">{{ saving ? 'Creating…' : 'Create bookable item' }}</Button>
+      <Button :disabled="saving" @click="$emit('create')">{{ saving ? savingLabel : submitLabel }}</Button>
     </CardFooter>
   </Card>
 </template>
@@ -44,19 +28,22 @@ import { computed } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 
+// Shared by the Add wizard (BookableItemAddWizard.vue) and the Edit
+// wizard (BookableItemEditDialog.vue) — the labels default to Add's, Edit
+// passes its own. Same field matrix as the setup wizard's ReviewStep.vue,
+// minus the phone/auto-confirm/notification rows neither popup collects.
 const props = defineProps({
   data: { type: Object, required: true },
   saving: { type: Boolean, default: false },
   error: { type: String, default: '' },
+  description: { type: String, default: 'Everything look right? Create this bookable item.' },
+  submitLabel: { type: String, default: 'Create bookable item' },
+  savingLabel: { type: String, default: 'Creating…' },
 });
 defineEmits(['create', 'back']);
 
-// Same field matrix as the setup wizard's own ReviewStep.vue, minus the
-// phone/auto-confirm/notification fields — this quick-add popup doesn't
-// collect those, they stay editable from Settings like they always were.
 const TYPE_LABELS = { appointment: 'Appointment', table: 'Table', event: 'Event', slot: 'Slot' };
-const typeLabel = computed(() => TYPE_LABELS[props.data.type] || props.data.type);
-
+const STATUS_LABELS = { active: 'Active', inactive: 'Inactive', archived: 'Archived' };
 const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const availabilitySummary = computed(() => {
@@ -71,5 +58,43 @@ const availabilitySummary = computed(() => {
     return 'Closed every day';
   }
   return open.map((s) => `${WEEKDAY_NAMES[s.weekday]} ${s.start_time}–${s.end_time}`).join(', ');
+});
+
+// Optional rows only show when there's something to show. The
+// Date/Availability row needs the flow to have actually collected it:
+// Add always does; Edit passes no `occurrence` for an event (its dates are
+// managed on the Dates step, not accumulated here), so the row drops out
+// rather than reading "—".
+const rows = computed(() => {
+  const d = props.data;
+  const isEvent = 'event' === d.type;
+  const hasAvailability = isEvent ? Boolean(d.occurrence) : Array.isArray(d.schedules);
+  const list = [
+    { label: 'Type', value: TYPE_LABELS[d.type] || d.type },
+    { label: 'Name', value: d.name },
+  ];
+  if (!isEvent) {
+    list.push({ label: 'Duration', value: `${d.duration_minutes} minutes` });
+  }
+  if ('appointment' !== d.type) {
+    list.push({ label: 'Capacity', value: d.capacity });
+  }
+  if (hasAvailability) {
+    list.push({ label: isEvent ? 'Date' : 'Availability', value: availabilitySummary.value });
+  }
+  if (d.location) {
+    list.push({ label: 'Location', value: d.location });
+  }
+  if (d.meeting_link) {
+    list.push({ label: 'Meeting link', value: d.meeting_link });
+  }
+  if (d.tags) {
+    list.push({ label: 'Tags', value: d.tags });
+  }
+  list.push({ label: 'Price', value: d.price ? `${d.currency} ${Number(d.price).toFixed(2)}` : 'Free' });
+  if (d.status) {
+    list.push({ label: 'Status', value: STATUS_LABELS[d.status] || d.status });
+  }
+  return list;
 });
 </script>
