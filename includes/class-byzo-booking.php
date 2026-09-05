@@ -91,14 +91,29 @@ class BYZO_Booking {
 			$params[] = (int) $args['bookable_item_id'];
 		}
 
-		if ( $args['status'] && in_array( $args['status'], self::VALID_STATUSES, true ) ) {
-			$where[]  = 'b.status = %s';
-			$params[] = $args['status'];
+		// A comma-separated list is accepted alongside a single value
+		// (added 2026-09-05, Phase 1.5 step 10, DETAILED-SPEC.md §A8) — the
+		// Dashboard's upcoming-bookings widget needs "pending OR confirmed"
+		// in one call; a single-status caller (status=confirmed) still
+		// gets exactly the same query as before (an IN() with one value).
+		if ( $args['status'] ) {
+			$statuses = array_intersect( array_map( 'trim', explode( ',', $args['status'] ) ), self::VALID_STATUSES );
+			if ( $statuses ) {
+				$placeholders = implode( ',', array_fill( 0, count( $statuses ), '%s' ) );
+				$where[]      = "b.status IN ({$placeholders})";
+				foreach ( $statuses as $status ) {
+					$params[] = $status;
+				}
+			}
 		}
 
+		// A literal "now" (added alongside the multi-status change above)
+		// filters from the current moment rather than midnight today — the
+		// same upcoming-bookings widget needs "what's still ahead today,"
+		// not "everything today including what already happened."
 		if ( $args['from'] ) {
 			$where[]  = 's.start_datetime >= %s';
-			$params[] = $args['from'] . ' 00:00:00';
+			$params[] = 'now' === $args['from'] ? current_time( 'mysql' ) : $args['from'] . ' 00:00:00';
 		}
 
 		if ( $args['to'] ) {
@@ -170,6 +185,37 @@ class BYZO_Booking {
 		$counts['total'] = array_sum( $counts );
 
 		return $counts;
+	}
+
+	/**
+	 * Sum of payment_amount for paid bookings in [from, to) — the
+	 * Dashboard's Revenue stat (DETAILED-SPEC.md §A8, Phase 1.5 step 10).
+	 * One total per period, no breakdown by bookable item/type — that
+	 * stays Pro (B8). Same INNER JOIN-onto-slots convention as
+	 * get_status_counts() so a booking whose slot was deleted doesn't
+	 * inflate the total.
+	 */
+	public static function get_revenue( DateTime $from, DateTime $to ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		$total = $wpdb->get_var(
+			$wpdb->prepare(
+				"SELECT SUM(b.payment_amount)
+				 FROM {$bookings_table} b
+				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
+				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 AND b.payment_status IN ('paid_manual','paid_online')",
+				$from->format( 'Y-m-d H:i:s' ),
+				$to->format( 'Y-m-d H:i:s' )
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		return null === $total ? 0.0 : (float) $total;
 	}
 
 	/**

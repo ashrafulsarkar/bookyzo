@@ -24,10 +24,13 @@ class BYZO_Reports {
 		$month_start = new DateTime( $now->format( 'Y-m-01' ), $tz );
 		$month_end   = ( clone $month_start )->modify( '+1 month' );
 
+		// revenue added 2026-09-05 (Phase 1.5 step 10, DETAILED-SPEC.md
+		// §A8) — one summed total per period (paid_manual + paid_online),
+		// not a bookable item/type/date-range breakdown, which stays Pro (B8).
 		return array(
-			'today'      => BYZO_Booking::get_status_counts( $today_start, $today_end ),
-			'this_week'  => BYZO_Booking::get_status_counts( $week_start, $week_end ),
-			'this_month' => BYZO_Booking::get_status_counts( $month_start, $month_end ),
+			'today'      => array_merge( BYZO_Booking::get_status_counts( $today_start, $today_end ), array( 'revenue' => BYZO_Booking::get_revenue( $today_start, $today_end ) ) ),
+			'this_week'  => array_merge( BYZO_Booking::get_status_counts( $week_start, $week_end ), array( 'revenue' => BYZO_Booking::get_revenue( $week_start, $week_end ) ) ),
+			'this_month' => array_merge( BYZO_Booking::get_status_counts( $month_start, $month_end ), array( 'revenue' => BYZO_Booking::get_revenue( $month_start, $month_end ) ) ),
 		);
 	}
 
