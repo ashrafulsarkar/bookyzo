@@ -154,7 +154,7 @@ class BYZO_Activator {
 		$wpdb->query( "RENAME TABLE {$prefix}byzo_resources TO {$prefix}byzo_bookable_items" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 
 		foreach ( array( 'byzo_schedules', 'byzo_availability_exceptions', 'byzo_slots', 'byzo_bookings' ) as $table ) {
-			$wpdb->query( "ALTER TABLE {$prefix}{$table} CHANGE COLUMN resource_id bookable_item_id BIGINT UNSIGNED " . ( 'byzo_availability_exceptions' === $table ? 'NULL' : 'NOT NULL' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$wpdb->query( "ALTER TABLE {$prefix}{$table} CHANGE COLUMN resource_id bookable_item_id BIGINT UNSIGNED " . ( 'byzo_availability_exceptions' === $table ? 'NULL' : 'NOT NULL' ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- $table is one of 4 hardcoded literals in the loop above, never user input; identifiers can't be $wpdb->prepare() placeholders anyway.
 		}
 
 		// Index names don't follow CHANGE COLUMN automatically — rename them
@@ -184,8 +184,8 @@ class BYZO_Activator {
 			return;
 		}
 
-		$wpdb->query( "ALTER TABLE {$table} DROP INDEX {$old_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$wpdb->query( 'ALTER TABLE ' . $table . ' ADD ' . ( $unique ? 'UNIQUE ' : '' ) . "INDEX {$new_name} {$columns_sql}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		$wpdb->query( "ALTER TABLE {$table} DROP INDEX {$old_name}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- all 4 call sites in maybe_rename_legacy_schema() pass hardcoded table/index-name literals, never user input; identifiers can't be $wpdb->prepare() placeholders anyway.
+		$wpdb->query( 'ALTER TABLE ' . $table . ' ADD ' . ( $unique ? 'UNIQUE ' : '' ) . "INDEX {$new_name} {$columns_sql}" ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- same as above.
 	}
 
 	/**

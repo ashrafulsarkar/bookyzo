@@ -1,6 +1,6 @@
 === Bookyzo – Booking & Appointments ===
 Contributors: codeholt, ashrafulsarkar
-Tags: appointment booking, booking calendar, scheduling, booking form, stripe
+Tags: booking calendar, appointment booking, event booking, table reservation, stripe
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
@@ -8,22 +8,28 @@ Stable tag: 1.0.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Accept online appointment bookings — staff scheduling, a booking widget, email reminders, and optional Stripe payments.
+Appointments, table reservations, event tickets and generic time-slot bookings — one booking widget, one admin panel, no WooCommerce required.
 
 == Description ==
 
-**Bookyzo** turns your WordPress site into a real appointment booking system. Add a staff member, set their weekly availability, drop a booking form onto any page with a shortcode or block, and start taking bookings — no page builder plugin, no external booking service, no WooCommerce required.
+**Bookyzo** turns your WordPress site into a real booking system, whatever you're booking. Add a staff member for one-on-one appointments, a table for restaurant reservations, an event for ticketed occurrences, or a generic slot for anything else — set its availability, drop a booking form onto any page with a shortcode or block, and start taking bookings. No page builder plugin, no external booking service, no WooCommerce required.
 
 = Why Bookyzo? =
 
+* All four booking types — Appointment, Table, Event, Slot — in the free plugin, not locked behind an upsell
 * Runs entirely on your own site — your booking data stays in your own database
 * No WooCommerce dependency — works on any WordPress site
 * A real Vue-powered admin panel, not a wall of settings screens
 * Genuinely usable on the free plan — no artificial limits dressed up as a trial
 
-= Staff & availability =
+= Four booking types, one plugin =
 
-Add a staff member with a name, description, price and appointment length, then set their weekly hours on a day-by-day grid. Block out holidays or give one day different hours with date-specific exceptions. Available time slots are generated automatically and kept up to date in the background.
+* **Appointment** — one staff member, one customer per time slot (haircuts, consultations, tutoring)
+* **Table** — a restaurant table or venue space with a party-size capacity
+* **Event** — a specific date/time occurrence you create yourself (a class, a workshop, a ticketed show), sold by ticket quantity
+* **Slot** — a generic recurring time slot with room for more than one booking at once (a rental, a group session, anything that doesn't fit the other three)
+
+Add a bookable item, set a name/price/photo, and configure the availability that fits its type — a weekly schedule with exceptions for Appointment/Table/Slot, or specific dates you add yourself for Event. Available time slots (or your entered event dates) are kept up to date automatically in the background.
 
 = Booking calendar =
 
@@ -31,7 +37,7 @@ A day/week/month calendar in the admin panel shows every booking, color-coded by
 
 = Booking list & CSV export =
 
-Filter every booking by date, staff member or status, change status inline, and export the filtered list to CSV whenever you need it outside WordPress.
+Filter every booking by date, bookable item or status, change status inline, and export the filtered list to CSV whenever you need it outside WordPress.
 
 = Customer booking widget =
 
@@ -39,7 +45,7 @@ Add `[bookyzo_booking]` anywhere with the shortcode, or use the **Booking Form**
 
 = Email notifications =
 
-Automatic emails when a booking is received, confirmed or cancelled, plus a reminder email sent the day before the appointment. Every email's subject and body is a plain-text template you can edit yourself, with placeholders for the customer's name, the bookable item, the appointment time and your business name.
+Automatic emails when a booking is received, confirmed or cancelled, plus a reminder email sent the day before it's due, and a self-service cancellation link the customer can use themselves right up to your cancellation cutoff. Every email's subject and body is a plain-text template you can edit yourself, with placeholders for the customer's name, the bookable item, the booking time and your business name.
 
 = Payments =
 
@@ -53,15 +59,15 @@ See today's, this week's and this month's booking counts at a glance when you lo
 
 Actions and filters throughout (capability limits, REST controllers, rate limiting, notifications) and a REST API under `bookyzo/v1`. See **Other Notes** for the hook list.
 
-= Coming later =
+= Coming later (Pro) =
 
-Bookyzo currently supports appointment-style bookings (one staff member, one time slot). Table reservations, event ticketing and class/slot bookings are on the roadmap for a future update.
+The free plugin is genuinely usable on its own — one active bookable item per type (so up to four: one appointment staff member, one table, one event, one slot type) with no locked-out UI. A paid Pro add-on is planned for businesses that outgrow that: more bookable items per type, multiple daily shifts, deposits, SMS/WhatsApp reminders, a customer self-service dashboard, and booking analytics.
 
 == Installation ==
 
 1. Upload the plugin to `/wp-content/plugins/` or install it via the Plugins screen.
 2. Activate the plugin — you'll be taken straight into a short setup wizard.
-3. Choose a booking type, fill in your business details, and add your first staff member.
+3. Choose what you're booking (appointment, table, event or slot), fill in your business details, and add your first bookable item.
 4. Add the `[bookyzo_booking]` shortcode (or the **Booking Form** block) to any page.
 5. Optionally connect Stripe under **Bookyzo → Payments** to accept card payments.
 
@@ -77,7 +83,7 @@ Yes. Booking is a guest checkout by default — a customer only needs to give th
 
 = Can I edit the confirmation and reminder emails? =
 
-Yes, from **Bookyzo → Emails** in the admin panel. Every email is a plain-text template with placeholders for the customer's name, the bookable item, the appointment time and your business name.
+Yes, from **Bookyzo → Emails** in the admin panel. Every email is a plain-text template with placeholders for the customer's name, the bookable item, the booking time and your business name.
 
 = How do reminder emails work? =
 
@@ -87,15 +93,19 @@ An hourly background task checks for bookings starting in roughly 24 hours and s
 
 No. Every feature listed above is fully usable with no artificial limits, nag screens or disabled UI.
 
-= What happens if I need more than one staff member or more than one booking type? =
+= Does Bookyzo support anything besides one-on-one appointments? =
 
-Free supports one active staff member (or table/event/slot bookable item, once those types ship) per type at a time. This maps to when most small businesses genuinely need to upgrade — hiring a second staff member, adding a second service, wanting SMS reminders instead of just email. A Pro version with these is planned for a future release.
+Yes. Free includes all four booking types: Appointment (one staff member, one customer), Table (party-size reservations), Event (ticketed occurrences on dates you set yourself), and Slot (a generic recurring slot with room for more than one booking). Add as many *different* types as you need — the free-plan limit is one active bookable item *of each type*, not one bookable item total.
+
+= What happens if I need a second staff member, table, or event? =
+
+Free supports one active bookable item per type at a time. This maps to when most small businesses genuinely need to upgrade — hiring a second staff member, adding a second table, running a second event alongside the first. A Pro version with these is planned for a future release.
 
 == Screenshots ==
 
 1. The booking calendar — day/week/month view, color-coded by booking status.
-2. The staff/bookable item edit screen — details, weekly availability and date exceptions.
-3. The customer-facing booking widget — pick a time, enter details, confirm.
+2. A bookable item's edit screen — details, photo, and (depending on type) weekly availability with date exceptions, or manually-entered event dates.
+3. The customer-facing booking widget — pick a bookable item and time, enter details, confirm.
 4. The booking list with filters and CSV export.
 5. The Dashboard showing today's, this week's and this month's booking counts.
 6. The email template editor.
