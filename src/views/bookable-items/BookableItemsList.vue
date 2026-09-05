@@ -10,7 +10,7 @@
         </svg>
       </template>
       <template #actions>
-        <Button @click="router.push({ name: 'bookable-items.new' })">+ Add bookable item</Button>
+        <Button @click="showAddWizard = true">+ Add bookable item</Button>
       </template>
     </ByzoPageHeader>
 
@@ -33,7 +33,7 @@
         <p class="max-w-sm text-sm text-muted-foreground">
           Add your first staff member, table, or bookable item to start accepting bookings.
         </p>
-        <Button @click="router.push({ name: 'bookable-items.new' })">+ Add bookable item</Button>
+        <Button @click="showAddWizard = true">+ Add bookable item</Button>
       </Card>
 
       <Card v-else-if="filteredItems.length === 0" class="py-16 text-center text-sm text-muted-foreground">
@@ -94,6 +94,8 @@
         </DialogFooter>
       </DialogContent>
     </Dialog>
+
+    <BookableItemAddWizard :open="showAddWizard" @update:open="(v) => (showAddWizard = v)" @created="load" />
   </div>
 </template>
 
@@ -110,6 +112,7 @@ import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
+import BookableItemAddWizard from './BookableItemAddWizard.vue';
 import { api } from '@/api/client';
 
 const TYPES = ['appointment', 'table', 'event', 'slot'];
@@ -120,6 +123,7 @@ const items = ref([]);
 const loading = ref(true);
 const deleteTarget = ref(null);
 const typeFilter = ref('__all__');
+const showAddWizard = ref(false);
 
 const filteredItems = computed(() =>
   typeFilter.value === '__all__' ? items.value : items.value.filter((i) => i.type === typeFilter.value)

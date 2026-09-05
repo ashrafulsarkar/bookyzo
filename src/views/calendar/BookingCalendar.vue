@@ -97,7 +97,7 @@ function openDetail(booking) {
 function onBookingUpdated(updated) {
   bookings.value = bookings.value.map((b) => (b.id === updated.id ? updated : b));
   activeBooking.value = updated;
-  if (['completed', 'cancelled', 'no_show'].includes(updated.status)) {
+  if (['completed', 'cancelled', 'no_show', 'rejected'].includes(updated.status)) {
     activeBooking.value = null;
   }
 }

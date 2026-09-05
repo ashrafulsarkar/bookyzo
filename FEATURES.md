@@ -8,6 +8,8 @@
 
 > **ONBOARDING & DASHBOARD DEEPENED 2026-09-03:** user supplied a full onboarding-wizard + dashboard UX spec (welcome → type → booking details → availability → customer fields → pricing → confirmation/notifications → review → create → success → dashboard). Reconciled against Bookyzo's already-decided architecture rather than adopted verbatim — three real deviations, called out here so they're not missed on a skim: **(1)** the source spec's 7 booking-type options collapse onto Bookyzo's existing 4 (`Time Slot`→Slot, `Table Reservation`→Table, `Event/Ticket`→Event, `Room/Resource`→Slot, `Service`→ Appointment's own service field) — **`Custom Booking` (freeform user-defined types) is explicitly NOT adopted**, it would need a dynamic type system instead of the fixed `type` enum column every table/query is built around (§1.1); flag to the user if they actually want that later, it's a bigger architectural call than this pass makes alone. **(2)** the spec's flat "Availability" top-level nav item stays **bookable item-scoped** (a tab on each bookable item's edit screen, A2/A3) rather than becoming its own admin page — matches Bookyzo's existing bookable item-centric model, not the source spec's flatter one. **(3)** the spec's dashboard "Revenue" stat is added to **Free** (new A8) as one summed total for the period — Amelia's own free tier already does this (see the competitor audit above) — while the *breakdown* by bookable item/type/date-range stays Pro (B8), unchanged. Genuinely new (not a reconciliation, an actual gap): **auto-confirm vs. manual-approval** as a real Free setting (A4) — every booking previously always landed on `pending` with no way to skip that.
 
+> **UNIVERSAL-BOOKING-PLUGIN GAP AUDIT 2026-09-05:** user supplied a full feature wishlist for a from-scratch "Universal Booking Plugin" (28 categories). Cross-checked against Bookyzo's existing scope — most items were already covered, often just named differently (the wishlist's "Service"/"Room-Resource" booking types already map onto Appointment/Slot per the 2026-09-03 onboarding-reconciliation callout above; SMS/WhatsApp, multi-location, deposits, analytics, QR check-in, Google Calendar sync, etc. were already in Part B). Genuinely new items added below: location/online-meeting-link field (A2), a `rejected` status distinct from `cancelled` + basic admin reschedule + an agenda calendar view (A4), add-on/extra-service line items + a flat booking/service fee (B6), a downloadable PDF invoice (B4), an automated post-visit follow-up email (B5), and explicit analytics breakdowns — popular bookable items/time slots/staff, booking trend charts, conversion rate (B8). **One item flagged, not adopted:** a bookable item needing a second entity free at the same time (e.g. a room, alongside staff) is a real architectural fork, not a feature-list addition — see `DETAILED-SPEC.md` §5 item 9, `ROADMAP.md`'s matching callout.
+
 **Stack:** WordPress plugin (PHP + custom DB tables), REST API, Vue 3 admin dashboard, optional WooCommerce integration, PayPal and Stripe for payments.
 
 ---
@@ -40,6 +42,7 @@ The free version should be genuinely usable for a small single-location business
 - Capacity setting (1 person / N people) — editable for Table (seats), Event (total tickets/seats) and Slot; fixed at 1 for Appointment (one-on-one by definition)
 - Bookable Item status (active/inactive/archived)
 - Bookable Items list shows each bookable item's own copyable shortcode (see A5) plus a type column/filter
+- **Location / online meeting link (added 2026-09-05, Phase 1.6):** a free-text `location` field (address, room name, or "Online") plus an optional `meeting_link` (Zoom/Meet/Teams URL) — available on every type, but mainly useful for Appointment-type consultants. Shown on the widget's confirmation step and via new `{location}`/`{meeting_link}` email placeholders (A6). Not the same as B1's multi-location/branch system — this is one descriptive field per bookable item, no per-branch schedule logic attached.
 
 ### A3. Availability Engine
 - Weekly recurring schedule per bookable item
@@ -51,10 +54,11 @@ The free version should be genuinely usable for a small single-location business
 - Automatic slot generation (rolling window, background cron)
 
 ### A4. Booking Management
-- Unified calendar view (day/week/month)
+- Unified calendar view (day/week/month, **plus agenda — added 2026-09-05, Phase 1.6**: a 4th mode, a flat chronological list, useful once a business has more than a handful of bookings on a given day)
 - Manual booking creation/edit from admin (for phone/walk-in bookings)
-- Booking statuses: pending, confirmed, completed, cancelled, no-show
+- Booking statuses: pending, confirmed, completed, cancelled, no-show, **rejected (added 2026-09-05, Phase 1.6)** — distinct from cancelled: a `pending` request the business explicitly declines before ever confirming it, kept separate from `cancelled` (a booking called off after being made) so reporting can tell "we said no" apart from "they backed out."
 - **Auto-confirm vs. manual approval (added 2026-09-03):** a site-wide `byzo_settings` toggle, set during onboarding (A1) or later in Settings. Manual approval (default) creates every booking as `pending`, same as today. Auto-confirm creates it straight as `confirmed`, skipping the admin-review step — for businesses with no capacity/legitimacy concerns who find manual approval pure friction. Per-bookable item override is a natural Pro extension (not built now — flag if it comes up).
+- **Basic reschedule (added 2026-09-05, Phase 1.6):** move an existing booking to a different available slot from its detail view — releases the old slot's capacity, atomically claims the new one, same underlying mechanics as a fresh booking. Distinct from B3's Pro "drag-and-drop reschedule on the calendar," which is the visual/bulk version of the same underlying action.
 - Basic booking list with filters (date, status, bookable item)
 - Single cancellation policy (fixed time-limit rule)
 
@@ -76,6 +80,7 @@ The free version should be genuinely usable for a small single-location business
 - Basic email template editing (text only, no visual builder)
 - **Admin notification email on new booking (added 2026-09-03)**, togglable (default on) — separate from B5's Pro "real-time in-app alerts": this is a plain email to the business owner, that stays Free; a live toast/badge in the admin UI is the Pro upgrade on top of it.
 - **"Add to calendar" link (Google / Outlook / .ics) on the booking confirmation** — moved here from Pro on 2026-09-03: Bookly, Booking Calendar, and Amelia all give this away free, so gating a single per-booking calendar link isn't a real limit
+- **New placeholders (added 2026-09-05, Phase 1.6):** `{location}` and `{meeting_link}` (A2), usable in any template alongside the existing `{start_time}`/etc.
 
 ### A7. Payments
 - Manual/offline payment option (cash, bank transfer — mark as paid manually)
@@ -150,11 +155,13 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Timeline view — all bookable items of a type shown as rows with time across the top, for scanning multi-bookable item availability at a glance (only useful once Pro's unlimited bookable items are in play)
 - Availability search — customers filter bookable items by date, capacity, or tags once more than one bookable item of a type exists
 - Export the customer list to CSV, including each customer's booking and payment history
+- **Duplicate booking (added 2026-09-05):** clone an existing booking's bookable item/customer/details as the starting point for a new one — walk-in regulars, recurring phone bookings that don't need a full series
 
 ### B4. Customer Account & Self-Service
 - Customer dashboard (view/reschedule/cancel own bookings)
 - Self-service reschedule within policy rules
 - Saved customer details for faster repeat booking
+- **Downloadable PDF invoice/receipt (added 2026-09-05):** branded, itemized (price, add-ons, tax) — Free's confirmation email already includes a plain-text amount breakdown (A6/A7), this is the formatted/downloadable version. Needs a PDF-generation approach decided first, see `DETAILED-SPEC.md` §5 item 10.
 
 ### B5. Notifications & Communication
 - SMS notifications (via a chosen SMS gateway)
@@ -163,6 +170,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Visual email template builder (branding, logo, colors)
 - Admin real-time alerts (new booking, cancellation, no-show)
 - Bulk/marketing campaigns — send a one-off email or SMS blast to a filtered customer segment (e.g. no-shows in the last 90 days)
+- **Automated post-visit follow-up / thank-you email (added 2026-09-05):** e.g. a review-request link, sent a configurable number of hours after a booking is marked `completed` — distinct from the bulk/marketing campaigns above (a one-off segment blast); this fires automatically per booking, keyed off the new `bookings.completed_at` column (`DETAILED-SPEC.md` §1.4)
 
 ### B6. Payments
 - Deposit / partial payment support
@@ -173,6 +181,8 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Seasonal/dynamic pricing — different price by date range, day of week, or booking lead time (early-bird and last-minute rate adjustments)
 - Cart checkout — book multiple bookable items, services, or event tickets in one transaction and pay once
 - Per-service or per-region tax/VAT rules, with the rate broken out on the invoice (Free covers one flat site-wide rate, see A7)
+- **Add-ons / extra services (added 2026-09-05):** optional priced extras a customer attaches to a booking (e.g. "+30 minutes," "gift wrap," "extra guest"), each with its own price, added to `payment_amount` alongside the base price — `wp_byzo_addons` (Pro-only table), `bookings.addons` JSON column already reserved on Free's own schema (`DETAILED-SPEC.md` §1.4/§1.6)
+- **Flat booking/service fee (added 2026-09-05):** an additional fixed charge on top of price, separate from tax, broken out as its own invoice line
 
 ### B7. Type-Specific Pro Modules
 
@@ -206,6 +216,9 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - No-show rate tracking and trends
 - Customer retention/repeat-booking metrics
 - Exportable reports (CSV, scheduled email reports)
+- **Popular bookable items / time slots / staff (added 2026-09-05):** which bookable items and time-of-day get booked most, for staffing and pricing decisions — a straightforward aggregate query against existing tables
+- **Booking trend charts (added 2026-09-05):** daily/weekly/monthly, on top of the existing count/revenue numbers
+- **Conversion rate (added 2026-09-05):** widget views vs. completed bookings — needs a view-tracking mechanism that doesn't exist today, see `DETAILED-SPEC.md` §5 item 11 before building
 
 ### B9. Integrations
 - WooCommerce bridge (map bookable items to WC products, use WC cart/checkout, reuse WC payment gateways)

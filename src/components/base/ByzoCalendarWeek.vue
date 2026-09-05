@@ -61,6 +61,7 @@ const STATUS_COLORS = {
   completed: 'var(--byzo-status-completed)',
   cancelled: 'var(--byzo-status-cancelled)',
   no_show: 'var(--byzo-status-no-show)',
+  rejected: 'var(--byzo-status-rejected)',
 };
 
 const props = defineProps({

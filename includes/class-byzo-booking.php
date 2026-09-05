@@ -10,23 +10,28 @@ defined( 'ABSPATH' ) || exit;
  */
 class BYZO_Booking {
 
-	const VALID_STATUSES = array( 'pending', 'confirmed', 'completed', 'cancelled', 'no_show' );
+	const VALID_STATUSES = array( 'pending', 'confirmed', 'completed', 'cancelled', 'no_show', 'rejected' );
 
 	const VALID_PAYMENT_STATUSES = array( 'unpaid', 'paid_manual', 'paid_online', 'refunded' );
 
 	/**
 	 * Allowed status transitions. pending is the only entry state (set by
 	 * create()); every other status is reached only via update_status().
-	 * completed/cancelled/no_show are terminal — nothing transitions out
-	 * of them, which is the server-side guarantee DETAILED-SPEC.md §A4
-	 * calls for ("prevents completed flipping back to pending").
+	 * completed/cancelled/no_show/rejected are terminal — nothing
+	 * transitions out of them, which is the server-side guarantee
+	 * DETAILED-SPEC.md §A4 calls for ("prevents completed flipping back to
+	 * pending"). `rejected` (added 2026-09-05, Phase 1.6) is reachable
+	 * ONLY from `pending` — a `confirmed` booking can't be "rejected,"
+	 * only cancelled, since rejection specifically means declining a
+	 * request before ever accepting it.
 	 */
 	const TRANSITIONS = array(
-		'pending'   => array( 'confirmed', 'cancelled', 'no_show' ),
+		'pending'   => array( 'confirmed', 'rejected', 'cancelled', 'no_show' ),
 		'confirmed' => array( 'completed', 'cancelled', 'no_show' ),
 		'completed' => array(),
 		'cancelled' => array(),
 		'no_show'   => array(),
+		'rejected'  => array(),
 	);
 
 	public static function table() {
@@ -431,12 +436,21 @@ class BYZO_Booking {
 			);
 		}
 
-		$releases_capacity = in_array( $new_status, array( 'cancelled', 'no_show' ), true )
+		// `rejected` releases capacity same as cancel/no_show (added
+		// 2026-09-05, Phase 1.6) — a pending booking already holds its
+		// slot's capacity from create(), so declining it must give that
+		// capacity back exactly like a cancellation would.
+		$releases_capacity = in_array( $new_status, array( 'cancelled', 'no_show', 'rejected' ), true )
 			&& in_array( $booking['status'], array( 'pending', 'confirmed' ), true );
 
 		$updates = array( 'status' => $new_status, 'updated_at' => current_time( 'mysql' ) );
 		if ( 'cancelled' === $new_status ) {
 			$updates['cancelled_at'] = current_time( 'mysql' );
+		} elseif ( 'completed' === $new_status ) {
+			// Added 2026-09-05 (Phase 1.6) — reserved for Pro's post-visit
+			// follow-up email (FEATURES.md B5), which needs "N hours after
+			// completion" to compute from; mirrors cancelled_at above.
+			$updates['completed_at'] = current_time( 'mysql' );
 		}
 
 		$wpdb->update( self::table(), $updates, array( 'id' => $id ) );
@@ -463,6 +477,104 @@ class BYZO_Booking {
 		}
 
 		do_action( 'byzo_booking_status_changed', $id, $new_status, $booking['status'] );
+
+		return true;
+	}
+
+	/**
+	 * Moves a booking to a different open slot (DETAILED-SPEC.md §1.4/§A4,
+	 * ROADMAP.md Phase 1.6 step 3) — NOT a status transition, a `slot_id`
+	 * change. Claims the new slot's capacity FIRST (same atomic
+	 * conditional UPDATE create() uses), then releases the old slot's —
+	 * in that order, so a failed claim leaves the old slot completely
+	 * untouched rather than briefly holding neither. Allowed from
+	 * `pending`/`confirmed` only; a `completed`/`cancelled`/`no_show`/
+	 * `rejected` booking has nothing left to reschedule.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function reschedule( $id, $new_slot_id ) {
+		global $wpdb;
+
+		$booking = self::get( $id );
+		if ( ! $booking ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		if ( ! in_array( $booking['status'], array( 'pending', 'confirmed' ), true ) ) {
+			return new WP_Error( 'byzo_invalid_transition', __( 'Only a pending or confirmed booking can be rescheduled.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		if ( (int) $new_slot_id === (int) $booking['slot_id'] ) {
+			return new WP_Error( 'byzo_same_slot', __( 'This booking is already on that time slot.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$new_slot = BYZO_Slot::get( $new_slot_id );
+		if ( ! $new_slot || 'open' !== $new_slot['status'] ) {
+			return new WP_Error( 'byzo_slot_unavailable', __( 'The selected time slot is not available.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
+
+		$party_size  = $booking['party_size'];
+		$slots_table = $wpdb->prefix . 'byzo_slots';
+
+		$claimed = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$slots_table} SET capacity_remaining = capacity_remaining - %d WHERE id = %d AND status = 'open' AND capacity_remaining >= %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$party_size,
+				$new_slot_id,
+				$party_size
+			)
+		);
+
+		if ( ! $claimed ) {
+			return new WP_Error( 'byzo_slot_full', __( 'This time slot was just booked by someone else. Please pick another time.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
+
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$slots_table} SET status = 'full' WHERE id = %d AND capacity_remaining <= 0 AND status = 'open'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$new_slot_id
+			)
+		);
+
+		// Release the old slot back — same CASE-guarded credit as
+		// update_status()'s cancel/no_show/rejected release, so a
+		// 'blocked' old slot (e.g. a blackout added after this booking was
+		// made) isn't silently reopened by this reschedule.
+		if ( $booking['slot_id'] ) {
+			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name, not user input.
+			$wpdb->query(
+				$wpdb->prepare(
+					"UPDATE {$slots_table}
+					 SET capacity_remaining = capacity_remaining + %d,
+					     status = CASE WHEN status = 'full' THEN 'open' ELSE status END
+					 WHERE id = %d",
+					$party_size,
+					$booking['slot_id']
+				)
+			);
+			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+		}
+
+		$old_slot_id = $booking['slot_id'];
+
+		$wpdb->update(
+			self::table(),
+			array(
+				'slot_id'          => $new_slot_id,
+				'bookable_item_id' => $new_slot['bookable_item_id'],
+				'rescheduled_at'   => current_time( 'mysql' ),
+				'updated_at'       => current_time( 'mysql' ),
+			),
+			array( 'id' => $id )
+		);
+
+		/**
+		 * Fires after a booking is moved to a different slot. Not a status
+		 * change (status is untouched), so this is deliberately its own
+		 * action rather than reusing byzo_booking_status_changed.
+		 */
+		do_action( 'byzo_booking_rescheduled', $id, $new_slot_id, $old_slot_id );
 
 		return true;
 	}

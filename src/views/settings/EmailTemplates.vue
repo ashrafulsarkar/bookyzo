@@ -32,6 +32,7 @@
               <p class="text-xs text-muted-foreground">
                 Placeholders: <code>{customer_name}</code> <code>{bookable_item_name}</code> <code>{start_time}</code>
                 <code>{business_name}</code> <code>{cancel_link}</code> <code>{add_to_calendar_link}</code>
+                <code>{location}</code> <code>{meeting_link}</code>
               </p>
             </div>
           </CardContent>

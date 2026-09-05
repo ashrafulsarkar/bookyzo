@@ -57,6 +57,22 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			)
 		);
 
+		// Reschedule (DETAILED-SPEC.md §1.4/§A4, ROADMAP.md Phase 1.6 step
+		// 3) — admin-only, changes slot_id rather than status. Separate
+		// narrow route from the general status PUT above, same "only one
+		// field writable here" rule as /payment below.
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/' . $this->get_rest_base() . '/(?P<id>\d+)/reschedule',
+			array(
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'reschedule_item' ),
+					'permission_callback' => array( $this, 'admin_permissions_check' ),
+				),
+			)
+		);
+
 		// "Mark as paid" (DETAILED-SPEC.md §A7) — admin-only, deliberately
 		// a separate route from the general status PUT above rather than
 		// folding payment_status into that route's writable fields,
@@ -164,6 +180,27 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 		}
 
 		$result = BYZO_Booking::update_status( $id, $body['status'] );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( BYZO_Booking::get( $id ) );
+	}
+
+	/**
+	 * Body: `{ "slot_id": 123 }` — moves the booking to a different open
+	 * slot (BYZO_Booking::reschedule() does the actual work/validation).
+	 */
+	public function reschedule_item( WP_REST_Request $request ) {
+		$id   = (int) $request->get_param( 'id' );
+		$body = $request->get_json_params();
+
+		if ( empty( $body['slot_id'] ) ) {
+			return new WP_Error( 'byzo_missing_slot_id', __( 'slot_id is required.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$result = BYZO_Booking::reschedule( $id, absint( $body['slot_id'] ) );
 
 		if ( is_wp_error( $result ) ) {
 			return $result;

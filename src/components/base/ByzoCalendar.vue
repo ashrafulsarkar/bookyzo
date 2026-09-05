@@ -9,7 +9,7 @@
       </div>
       <div class="flex gap-1 rounded-md border border-border p-0.5">
         <button
-          v-for="mode in ['day', 'week', 'month']"
+          v-for="mode in ['day', 'week', 'month', 'agenda']"
           :key="mode"
           type="button"
           class="rounded px-3 py-1 text-sm capitalize transition-colors"
@@ -27,6 +27,11 @@
       :bookings="bookings"
       @select-booking="(b) => $emit('select-booking', b)"
       @select-day="goToDay"
+    />
+    <ByzoCalendarAgenda
+      v-else-if="viewMode === 'agenda'"
+      :bookings="bookings"
+      @select-booking="(b) => $emit('select-booking', b)"
     />
     <ByzoCalendarWeek
       v-else
@@ -51,6 +56,7 @@ import { ref, computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import ByzoCalendarWeek from './ByzoCalendarWeek.vue';
 import ByzoCalendarMonth from './ByzoCalendarMonth.vue';
+import ByzoCalendarAgenda from './ByzoCalendarAgenda.vue';
 import { startOfWeek, addDays, formatDayLabel, formatMonthLabel } from '@/lib/date';
 
 const props = defineProps({
@@ -68,6 +74,9 @@ const rangeLabel = computed(() => {
   if (viewMode.value === 'day') {
     return formatDayLabel(anchor.value);
   }
+  // week AND agenda (added 2026-09-05, Phase 1.6) share the same 7-day
+  // window — agenda is a flat re-render of the same range, not a new
+  // range concept of its own.
   const start = startOfWeek(anchor.value);
   const end = addDays(start, 6);
   return `${formatDayLabel(start)} – ${formatDayLabel(end)}`;

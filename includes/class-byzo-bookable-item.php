@@ -210,6 +210,19 @@ class BYZO_Bookable_Item {
 			$out['tags'] = sanitize_text_field( $data['tags'] );
 		}
 
+		// location/meeting_link (added 2026-09-05, Phase 1.6, DETAILED-SPEC.md
+		// §1.1) — free-text address/room/"Online" plus an optional meeting
+		// URL, available on every type. array_key_exists (not isset), same
+		// reasoning as photo_id above: a JSON `null` is a real "clear this
+		// field" request, not an absent key.
+		if ( array_key_exists( 'location', $data ) ) {
+			$out['location'] = ( '' === $data['location'] || null === $data['location'] ) ? null : sanitize_text_field( $data['location'] );
+		}
+
+		if ( array_key_exists( 'meeting_link', $data ) ) {
+			$out['meeting_link'] = ( '' === $data['meeting_link'] || null === $data['meeting_link'] ) ? null : esc_url_raw( $data['meeting_link'] );
+		}
+
 		if ( isset( $data['capacity'] ) ) {
 			$out['capacity'] = max( 1, absint( $data['capacity'] ) );
 		} elseif ( $require_all ) {

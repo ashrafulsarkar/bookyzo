@@ -113,6 +113,8 @@ const form = ref({
   capacity: 1,
   status: 'active',
   photo_id: null,
+  location: '',
+  meeting_link: '',
 });
 
 onMounted(async () => {
@@ -131,6 +133,8 @@ onMounted(async () => {
       capacity: item.capacity || 1,
       status: item.status,
       photo_id: item.photo_id || null,
+      location: item.location || '',
+      meeting_link: item.meeting_link || '',
     };
   } catch (e) {
     error.value = e.message || 'Could not load this bookable item.';
@@ -162,6 +166,8 @@ async function save() {
     // type sends its real capacity.
     capacity: form.value.type === 'appointment' ? 1 : Math.max(1, Number(form.value.capacity) || 1),
     photo_id: form.value.photo_id || null,
+    location: form.value.location || null,
+    meeting_link: form.value.meeting_link || null,
   };
 
   if (!isEdit.value) {

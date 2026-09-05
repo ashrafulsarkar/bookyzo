@@ -137,6 +137,11 @@ class BYZO_Notifications {
 			'{business_name}'        => $settings['business_name'],
 			'{cancel_link}'          => $cancel_link,
 			'{add_to_calendar_link}' => self::google_calendar_link( $booking, $item ),
+			// Added 2026-09-05 (Phase 1.6, FEATURES.md A2/A6) — blank when
+			// the bookable item hasn't set one, same as every other
+			// optional placeholder here.
+			'{location}'             => $item && ! empty( $item['location'] ) ? $item['location'] : '',
+			'{meeting_link}'         => $item && ! empty( $item['meeting_link'] ) ? $item['meeting_link'] : '',
 		);
 
 		$subject = strtr( $template['subject'], $placeholders );

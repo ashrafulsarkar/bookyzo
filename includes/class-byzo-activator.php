@@ -38,7 +38,9 @@ class BYZO_Activator {
 		// (ROADMAP.md's naming pass: "resource" read as an unclear, overly
 		// technical term to end users). See maybe_rename_legacy_schema()
 		// below for the one-time migration of any install that already has
-		// the old table/columns.
+		// the old table/columns. `location`/`meeting_link` added 2026-09-05
+		// (Phase 1.6, DETAILED-SPEC.md §1.1) — free-text, distinct from
+		// `location_id` above (Pro's structured multi-branch FK).
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookable_items (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			type VARCHAR(20) NOT NULL DEFAULT 'appointment',
@@ -51,6 +53,8 @@ class BYZO_Activator {
 			duration_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 30,
 			status VARCHAR(20) NOT NULL DEFAULT 'active',
 			location_id BIGINT UNSIGNED NULL,
+			location VARCHAR(255) NULL,
+			meeting_link VARCHAR(500) NULL,
 			group_id BIGINT UNSIGNED NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
@@ -103,7 +107,12 @@ class BYZO_Activator {
 		// gap-fill, DETAILED-SPEC.md §1.4) — dbDelta() ADD COLUMNs these
 		// automatically on an existing install once BYZO_DB_VERSION moves
 		// past 1.3, no manual ALTER needed (unlike maybe_rename_legacy_schema()'s
-		// RENAME, which dbDelta genuinely can't do).
+		// RENAME, which dbDelta genuinely can't do). `rescheduled_at`,
+		// `completed_at`, and `addons` added 2026-09-05 (Phase 1.6 /
+		// Universal-Booking-Plugin gap audit, DETAILED-SPEC.md §1.4) —
+		// `addons` is reserved now but unused until Pro's add-on feature
+		// (B6, `wp_byzo_addons`) actually writes to it, same "don't gate
+		// the data model" pattern as `custom_fields` below.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
@@ -119,9 +128,12 @@ class BYZO_Activator {
 			payment_amount DECIMAL(10,2) NULL,
 			tax_amount DECIMAL(10,2) NULL,
 			custom_fields LONGTEXT NULL,
+			addons LONGTEXT NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			cancelled_at DATETIME NULL,
+			completed_at DATETIME NULL,
+			rescheduled_at DATETIME NULL,
 			reminder_sent_at DATETIME NULL,
 			PRIMARY KEY  (id),
 			KEY slot_id (slot_id),

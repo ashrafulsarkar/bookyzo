@@ -9,6 +9,11 @@
       </template>.
       A confirmation will be sent to {{ booking?.customer_email }} once it's approved.
     </p>
+    <p v-if="item?.location || item?.meeting_link" class="location">
+      <template v-if="item?.location">{{ item.location }}</template>
+      <template v-if="item?.location && item?.meeting_link"> · </template>
+      <a v-if="item?.meeting_link" :href="item.meeting_link" target="_blank" rel="noopener noreferrer">Join meeting link</a>
+    </p>
     <div v-if="booking?.slot_start" class="add-to-calendar">
       <a :href="googleCalendarUrl" target="_blank" rel="noopener noreferrer">Add to Google Calendar</a>
       <span class="sep">·</span>

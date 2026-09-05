@@ -28,6 +28,31 @@
           </Button>
         </p>
 
+        <!-- Basic reschedule (added 2026-09-05, Phase 1.6, DETAILED-SPEC.md
+             §1.4/§A4) — only offered for a still-open booking; a
+             completed/cancelled/no_show/rejected booking has nothing left
+             to move. -->
+        <div v-if="canReschedule" class="border-t border-border pt-3">
+          <Button v-if="!rescheduling" type="button" variant="outline" size="sm" @click="startReschedule">Reschedule</Button>
+          <div v-else class="flex flex-col gap-2">
+            <Label for="reschedule-slot" class="text-xs text-muted-foreground">Move to a different time</Label>
+            <Select v-model="newSlotId">
+              <SelectTrigger id="reschedule-slot" class="h-9">
+                <SelectValue :placeholder="loadingSlots ? 'Loading…' : (slots.length === 0 ? 'No other available slots' : 'Choose a time')" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="slot in slots" :key="slot.id" :value="slot.id">{{ formatSlot(slot) }}</SelectItem>
+              </SelectContent>
+            </Select>
+            <div class="flex gap-2">
+              <Button type="button" size="sm" :disabled="!newSlotId || rescheduleSaving" @click="confirmReschedule">
+                {{ rescheduleSaving ? 'Moving…' : 'Move booking' }}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" @click="rescheduling = false">Cancel</Button>
+            </div>
+          </div>
+        </div>
+
         <p v-if="error" class="text-destructive">{{ error }}</p>
       </div>
       <DialogFooter class="flex-wrap gap-2">
@@ -35,8 +60,8 @@
         <Button
           v-for="transition in allowedTransitions"
           :key="transition"
-          :variant="transition === 'cancelled' || transition === 'no_show' ? 'outline' : 'default'"
-          :class="(transition === 'cancelled' || transition === 'no_show') && 'text-destructive hover:text-destructive'"
+          :variant="declineTransitions.includes(transition) ? 'outline' : 'default'"
+          :class="declineTransitions.includes(transition) && 'text-destructive hover:text-destructive'"
           :disabled="updating"
           @click="changeStatus(transition)"
         >
@@ -51,6 +76,8 @@
 import { ref, computed } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Label } from '@/components/ui/label';
+import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
 import { api } from '@/api/client';
 import { formatTime } from '@/lib/date';
@@ -60,13 +87,19 @@ import { formatTime } from '@/lib/date';
 // the UI doesn't offer a button that would 400. Kept as a small literal
 // map rather than a shared import since PHP/JS can't share a constant
 // directly; if the server-side table ever changes, this needs a matching edit.
+// `rejected` added 2026-09-05 (Phase 1.6) — reachable only from `pending`,
+// same rule as the server's TRANSITIONS table.
 const TRANSITIONS = {
-  pending: ['confirmed', 'cancelled', 'no_show'],
+  pending: ['confirmed', 'rejected', 'cancelled', 'no_show'],
   confirmed: ['completed', 'cancelled', 'no_show'],
   completed: [],
   cancelled: [],
   no_show: [],
+  rejected: [],
 };
+// Transitions styled as a "decline" action (outline + destructive text)
+// rather than the default filled/primary look.
+const declineTransitions = ['cancelled', 'no_show', 'rejected'];
 
 const props = defineProps({
   booking: { type: Object, required: true },
@@ -79,6 +112,57 @@ const error = ref('');
 
 const allowedTransitions = computed(() => TRANSITIONS[props.booking.status] || []);
 
+// Basic reschedule (added 2026-09-05, Phase 1.6) — offered whenever the
+// server would actually allow it (BYZO_Booking::reschedule() enforces the
+// same pending/confirmed-only rule).
+const canReschedule = computed(() => ['pending', 'confirmed'].includes(props.booking.status));
+const rescheduling = ref(false);
+const slots = ref([]);
+const loadingSlots = ref(false);
+const newSlotId = ref(null);
+const rescheduleSaving = ref(false);
+
+async function startReschedule() {
+  rescheduling.value = true;
+  if (slots.value.length === 0) {
+    await loadSlotsForReschedule();
+  }
+}
+
+async function loadSlotsForReschedule() {
+  loadingSlots.value = true;
+  try {
+    const all = await api.get(`/slots?bookable_item_id=${props.booking.bookable_item_id}`);
+    // The booking's own current slot is still 'open'-adjacent in the admin's
+    // eyes but isn't a real "different time" choice — exclude it.
+    slots.value = all.filter((s) => s.id !== props.booking.slot_id);
+  } catch (e) {
+    slots.value = [];
+  } finally {
+    loadingSlots.value = false;
+  }
+}
+
+function formatSlot(slot) {
+  const start = new Date(slot.start_datetime);
+  return start.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+}
+
+async function confirmReschedule() {
+  error.value = '';
+  rescheduleSaving.value = true;
+  try {
+    const updated = await api.put(`/bookings/${props.booking.id}/reschedule`, { slot_id: newSlotId.value });
+    rescheduling.value = false;
+    newSlotId.value = null;
+    emit('updated', updated);
+  } catch (e) {
+    error.value = e.message || 'Could not reschedule this booking.';
+  } finally {
+    rescheduleSaving.value = false;
+  }
+}
+
 const timeRangeLabel = computed(() => {
   if (!props.booking.slot_start) {
     return 'No scheduled time';
@@ -90,7 +174,7 @@ const timeRangeLabel = computed(() => {
 });
 
 function label(status) {
-  return { confirmed: 'Confirm', completed: 'Mark completed', cancelled: 'Cancel', no_show: 'No-show' }[status] || status;
+  return { confirmed: 'Confirm', completed: 'Mark completed', cancelled: 'Cancel', no_show: 'No-show', rejected: 'Reject' }[status] || status;
 }
 
 async function changeStatus(status) {

@@ -112,14 +112,17 @@ import { api } from '@/api/client';
 // Mirrors BYZO_Booking::TRANSITIONS server-side — see the same note in
 // BookingDetailModal.vue (calendar screen); the server remains the real
 // enforcement, this only decides which options the dropdown offers.
+// `rejected` added 2026-09-05 (Phase 1.6) — same shape as
+// BookingDetailModal.vue's copy of the server-side table.
 const TRANSITIONS = {
-  pending: ['confirmed', 'cancelled', 'no_show'],
+  pending: ['confirmed', 'rejected', 'cancelled', 'no_show'],
   confirmed: ['completed', 'cancelled', 'no_show'],
   completed: [],
   cancelled: [],
   no_show: [],
+  rejected: [],
 };
-const statuses = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show'];
+const statuses = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show', 'rejected'];
 
 const items = ref([]);
 const bookings = ref([]);
@@ -184,7 +187,7 @@ function allowedTransitions(status) {
 }
 
 function transitionLabel(status) {
-  return { confirmed: 'Confirm', completed: 'Mark completed', cancelled: 'Cancel', no_show: 'No-show' }[status] || status;
+  return { confirmed: 'Confirm', completed: 'Mark completed', cancelled: 'Cancel', no_show: 'No-show', rejected: 'Reject' }[status] || status;
 }
 
 async function onStatusChange(booking, newStatus) {

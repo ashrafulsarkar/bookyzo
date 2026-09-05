@@ -208,6 +208,12 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 					'duration_minutes'  => $item['duration_minutes'],
 					'price'             => $item['price'],
 					'capacity'          => $item['capacity'],
+					// location/meeting_link added 2026-09-05 (Phase 1.6) — the
+					// widget's confirmation step shows these when set
+					// (FEATURES.md A2), so the public whitelist needs them
+					// same as every other guest-visible field here.
+					'location'          => $item['location'],
+					'meeting_link'      => $item['meeting_link'],
 				);
 			},
 			$result['items']

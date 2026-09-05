@@ -57,6 +57,20 @@
         <Input id="capacity" v-model.number="form.capacity" type="number" min="1" step="1" />
       </div>
 
+      <!-- Location / online meeting link (added 2026-09-05, Phase 1.6,
+           DETAILED-SPEC.md §1.1/§A2) — free-text on every type, distinct
+           from Pro's structured multi-branch location_id. -->
+      <div class="grid grid-cols-2 gap-4">
+        <div class="flex flex-col gap-1.5">
+          <Label for="location">Location</Label>
+          <Input id="location" v-model="form.location" type="text" placeholder="e.g. 123 Main St, or Online" />
+        </div>
+        <div class="flex flex-col gap-1.5">
+          <Label for="meeting-link">Meeting link</Label>
+          <Input id="meeting-link" v-model="form.meeting_link" type="url" placeholder="https://zoom.us/…" />
+        </div>
+      </div>
+
       <div class="flex flex-col gap-1.5">
         <Label>Status</Label>
         <Select v-model="form.status">
