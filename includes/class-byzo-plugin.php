@@ -61,6 +61,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-admin-assets.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-export.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-token.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-cancel.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-guard.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-payment-settings.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-widget.php';
@@ -80,6 +81,7 @@ class BYZO_Plugin {
 		( new BYZO_REST() )->init();
 		BYZO_Admin_Assets::init();
 		BYZO_Booking_Export::init();
+		BYZO_Booking_Cancel::init();
 		BYZO_Public_Widget::init();
 		BYZO_Notifications::init();
 
@@ -219,6 +221,11 @@ class BYZO_Plugin {
 				'route' => '/settings/payments',
 				'label' => __( 'Payments', 'bookyzo' ),
 				'title' => __( 'Bookyzo Payment Settings', 'bookyzo' ),
+			),
+			'bookyzo-settings' => array(
+				'route' => '/settings/general',
+				'label' => __( 'Settings', 'bookyzo' ),
+				'title' => __( 'Bookyzo Settings', 'bookyzo' ),
 			),
 		);
 	}

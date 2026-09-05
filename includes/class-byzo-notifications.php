@@ -117,11 +117,25 @@ class BYZO_Notifications {
 		$item     = BYZO_Bookable_Item::get( $booking['bookable_item_id'] );
 		$settings = BYZO_Settings::get();
 
+		// {cancel_link} (added Phase 1.5 step 7, DETAILED-SPEC.md §A4/§A5)
+		// — only a real, working link while guest cancellation is actually
+		// possible for this booking (cancellation_hours > 0, status still
+		// pending/confirmed); otherwise left blank so a template that
+		// includes it doesn't show a link that would just 403. The link's
+		// own page re-checks everything again at click time regardless —
+		// this is purely about not printing a link that's already known
+		// to be dead at send time.
+		$cancel_link = '';
+		if ( (int) $settings['cancellation_hours'] > 0 && in_array( $booking['status'], array( 'pending', 'confirmed' ), true ) ) {
+			$cancel_link = BYZO_Booking_Cancel::build_link( $booking_id, $booking['customer_email'] );
+		}
+
 		$placeholders = array(
 			'{customer_name}'      => $booking['customer_name'],
 			'{bookable_item_name}' => $item ? $item['name'] : '',
 			'{start_time}'         => self::format_start_time( $booking['slot_start'] ),
 			'{business_name}'      => $settings['business_name'],
+			'{cancel_link}'        => $cancel_link,
 		);
 
 		$subject = strtr( $template['subject'], $placeholders );

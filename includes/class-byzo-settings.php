@@ -33,6 +33,13 @@ class BYZO_Settings {
 			'auto_confirm'            => false,
 			'send_confirmation_email' => true,
 			'send_admin_notification' => true,
+			// Added 2026-09-03 (Phase 1.5 step 7, DETAILED-SPEC.md §A4) — the
+			// single Free cancellation-policy rule. 0 = no guest
+			// self-service cancellation at all; otherwise the guest cancel
+			// link (BYZO_Booking_Cancel) only works while the slot start is
+			// more than this many hours away. Admin cancellation from the
+			// Bookings screen is never subject to this.
+			'cancellation_hours'      => 24,
 		);
 
 		return wp_parse_args( get_option( 'byzo_settings', array() ), $defaults );
@@ -106,6 +113,10 @@ class BYZO_Settings {
 			if ( isset( $data[ $bool_field ] ) ) {
 				$patch[ $bool_field ] = (bool) $data[ $bool_field ];
 			}
+		}
+
+		if ( isset( $data['cancellation_hours'] ) ) {
+			$patch['cancellation_hours'] = max( 0, absint( $data['cancellation_hours'] ) );
 		}
 
 		$updated = array_merge( $current, $patch );

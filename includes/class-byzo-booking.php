@@ -404,6 +404,51 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * The guest self-service cancellation path (DETAILED-SPEC.md §A4/§A5)
+	 * — a PUT-equivalent authorized by BYZO_Booking_Token instead of
+	 * admin capability. Everything past the checks below (transition
+	 * validity, capacity release, the cancellation email) is the exact
+	 * same update_status() every other cancellation already goes through;
+	 * this only adds the guest-specific guards admin cancellation is
+	 * deliberately exempt from.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function cancel_via_token( $id, $token ) {
+		$booking = self::get( $id );
+		if ( ! $booking ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		if ( ! BYZO_Booking_Token::verify( $id, $booking['customer_email'], $token ) ) {
+			return new WP_Error( 'byzo_invalid_token', __( 'This cancellation link is invalid.', 'bookyzo' ), array( 'status' => 403 ) );
+		}
+
+		if ( ! in_array( $booking['status'], array( 'pending', 'confirmed' ), true ) ) {
+			return new WP_Error( 'byzo_invalid_transition', __( 'This booking cannot be cancelled.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		// byzo_settings.cancellation_hours: 0 disables guest cancellation
+		// entirely; otherwise it's only allowed while the slot is still
+		// more than this many hours away.
+		$cancellation_hours = (int) BYZO_Settings::get()['cancellation_hours'];
+		if ( $cancellation_hours <= 0 ) {
+			return new WP_Error( 'byzo_cancellation_disabled', __( "Online cancellation isn't available for this booking — please contact us directly.", 'bookyzo' ), array( 'status' => 403 ) );
+		}
+
+		if ( empty( $booking['slot_start'] ) ) {
+			return new WP_Error( 'byzo_cannot_cancel', __( 'This booking can no longer be cancelled online.', 'bookyzo' ), array( 'status' => 403 ) );
+		}
+
+		$hours_until = ( ( new DateTime( $booking['slot_start'], wp_timezone() ) )->getTimestamp() - ( new DateTime( 'now', wp_timezone() ) )->getTimestamp() ) / HOUR_IN_SECONDS;
+		if ( $hours_until <= $cancellation_hours ) {
+			return new WP_Error( 'byzo_cancellation_window_passed', __( 'This booking is too close to cancel online — please contact us directly.', 'bookyzo' ), array( 'status' => 403 ) );
+		}
+
+		return self::update_status( $id, 'cancelled' );
+	}
+
+	/**
 	 * Sets payment_status directly — no state-machine restriction like
 	 * update_status()'s booking-status TRANSITIONS table, since
 	 * DETAILED-SPEC.md §A7 doesn't call for one on Free (no

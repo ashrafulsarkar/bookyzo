@@ -31,7 +31,7 @@
 
 	blocks.registerBlockType( 'bookyzo/booking-form', {
 		title: __( 'Booking Form', 'bookyzo' ),
-		description: __( 'Lets visitors book an appointment.', 'bookyzo' ),
+		description: __( 'Lets visitors book an appointment, table, event, or slot.', 'bookyzo' ),
 		icon: 'calendar-alt',
 		category: 'widgets',
 		attributes: {

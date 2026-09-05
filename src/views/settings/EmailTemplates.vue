@@ -31,7 +31,7 @@
               <Textarea :id="`body-${event.id}`" v-model="templates[event.id].body" rows="6" class="font-mono" />
               <p class="text-xs text-muted-foreground">
                 Placeholders: <code>{customer_name}</code> <code>{bookable_item_name}</code> <code>{start_time}</code>
-                <code>{business_name}</code>
+                <code>{business_name}</code> <code>{cancel_link}</code>
               </p>
             </div>
           </CardContent>
@@ -57,9 +57,14 @@ import { api } from '@/api/client';
 // stored subject/body values later, not a different data shape now).
 const events = [
   { id: 'booking_created', label: 'Booking received', description: 'Sent immediately when a customer books.' },
-  { id: 'booking_confirmed', label: 'Booking confirmed', description: 'Sent when you confirm a pending booking.' },
+  { id: 'booking_confirmed', label: 'Booking confirmed', description: 'Sent when you confirm a pending booking (or immediately, if auto-confirm is on).' },
   { id: 'booking_cancelled', label: 'Booking cancelled', description: 'Sent when a booking is cancelled.' },
-  { id: 'booking_reminder', label: 'Reminder', description: 'Sent automatically ~24 hours before the appointment.' },
+  { id: 'booking_reminder', label: 'Reminder', description: 'Sent automatically ~24 hours before the booking.' },
+  // Added Phase 1.5 step 6 — the only one of the 5 sent to you (the site
+  // admin) rather than the customer, gated by its own "Email me when a
+  // new booking comes in" toggle (Settings / the setup wizard), separate
+  // from the 4 customer-facing ones above.
+  { id: 'admin_new_booking', label: 'New booking alert (to you)', description: 'Sent to your site admin email whenever a new booking comes in.' },
 ];
 
 const templates = ref({});

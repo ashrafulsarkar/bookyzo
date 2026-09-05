@@ -45,7 +45,7 @@
           <div class="mb-4 flex items-start justify-between gap-4">
             <div>
               <h3 class="text-sm font-semibold">Bookings, last 14 days</h3>
-              <p class="text-xs text-muted-foreground">Every confirmed appointment slot, by day.</p>
+              <p class="text-xs text-muted-foreground">Every confirmed booking, by day.</p>
             </div>
             <span v-if="!trendLoading && trendTotal" class="text-sm font-medium tabular-nums text-muted-foreground">{{ trendTotal }} total</span>
           </div>
@@ -91,8 +91,8 @@ const heroTitle = computed(() => {
 const heroSubtitle = computed(() => {
   const confirmed = summary.value.today.confirmed || 0;
   return confirmed > 0
-    ? `${confirmed} confirmed appointment${confirmed === 1 ? '' : 's'} coming up today.`
-    : 'No confirmed appointments left today.';
+    ? `${confirmed} confirmed booking${confirmed === 1 ? '' : 's'} coming up today.`
+    : 'No confirmed bookings left today.';
 });
 
 function statusHint(period) {

@@ -112,6 +112,7 @@ const form = ref({
   price: '',
   capacity: 1,
   status: 'active',
+  photo_id: null,
 });
 
 onMounted(async () => {
@@ -129,6 +130,7 @@ onMounted(async () => {
       price: item.price === null ? '' : item.price,
       capacity: item.capacity || 1,
       status: item.status,
+      photo_id: item.photo_id || null,
     };
   } catch (e) {
     error.value = e.message || 'Could not load this bookable item.';
@@ -159,6 +161,7 @@ async function save() {
     // field matrix) regardless of what the hidden field holds; every other
     // type sends its real capacity.
     capacity: form.value.type === 'appointment' ? 1 : Math.max(1, Number(form.value.capacity) || 1),
+    photo_id: form.value.photo_id || null,
   };
 
   if (!isEdit.value) {

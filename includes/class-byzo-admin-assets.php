@@ -44,6 +44,12 @@ class BYZO_Admin_Assets {
 			return;
 		}
 
+		// The Bookable Item photo picker (BookableItemDetailsTab.vue) opens
+		// a wp.media frame — that JS only exists once this is called, in
+		// either dev or built mode, so it lives here rather than in either
+		// branch below.
+		wp_enqueue_media();
+
 		if ( self::is_dev_mode() ) {
 			self::enqueue_dev();
 			return;

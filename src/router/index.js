@@ -7,6 +7,7 @@ import BookingCalendar from '../views/calendar/BookingCalendar.vue';
 import BookingsList from '../views/bookings/BookingsList.vue';
 import EmailTemplates from '../views/settings/EmailTemplates.vue';
 import PaymentSettings from '../views/settings/PaymentSettings.vue';
+import GeneralSettings from '../views/settings/GeneralSettings.vue';
 import { api } from '../api/client';
 import { createWpAdminHistory } from './history';
 
@@ -31,7 +32,9 @@ const routes = [
   { path: '/bookings', name: 'bookings', component: BookingsList },
   { path: '/settings/email-templates', name: 'settings.email-templates', component: EmailTemplates },
   { path: '/settings/payments', name: 'settings.payments', component: PaymentSettings },
-  // Business profile (currency/timezone/hours) lands in step 9.
+  // Business profile + booking-behavior toggles (Phase 1.5 steps 1/6/7),
+  // previously wizard-only — GeneralSettings.vue is their ongoing home.
+  { path: '/settings/general', name: 'settings.general', component: GeneralSettings },
 ];
 
 export const router = createRouter({

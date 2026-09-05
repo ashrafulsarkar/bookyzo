@@ -199,7 +199,10 @@ class BYZO_Bookable_Item {
 			$out['description'] = wp_kses_post( $data['description'] );
 		}
 
-		if ( isset( $data['photo_id'] ) ) {
+		// array_key_exists, not isset — a JSON `photo_id: null` (the
+		// "Remove photo" case) is a real key with a null value, and isset()
+		// treats that as absent, silently dropping the clear-out.
+		if ( array_key_exists( 'photo_id', $data ) ) {
 			$out['photo_id'] = absint( $data['photo_id'] ) ?: null;
 		}
 

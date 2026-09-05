@@ -25,6 +25,16 @@
         <p class="text-xs text-muted-foreground">Comma-separated.</p>
       </div>
 
+      <div class="flex flex-col gap-1.5">
+        <Label>Photo</Label>
+        <div class="flex items-center gap-3">
+          <img v-if="photoUrl" :src="photoUrl" alt="" class="h-16 w-16 rounded-md border object-cover" />
+          <div v-else class="flex h-16 w-16 items-center justify-center rounded-md border text-xs text-muted-foreground">None</div>
+          <Button type="button" variant="outline" size="sm" @click="pickPhoto">{{ photoUrl ? 'Change photo' : 'Choose photo' }}</Button>
+          <Button v-if="photoUrl" type="button" variant="ghost" size="sm" @click="removePhoto">Remove</Button>
+        </div>
+      </div>
+
       <div class="grid grid-cols-2 gap-4">
         <!-- Hidden for Event (DETAILED-SPEC.md §A2/A3 field matrix): its
              duration comes from each occurrence's own end − start on the
@@ -76,7 +86,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
-import { computed } from 'vue';
+import { computed, ref, onMounted } from 'vue';
 
 const props = defineProps({
   form: { type: Object, required: true },
@@ -106,7 +116,52 @@ const PRICE_LABELS = {
 };
 const priceLabel = computed(() => PRICE_LABELS[props.form.type] || 'Price');
 
-// photo field deferred (ROADMAP.md Phase 1 step 2 note) — needs a WP
-// media-library picker (wp.media frame), not just a plain input; tracked
-// as a follow-up, not stubbed with a fake upload control here.
+// wp.media frame (Phase 1.5 step 7, closing the ROADMAP.md Phase 1 step 2
+// deferral). form.photo_id is the only value that round-trips to the
+// server — photoUrl is purely local display state, resolved once on
+// mount from the id BookableItemForm.vue already loaded (an edit's
+// GET /bookable-items/:id response), and set directly from the picked
+// attachment's own URL on selection so choosing a photo doesn't need a
+// second REST round-trip just to preview it.
+const photoUrl = ref('');
+let mediaFrame = null;
+
+onMounted(async () => {
+  if ( ! props.form.photo_id ) {
+    return;
+  }
+  try {
+    const media = await window.wp.apiFetch({ path: `/wp/v2/media/${props.form.photo_id}` });
+    photoUrl.value = media.media_details?.sizes?.thumbnail?.source_url || media.source_url || '';
+  } catch (e) {
+    // Attachment deleted from the media library out-of-band — fall back
+    // to the "None" placeholder rather than a broken image.
+    photoUrl.value = '';
+  }
+});
+
+function pickPhoto() {
+  if ( ! window.wp?.media ) {
+    return;
+  }
+  if ( ! mediaFrame ) {
+    mediaFrame = window.wp.media({
+      title: 'Select a photo',
+      button: { text: 'Use this photo' },
+      library: { type: 'image' },
+      multiple: false,
+    });
+    mediaFrame.on('select', () => {
+      const attachment = mediaFrame.state().get('selection').first().toJSON();
+      props.form.photo_id = attachment.id;
+      photoUrl.value = attachment.sizes?.thumbnail?.url || attachment.url;
+    });
+  }
+  mediaFrame.open();
+}
+
+function removePhoto() {
+  props.form.photo_id = null;
+  photoUrl.value = '';
+}
 </script>
