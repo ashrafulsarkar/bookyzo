@@ -86,9 +86,34 @@ async function zipDirectory(sourceDir, outPath) {
   });
 }
 
+/**
+ * Generates languages/bookyzo.pot via WP-CLI (Phase 1.5 step 9's
+ * translation-readiness item, DETAILED-SPEC.md §A5) — before
+ * copyRecursive() below, so the freshly generated file is picked up like
+ * any other source file (languages/ isn't in .distignore, it's meant to
+ * ship). Soft-fails rather than aborting the whole release build: a
+ * missing WP-CLI on some machine/CI shouldn't block producing the zip,
+ * it should just mean a slightly stale .pot until re-run somewhere that
+ * has it.
+ */
+function generatePot() {
+  console.log('Generating languages/bookyzo.pot (wp i18n make-pot)...');
+  try {
+    execSync(
+      'wp i18n make-pot . languages/bookyzo.pot --domain=bookyzo --slug=bookyzo --exclude=src,assets,release,scratchpad,.claude,bin',
+      { cwd: ROOT, stdio: 'inherit' }
+    );
+  } catch (error) {
+    console.warn('Could not generate languages/bookyzo.pot (WP-CLI not found or the command failed) — continuing without it.');
+    console.warn(error.message);
+  }
+}
+
 async function main() {
   console.log('Building admin/ and public/ (npm run build)...');
   execSync('npm run build', { cwd: ROOT, stdio: 'inherit' });
+
+  generatePot();
 
   console.log('Cleaning staging directory...');
   fs.rmSync(RELEASE_DIR, { recursive: true, force: true });

@@ -3,6 +3,7 @@ import Dashboard from '../views/Dashboard.vue';
 import SetupWizard from '../views/setup/SetupWizard.vue';
 import BookableItemsList from '../views/bookable-items/BookableItemsList.vue';
 import BookableItemForm from '../views/bookable-items/BookableItemForm.vue';
+import CustomersList from '../views/customers/CustomersList.vue';
 import BookingCalendar from '../views/calendar/BookingCalendar.vue';
 import BookingsList from '../views/bookings/BookingsList.vue';
 import EmailTemplates from '../views/settings/EmailTemplates.vue';
@@ -30,6 +31,7 @@ const routes = [
   { path: '/bookable-items/:id/edit', name: 'bookable-items.edit', component: BookableItemForm },
   { path: '/calendar', name: 'calendar', component: BookingCalendar },
   { path: '/bookings', name: 'bookings', component: BookingsList },
+  { path: '/customers', name: 'customers', component: CustomersList },
   { path: '/settings/email-templates', name: 'settings.email-templates', component: EmailTemplates },
   { path: '/settings/payments', name: 'settings.payments', component: PaymentSettings },
   // Business profile + booking-behavior toggles (Phase 1.5 steps 1/6/7),

@@ -34,6 +34,11 @@
               <Label for="s-currency">Currency</Label>
               <Input id="s-currency" v-model="form.currency" type="text" maxlength="3" class="w-24 uppercase" />
             </div>
+            <div class="flex flex-col gap-1.5">
+              <Label for="s-tax-rate">Tax rate (%)</Label>
+              <Input id="s-tax-rate" v-model.number="form.tax_rate" type="number" min="0" max="100" step="0.01" class="w-24" />
+              <p class="text-xs text-muted-foreground">Added to every paid booking's total. Leave at 0 if you don't charge tax.</p>
+            </div>
             <div class="grid grid-cols-2 gap-4">
               <div class="flex flex-col gap-1.5">
                 <Label for="s-start-time">Default opening time</Label>
@@ -113,14 +118,16 @@ import { api } from '@/api/client';
 // cancellation_hours would all be wizard-only and unreachable
 // afterward, despite PricingStep/ConfirmationStep's own copy already
 // promising "you can change this anytime" (DETAILED-SPEC.md §A1).
-// Tax rate (byzo_settings.tax_rate) deliberately not shown here yet —
-// Phase 1.5 step 9's job, not built.
+// tax_rate (Phase 1.5 step 9) has no wizard step of its own — this is
+// its only UI, by design (PricingStep.vue's own comment deferred it here
+// rather than asking before the feature existed).
 const form = ref({
   business_name: '',
   timezone: '',
   currency: 'USD',
   default_start_time: '09:00',
   default_end_time: '17:00',
+  tax_rate: 0,
   require_phone: false,
   auto_confirm: false,
   cancellation_hours: 24,

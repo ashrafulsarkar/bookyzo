@@ -46,6 +46,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-capabilities.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-install-redirect.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-bookable-item.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-customer.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-availability.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-slot-generator.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-slot.php';
@@ -53,6 +54,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-bookable-items-controller.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-customers-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-slots-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-bookings-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-settings-controller.php';
@@ -60,6 +62,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-setup-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-admin-assets.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-export.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-customer-import.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-token.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-cancel.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-guard.php';
@@ -81,6 +84,7 @@ class BYZO_Plugin {
 		( new BYZO_REST() )->init();
 		BYZO_Admin_Assets::init();
 		BYZO_Booking_Export::init();
+		BYZO_Customer_Import::init();
 		BYZO_Booking_Cancel::init();
 		BYZO_Public_Widget::init();
 		BYZO_Notifications::init();
@@ -106,6 +110,7 @@ class BYZO_Plugin {
 
 	public function register_core_rest_controllers( $controllers ) {
 		$controllers[] = new BYZO_REST_Bookable_Items_Controller();
+		$controllers[] = new BYZO_REST_Customers_Controller();
 		$controllers[] = new BYZO_REST_Slots_Controller();
 		$controllers[] = new BYZO_REST_Bookings_Controller();
 		$controllers[] = new BYZO_REST_Settings_Controller();
@@ -211,6 +216,11 @@ class BYZO_Plugin {
 				'route' => '/bookable-items',
 				'label' => __( 'Bookable Items', 'bookyzo' ),
 				'title' => __( 'Bookyzo Bookable Items', 'bookyzo' ),
+			),
+			'bookyzo-customers' => array(
+				'route' => '/customers',
+				'label' => __( 'Customers', 'bookyzo' ),
+				'title' => __( 'Bookyzo Customers', 'bookyzo' ),
 			),
 			'bookyzo-emails' => array(
 				'route' => '/settings/email-templates',

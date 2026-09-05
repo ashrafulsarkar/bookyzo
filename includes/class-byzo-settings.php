@@ -40,6 +40,12 @@ class BYZO_Settings {
 			// more than this many hours away. Admin cancellation from the
 			// Bookings screen is never subject to this.
 			'cancellation_hours'      => 24,
+			// Added 2026-09-05 (Phase 1.5 step 9, DETAILED-SPEC.md §A7) — a
+			// flat site-wide percentage, 0 = no tax added. Per-bookable item
+			// overrides (`bookable_items.tax_rate_override`) are Pro-only
+			// and not part of this schema touch; Free's UI only ever writes
+			// this one site-wide value.
+			'tax_rate'                => 0,
 		);
 
 		return wp_parse_args( get_option( 'byzo_settings', array() ), $defaults );
@@ -117,6 +123,14 @@ class BYZO_Settings {
 
 		if ( isset( $data['cancellation_hours'] ) ) {
 			$patch['cancellation_hours'] = max( 0, absint( $data['cancellation_hours'] ) );
+		}
+
+		if ( isset( $data['tax_rate'] ) ) {
+			$tax_rate = (float) $data['tax_rate'];
+			if ( $tax_rate < 0 || $tax_rate > 100 ) {
+				return new WP_Error( 'byzo_invalid_tax_rate', __( 'tax_rate must be between 0 and 100.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			$patch['tax_rate'] = $tax_rate;
 		}
 
 		$updated = array_merge( $current, $patch );

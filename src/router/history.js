@@ -36,8 +36,15 @@ const SLUG_FOR_ROUTE = {
   '/calendar': 'bookyzo-calendar',
   '/bookings': 'bookyzo-bookings',
   '/bookable-items': 'bookyzo-bookable-items',
+  '/customers': 'bookyzo-customers',
   '/settings/email-templates': 'bookyzo-emails',
   '/settings/payments': 'bookyzo-payments',
+  // Found missing here 2026-09-05 (Phase 1.5 step 9) — added when
+  // GeneralSettings.vue shipped in step 7 but never added to this map,
+  // so visiting it rewrote `page` back to the dashboard slug instead of
+  // `bookyzo-settings`, breaking both the left-nav highlight and a
+  // reload/bookmark of the Settings screen.
+  '/settings/general': 'bookyzo-settings',
 };
 
 /**

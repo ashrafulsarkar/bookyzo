@@ -26,6 +26,19 @@ class BYZO_Public_Widget {
 	public static function init() {
 		add_shortcode( 'bookyzo_booking', array( __CLASS__, 'render_shortcode' ) );
 		add_action( 'init', array( __CLASS__, 'register_block' ) );
+
+		// Elementor widget (added 2026-09-05, Phase 1.5 step 9, competitor
+		// gap-fill) — this hook only fires when Elementor itself is active
+		// and loaded, so BYZO_Elementor_Widget (which extends
+		// \Elementor\Widget_Base) is only ever require_once'd once that
+		// base class is guaranteed to exist; a site without Elementor
+		// never runs this callback at all.
+		add_action( 'elementor/widgets/register', array( __CLASS__, 'register_elementor_widget' ) );
+	}
+
+	public static function register_elementor_widget( $widgets_manager ) {
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-elementor-widget.php';
+		$widgets_manager->register( new BYZO_Elementor_Widget() );
 	}
 
 	public static function render_shortcode( $atts ) {
@@ -78,6 +91,18 @@ class BYZO_Public_Widget {
 				'type'             => ! empty( $attributes['type'] ) ? $attributes['type'] : '',
 			)
 		);
+	}
+
+	/**
+	 * Public entry point for rendering surfaces that are neither a
+	 * shortcode nor a Gutenberg block — currently BYZO_Elementor_Widget
+	 * (added 2026-09-05, Phase 1.5 step 9) — but need the exact same
+	 * mount-div + config shape render_shortcode()/render_block() produce.
+	 *
+	 * @param array $config Same shape as render()'s own $config.
+	 */
+	public static function render_widget( $config ) {
+		return self::render( $config );
 	}
 
 	/**

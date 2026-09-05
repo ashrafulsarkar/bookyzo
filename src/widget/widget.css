@@ -232,3 +232,22 @@
   margin: 0 auto 12px;
   font-size: 24px;
 }
+
+.bookyzo-widget .confirmation .add-to-calendar {
+  margin-top: 12px;
+  font-size: 13px;
+}
+
+.bookyzo-widget .confirmation .add-to-calendar a {
+  color: var(--byzo-primary);
+  text-decoration: none;
+}
+
+.bookyzo-widget .confirmation .add-to-calendar a:hover {
+  text-decoration: underline;
+}
+
+.bookyzo-widget .confirmation .add-to-calendar .sep {
+  color: var(--byzo-text-muted);
+  margin: 0 6px;
+}

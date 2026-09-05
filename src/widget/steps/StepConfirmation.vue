@@ -9,11 +9,18 @@
       </template>.
       A confirmation will be sent to {{ booking?.customer_email }} once it's approved.
     </p>
+    <div v-if="booking?.slot_start" class="add-to-calendar">
+      <a :href="googleCalendarUrl" target="_blank" rel="noopener noreferrer">Add to Google Calendar</a>
+      <span class="sep">·</span>
+      <a href="#" @click.prevent="downloadIcs">Download .ics</a>
+    </div>
   </div>
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
   booking: { type: Object, default: null },
   item: { type: Object, default: null },
 });
@@ -26,5 +33,57 @@ function formatDate(iso) {
 }
 function formatTime(iso) {
   return toLocalDate(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
+
+// "Add to calendar" (DETAILED-SPEC.md §A6, Phase 1.5 step 9) — computed
+// on the fly client-side, not stored server-side: everything it needs
+// (item name, slot_start/slot_end) is already in these two props from
+// the booking-creation response. Google Calendar's own render?action=TEMPLATE
+// deep link needs no API call, just a query-string-encoded URL.
+function toUtcStamp(iso) {
+  return toLocalDate(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+}
+
+const googleCalendarUrl = computed(() => {
+  if (!props.booking?.slot_start) return '#';
+  const start = toUtcStamp(props.booking.slot_start);
+  const end = toUtcStamp(props.booking.slot_end || props.booking.slot_start);
+  const params = new URLSearchParams({
+    action: 'TEMPLATE',
+    text: props.item?.name || 'Booking',
+    dates: `${start}/${end}`,
+  });
+  return `https://calendar.google.com/calendar/render?${params.toString()}`;
+});
+
+function icsContent() {
+  const start = toUtcStamp(props.booking.slot_start);
+  const end = toUtcStamp(props.booking.slot_end || props.booking.slot_start);
+  const title = (props.item?.name || 'Booking').replace(/[\r\n]/g, ' ');
+  return [
+    'BEGIN:VCALENDAR',
+    'VERSION:2.0',
+    'PRODID:-//Bookyzo//Booking//EN',
+    'BEGIN:VEVENT',
+    `UID:byzo-booking-${props.booking.id}@${window.location.hostname}`,
+    `DTSTAMP:${toUtcStamp(new Date().toISOString())}`,
+    `DTSTART:${start}`,
+    `DTEND:${end}`,
+    `SUMMARY:${title}`,
+    'END:VEVENT',
+    'END:VCALENDAR',
+  ].join('\r\n');
+}
+
+function downloadIcs() {
+  const blob = new Blob([icsContent()], { type: 'text/calendar' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'booking.ics';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
 }
 </script>

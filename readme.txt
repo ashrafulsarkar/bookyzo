@@ -41,15 +41,19 @@ Filter every booking by date, bookable item or status, change status inline, and
 
 = Customer booking widget =
 
-Add `[bookyzo_booking]` anywhere with the shortcode, or use the **Booking Form** block. Customers pick a time, enter their details, and get a booking confirmation — no account required.
+Add `[bookyzo_booking]` anywhere with the shortcode, use the **Booking Form** block, or drop it in with the Elementor widget if you build pages that way. Customers pick a time, enter their details, get a booking confirmation, and can add it straight to Google Calendar or download it as an .ics file — no account required.
+
+= Customer management =
+
+Every customer is saved automatically the first time they book — searchable by name, email or phone under **Bookyzo → Customers**, with notes and tags you can add yourself. Already have a customer list elsewhere? Import it from a CSV file.
 
 = Email notifications =
 
-Automatic emails when a booking is received, confirmed or cancelled, plus a reminder email sent the day before it's due, and a self-service cancellation link the customer can use themselves right up to your cancellation cutoff. Every email's subject and body is a plain-text template you can edit yourself, with placeholders for the customer's name, the bookable item, the booking time and your business name.
+Automatic emails when a booking is received, confirmed or cancelled, plus a reminder email sent the day before it's due, a self-service cancellation link the customer can use themselves right up to your cancellation cutoff, and an "add to calendar" link. Every email's subject and body is a plain-text template you can edit yourself, with placeholders for the customer's name, the bookable item, the booking time and your business name.
 
 = Payments =
 
-Mark bookings as paid manually for cash or in-person payments, or connect a Stripe account to let customers pay online by card when they book.
+Mark bookings as paid manually for cash or in-person payments, or connect a Stripe account to let customers pay online by card when they book. An optional flat tax rate is added to every paid booking's total automatically.
 
 = Dashboard =
 

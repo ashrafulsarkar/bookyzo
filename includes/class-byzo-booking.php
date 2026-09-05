@@ -284,7 +284,17 @@ class BYZO_Booking {
 		// guest pay $0.01 for an expensive service. NULL price (a free
 		// item, DETAILED-SPEC.md §1.1) means nothing to charge.
 		$item            = BYZO_Bookable_Item::get( $slot['bookable_item_id'] );
-		$payment_amount  = ( $item && null !== $item['price'] ) ? round( $item['price'] * $party_size, 2 ) : null;
+		$subtotal        = ( $item && null !== $item['price'] ) ? round( $item['price'] * $party_size, 2 ) : null;
+
+		// Flat site-wide tax rate (added 2026-09-05, Phase 1.5 step 9,
+		// DETAILED-SPEC.md §A7) — tax_amount is broken out from
+		// payment_amount for invoice display; both NULL when there's
+		// nothing to charge in the first place. Per-bookable item
+		// overrides (tax_rate_override) are a Pro-only column not part of
+		// this schema touch, so Free always uses the one site-wide rate.
+		$tax_rate       = (float) BYZO_Settings::get()['tax_rate'];
+		$tax_amount     = ( null !== $subtotal && $tax_rate > 0 ) ? round( $subtotal * $tax_rate / 100, 2 ) : null;
+		$payment_amount = null !== $subtotal ? round( $subtotal + (float) $tax_amount, 2 ) : null;
 
 		// byzo_settings.auto_confirm (DETAILED-SPEC.md §A4, added for the
 		// deepened onboarding wizard's Confirmation step) — skips the
@@ -294,9 +304,16 @@ class BYZO_Booking {
 		// status, same capacity-decrement/payment logic either way.
 		$status = ! empty( BYZO_Settings::get()['auto_confirm'] ) ? 'confirmed' : 'pending';
 
+		// Upserts wp_byzo_customers by email (DETAILED-SPEC.md §1.5, added
+		// 2026-09-05) — the customer record tracks their CURRENT
+		// name/phone; this booking row keeps what was true at booking time
+		// regardless of later changes to either.
+		$customer_id = BYZO_Customer::upsert_by_email( $validated['customer_name'], $validated['customer_email'], $validated['customer_phone'] );
+
 		$row = array(
 			'slot_id'          => $slot['id'],
 			'bookable_item_id' => $slot['bookable_item_id'],
+			'customer_id'      => $customer_id ?: null,
 			'customer_name'    => $validated['customer_name'],
 			'customer_email'   => $validated['customer_email'],
 			'customer_phone'   => $validated['customer_phone'],
@@ -305,6 +322,7 @@ class BYZO_Booking {
 			'status'           => $status,
 			'payment_status'   => 'unpaid',
 			'payment_amount'   => $payment_amount,
+			'tax_amount'       => $tax_amount,
 			'custom_fields'    => wp_json_encode( $validated['custom_fields'] ),
 			'created_at'       => $now,
 			'updated_at'       => $now,
@@ -561,8 +579,10 @@ class BYZO_Booking {
 		$row['id']             = (int) $row['id'];
 		$row['slot_id']        = $row['slot_id'] ? (int) $row['slot_id'] : null;
 		$row['bookable_item_id'] = (int) $row['bookable_item_id'];
+		$row['customer_id']    = $row['customer_id'] ? (int) $row['customer_id'] : null;
 		$row['party_size']     = (int) $row['party_size'];
 		$row['payment_amount'] = null === $row['payment_amount'] ? null : (float) $row['payment_amount'];
+		$row['tax_amount']     = null === $row['tax_amount'] ? null : (float) $row['tax_amount'];
 		$row['custom_fields']  = $row['custom_fields'] ? json_decode( $row['custom_fields'], true ) : array();
 
 		// slot_start/slot_end come from the LEFT JOIN in get()/query() —

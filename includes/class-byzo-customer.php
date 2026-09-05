@@ -1,0 +1,274 @@
+<?php
+defined( 'ABSPATH' ) || exit;
+
+/**
+ * Data-access layer for wp_byzo_customers (DETAILED-SPEC.md §1.5, added
+ * Phase 1.5 step 9 — competitor gap-fill). A customer must be able to
+ * exist independently of any booking (CSV import, A10), so this is its
+ * own table rather than a `SELECT DISTINCT customer_email FROM bookings`
+ * view — mirrors BYZO_Bookable_Item's plain-static-methods-over-$wpdb shape.
+ */
+class BYZO_Customer {
+
+	const VALID_SOURCES = array( 'booking', 'import' );
+
+	public static function table() {
+		global $wpdb;
+		return $wpdb->prefix . 'byzo_customers';
+	}
+
+	public static function get( $id ) {
+		global $wpdb;
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM ' . self::table() . ' WHERE id = %d', $id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+			ARRAY_A
+		);
+
+		return $row ? self::cast( $row ) : null;
+	}
+
+	public static function get_by_email( $email ) {
+		global $wpdb;
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM ' . self::table() . ' WHERE email = %s', $email ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+			ARRAY_A
+		);
+
+		return $row ? self::cast( $row ) : null;
+	}
+
+	/**
+	 * @param array $args {
+	 *     @type string $search   Matches against name/email/phone (LIKE).
+	 *     @type int    $per_page Default 20, max 100.
+	 *     @type int    $page     1-indexed.
+	 * }
+	 */
+	public static function query( $args = array() ) {
+		global $wpdb;
+
+		$defaults = array(
+			'search'   => '',
+			'per_page' => 20,
+			'page'     => 1,
+		);
+		$args = wp_parse_args( $args, $defaults );
+
+		$where  = array( '1=1' );
+		$params = array();
+
+		if ( '' !== trim( (string) $args['search'] ) ) {
+			$like     = '%' . $wpdb->esc_like( trim( $args['search'] ) ) . '%';
+			$where[]  = '( name LIKE %s OR email LIKE %s OR phone LIKE %s )';
+			$params[] = $like;
+			$params[] = $like;
+			$params[] = $like;
+		}
+
+		$per_page = min( 100, max( 1, (int) $args['per_page'] ) );
+		$page     = max( 1, (int) $args['page'] );
+		$offset   = ( $page - 1 ) * $per_page;
+
+		$where_sql = implode( ' AND ', $where );
+
+		$sql      = 'SELECT * FROM ' . self::table() . " WHERE {$where_sql} ORDER BY created_at DESC LIMIT %d OFFSET %d";
+		$params[] = $per_page;
+		$params[] = $offset;
+
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		$count_sql    = 'SELECT COUNT(*) FROM ' . self::table() . " WHERE {$where_sql}";
+		$count_params = array_slice( $params, 0, count( $params ) - 2 );
+		$total        = $count_params
+			? (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $count_params ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+			: (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
+
+		return array(
+			'items' => array_map( array( __CLASS__, 'cast' ), $rows ?: array() ),
+			'total' => $total,
+		);
+	}
+
+	/**
+	 * @return int|WP_Error New customer ID, or WP_Error on validation failure.
+	 */
+	public static function create( $data ) {
+		global $wpdb;
+
+		$validated = self::validate( $data, true );
+		if ( is_wp_error( $validated ) ) {
+			return $validated;
+		}
+
+		if ( self::get_by_email( $validated['email'] ) ) {
+			return new WP_Error( 'byzo_duplicate_email', __( 'A customer with this email already exists.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
+
+		$now                = current_time( 'mysql' );
+		$validated['created_at'] = $now;
+		$validated['updated_at'] = $now;
+
+		$inserted = $wpdb->insert( self::table(), $validated );
+
+		if ( false === $inserted ) {
+			return new WP_Error( 'byzo_db_error', __( 'Could not create customer.', 'bookyzo' ) );
+		}
+
+		return (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * @return true|WP_Error
+	 */
+	public static function update( $id, $data ) {
+		global $wpdb;
+
+		$existing = self::get( $id );
+		if ( ! $existing ) {
+			return new WP_Error( 'byzo_not_found', __( 'Customer not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$validated = self::validate( $data, false );
+		if ( is_wp_error( $validated ) ) {
+			return $validated;
+		}
+
+		if ( isset( $validated['email'] ) && $validated['email'] !== $existing['email'] ) {
+			$other = self::get_by_email( $validated['email'] );
+			if ( $other && (int) $other['id'] !== (int) $id ) {
+				return new WP_Error( 'byzo_duplicate_email', __( 'A customer with this email already exists.', 'bookyzo' ), array( 'status' => 409 ) );
+			}
+		}
+
+		if ( empty( $validated ) ) {
+			return true;
+		}
+
+		$validated['updated_at'] = current_time( 'mysql' );
+
+		$updated = $wpdb->update( self::table(), $validated, array( 'id' => $id ) );
+
+		if ( false === $updated && '' !== $wpdb->last_error ) {
+			return new WP_Error( 'byzo_db_error', __( 'Could not update customer.', 'bookyzo' ) );
+		}
+
+		return true;
+	}
+
+	public static function delete( $id ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Customer not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$wpdb->delete( self::table(), array( 'id' => $id ) );
+
+		return true;
+	}
+
+	/**
+	 * Finds-or-creates a customer by email, refreshing name/phone if
+	 * they've changed — called from BYZO_Booking::create() (§1.5: "the
+	 * customer record tracks their CURRENT details, the booking row keeps
+	 * what was true THEN"). Never touches `tags`/`notes` — those are
+	 * admin-curated fields a booking has no opinion about.
+	 *
+	 * @return int Customer ID.
+	 */
+	public static function upsert_by_email( $name, $email, $phone = '' ) {
+		global $wpdb;
+
+		$email = sanitize_email( $email );
+
+		$existing = self::get_by_email( $email );
+
+		if ( ! $existing ) {
+			$id = self::create(
+				array(
+					'name'   => $name,
+					'email'  => $email,
+					'phone'  => $phone,
+					'source' => 'booking',
+				)
+			);
+
+			return is_wp_error( $id ) ? 0 : $id;
+		}
+
+		$patch = array();
+		if ( $name && $name !== $existing['name'] ) {
+			$patch['name'] = $name;
+		}
+		if ( $phone && $phone !== $existing['phone'] ) {
+			$patch['phone'] = $phone;
+		}
+
+		if ( $patch ) {
+			$wpdb->update( self::table(), array_merge( $patch, array( 'updated_at' => current_time( 'mysql' ) ) ), array( 'id' => $existing['id'] ) );
+		}
+
+		return (int) $existing['id'];
+	}
+
+	/**
+	 * Validates and whitelists incoming data. `$require_all` = true for
+	 * create (name/email required); false for update (partial patches OK).
+	 *
+	 * @return array|WP_Error Sanitized column => value pairs ready for $wpdb, or WP_Error.
+	 */
+	private static function validate( $data, $require_all ) {
+		$out = array();
+
+		if ( isset( $data['name'] ) ) {
+			$name = sanitize_text_field( $data['name'] );
+			if ( '' === $name ) {
+				return new WP_Error( 'byzo_invalid_name', __( 'Customer name cannot be empty.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			$out['name'] = $name;
+		} elseif ( $require_all ) {
+			return new WP_Error( 'byzo_missing_name', __( 'Customer name is required.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		if ( isset( $data['email'] ) ) {
+			$email = sanitize_email( $data['email'] );
+			if ( ! is_email( $email ) ) {
+				return new WP_Error( 'byzo_invalid_email', __( 'A valid email address is required.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			$out['email'] = $email;
+		} elseif ( $require_all ) {
+			return new WP_Error( 'byzo_missing_email', __( 'Customer email is required.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		if ( isset( $data['phone'] ) ) {
+			$out['phone'] = sanitize_text_field( $data['phone'] );
+		}
+
+		if ( isset( $data['notes'] ) ) {
+			$out['notes'] = sanitize_textarea_field( $data['notes'] );
+		}
+
+		if ( isset( $data['tags'] ) ) {
+			$out['tags'] = sanitize_text_field( $data['tags'] );
+		}
+
+		if ( isset( $data['source'] ) ) {
+			if ( ! in_array( $data['source'], self::VALID_SOURCES, true ) ) {
+				return new WP_Error( 'byzo_invalid_source', __( 'Invalid customer source.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			$out['source'] = $data['source'];
+		} elseif ( $require_all ) {
+			$out['source'] = 'booking';
+		}
+
+		return $out;
+	}
+
+	private static function cast( $row ) {
+		$row['id'] = (int) $row['id'];
+
+		return $row;
+	}
+}

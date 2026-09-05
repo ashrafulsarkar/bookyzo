@@ -2,6 +2,7 @@ node_modules/
 /assets/admin/
 /assets/widget/
 /release/
+/languages/
 /.dev-server-running
 *.log
 .DS_Store

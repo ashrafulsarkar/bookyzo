@@ -131,11 +131,12 @@ class BYZO_Notifications {
 		}
 
 		$placeholders = array(
-			'{customer_name}'      => $booking['customer_name'],
-			'{bookable_item_name}' => $item ? $item['name'] : '',
-			'{start_time}'         => self::format_start_time( $booking['slot_start'] ),
-			'{business_name}'      => $settings['business_name'],
-			'{cancel_link}'        => $cancel_link,
+			'{customer_name}'        => $booking['customer_name'],
+			'{bookable_item_name}'   => $item ? $item['name'] : '',
+			'{start_time}'           => self::format_start_time( $booking['slot_start'] ),
+			'{business_name}'        => $settings['business_name'],
+			'{cancel_link}'          => $cancel_link,
+			'{add_to_calendar_link}' => self::google_calendar_link( $booking, $item ),
 		);
 
 		$subject = strtr( $template['subject'], $placeholders );
@@ -165,5 +166,33 @@ class BYZO_Notifications {
 		$date = new DateTime( $slot_start, wp_timezone() );
 
 		return $date->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
+	}
+
+	/**
+	 * "Add to calendar" (DETAILED-SPEC.md §A6, Phase 1.5 step 9) — a
+	 * Google Calendar render?action=TEMPLATE deep link, computed on the
+	 * fly from the booking's own slot times, not stored. Empty when the
+	 * booking has no slot (slot_id deleted, §1.4) — nothing to add. The
+	 * confirmation-page equivalent (widget's StepConfirmation.vue) also
+	 * offers a client-side .ics download; a downloadable file has no
+	 * natural place in a plain-text email, so the email placeholder is
+	 * this link only.
+	 */
+	private static function google_calendar_link( $booking, $item ) {
+		if ( ! $booking['slot_start'] ) {
+			return '';
+		}
+
+		$utc   = new DateTimeZone( 'UTC' );
+		$start = ( new DateTime( $booking['slot_start'], wp_timezone() ) )->setTimezone( $utc );
+		$end   = ( new DateTime( $booking['slot_end'] ?: $booking['slot_start'], wp_timezone() ) )->setTimezone( $utc );
+
+		$params = array(
+			'action' => 'TEMPLATE',
+			'text'   => $item ? $item['name'] : __( 'Booking', 'bookyzo' ),
+			'dates'  => $start->format( 'Ymd\THis\Z' ) . '/' . $end->format( 'Ymd\THis\Z' ),
+		);
+
+		return 'https://calendar.google.com/calendar/render?' . http_build_query( $params );
 	}
 }

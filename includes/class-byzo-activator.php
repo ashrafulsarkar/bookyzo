@@ -98,11 +98,17 @@ class BYZO_Activator {
 			KEY status (status)
 		) {$charset_collate};";
 
-		// wp_byzo_bookings (the actual booking record)
+		// wp_byzo_bookings (the actual booking record). customer_id and
+		// tax_amount added 2026-09-05 (Phase 1.5 step 9, competitor
+		// gap-fill, DETAILED-SPEC.md §1.4) — dbDelta() ADD COLUMNs these
+		// automatically on an existing install once BYZO_DB_VERSION moves
+		// past 1.3, no manual ALTER needed (unlike maybe_rename_legacy_schema()'s
+		// RENAME, which dbDelta genuinely can't do).
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
 			bookable_item_id BIGINT UNSIGNED NOT NULL,
+			customer_id BIGINT UNSIGNED NULL,
 			customer_name VARCHAR(255) NOT NULL,
 			customer_email VARCHAR(255) NOT NULL,
 			customer_phone VARCHAR(50) NULL,
@@ -111,6 +117,7 @@ class BYZO_Activator {
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			payment_status VARCHAR(20) NOT NULL DEFAULT 'unpaid',
 			payment_amount DECIMAL(10,2) NULL,
+			tax_amount DECIMAL(10,2) NULL,
 			custom_fields LONGTEXT NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
@@ -120,7 +127,28 @@ class BYZO_Activator {
 			KEY slot_id (slot_id),
 			KEY bookable_item_id (bookable_item_id),
 			KEY status (status),
-			KEY customer_email (customer_email)
+			KEY customer_email (customer_email),
+			KEY customer_id (customer_id)
+		) {$charset_collate};";
+
+		// wp_byzo_customers (added 2026-09-05, Phase 1.5 step 9,
+		// DETAILED-SPEC.md §1.5) — Free-owned, not Pro-gated: a customer
+		// must be able to exist independently of any booking for CSV
+		// import (A10) to make sense. Upserted by email on every booking
+		// creation (BYZO_Customer::upsert_by_email(), called from
+		// BYZO_Booking::create()) and directly by A10's CSV import.
+		$sql[] = "CREATE TABLE {$prefix}byzo_customers (
+			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+			name VARCHAR(255) NOT NULL,
+			email VARCHAR(255) NOT NULL,
+			phone VARCHAR(50) NULL,
+			notes TEXT NULL,
+			tags VARCHAR(255) NULL,
+			source VARCHAR(20) NOT NULL DEFAULT 'booking',
+			created_at DATETIME NOT NULL,
+			updated_at DATETIME NOT NULL,
+			PRIMARY KEY  (id),
+			UNIQUE KEY email (email)
 		) {$charset_collate};";
 
 		self::maybe_rename_legacy_schema( $prefix );

@@ -162,19 +162,23 @@ class BYZO_Admin_Assets {
 
 	/**
 	 * `window.byzoAdmin` — the small set of non-REST values the Vue app
-	 * needs from PHP (currently just the admin-post.php export URL/nonce,
-	 * DETAILED-SPEC.md §A8). Shared between dev and built mode so the two
-	 * don't drift; admin-post.php actions aren't part of the REST API so
-	 * they can't ride wp.apiFetch's own nonce middleware.
+	 * needs from PHP (the admin-post.php export/import URLs+nonces,
+	 * DETAILED-SPEC.md §A8/§A10). Shared between dev and built mode so the
+	 * two don't drift; admin-post.php actions aren't part of the REST API
+	 * so they can't ride wp.apiFetch's own nonce middleware.
 	 */
 	private static function admin_globals_js() {
 		return sprintf(
-			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, initialRoute: %s };',
+			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s };',
 			wp_json_encode( admin_url( 'admin-post.php' ) ),
 			// Nonce action string must stay in sync with
 			// BYZO_Booking_Export::NONCE — not referencing the constant
 			// directly since this class loads before that one.
 			wp_json_encode( wp_create_nonce( 'byzo_export_bookings' ) ),
+			wp_json_encode( admin_url( 'admin-post.php' ) ),
+			// Must stay in sync with BYZO_Customer_Import::NONCE, same
+			// reasoning as the export nonce above.
+			wp_json_encode( wp_create_nonce( 'byzo_import_customers' ) ),
 			// Which screen the app opens on, decided by the WP admin page
 			// slug — see BYZO_Plugin::routes(). The Vue Router owns every
 			// navigation after this first one.
