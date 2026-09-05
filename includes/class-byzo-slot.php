@@ -2,10 +2,14 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Read-only data-access layer for wp_byzo_slots (DETAILED-SPEC.md §1.3).
- * No create/update here — rows are only ever written by
- * BYZO_Slot_Generator (materialization) and BYZO_Booking (capacity
- * decrement on booking, added when the /bookings endpoint lands).
+ * Data-access layer for wp_byzo_slots (DETAILED-SPEC.md §1.3). Mostly
+ * read-only — rows are normally only ever written by BYZO_Slot_Generator
+ * (recurring-schedule materialization) and BYZO_Booking (capacity
+ * decrement on booking) — plus one deliberate exception: event-type
+ * bookable items have no weekly schedule (§1.3/§5 item 7), so their
+ * occurrences are admin-entered directly as slot rows via
+ * create_occurrence()/delete_occurrence() below, bypassing the generator
+ * entirely (Phase 1.5 step 5).
  */
 class BYZO_Slot {
 
@@ -69,6 +73,26 @@ class BYZO_Slot {
 		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
 	}
 
+	/**
+	 * Every slot row for one bookable item, any date, any status — the
+	 * admin Dates tab's own listing (DETAILED-SPEC.md §A2/A3), deliberately
+	 * NOT date-windowed like query() above: an event occurrence can be
+	 * scheduled further out than byzo_settings.max_advance_days (that
+	 * setting only bounds the *generator's* rolling window, meaningless
+	 * for event items which skip the generator entirely), and the admin
+	 * needs to see past occurrences too, not just upcoming ones.
+	 */
+	public static function list_for_bookable_item( $bookable_item_id ) {
+		global $wpdb;
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare( 'SELECT * FROM ' . self::table() . ' WHERE bookable_item_id = %d ORDER BY start_datetime ASC', $bookable_item_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+			ARRAY_A
+		);
+
+		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
+	}
+
 	public static function get( $id ) {
 		global $wpdb;
 
@@ -80,10 +104,110 @@ class BYZO_Slot {
 		return $row ? self::cast( $row ) : null;
 	}
 
+	/**
+	 * Creates one event occurrence directly as a slot row (DETAILED-SPEC.md
+	 * §1.3/§5 item 7) — the admin-entered equivalent of what
+	 * BYZO_Slot_Generator materializes from a weekly schedule for the other
+	 * three types. capacity_remaining seeds from the bookable item's own
+	 * `capacity` column, same as the generator does.
+	 *
+	 * @param array $data { @type string $date, $start_time, $end_time }
+	 * @return int|WP_Error New slot ID, or WP_Error on validation failure.
+	 */
+	public static function create_occurrence( $bookable_item_id, $data ) {
+		global $wpdb;
+
+		if ( empty( $data['date'] ) || empty( $data['start_time'] ) || empty( $data['end_time'] ) ) {
+			return new WP_Error( 'byzo_missing_fields', __( 'date, start_time, and end_time are required.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$date = self::sanitize_date( $data['date'] );
+		if ( ! $date ) {
+			return new WP_Error( 'byzo_invalid_date', __( 'date must be a valid date (Y-m-d).', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$start_time = self::sanitize_time( $data['start_time'] );
+		$end_time   = self::sanitize_time( $data['end_time'] );
+		if ( ! $start_time || ! $end_time ) {
+			return new WP_Error( 'byzo_invalid_time', __( 'start_time/end_time must be valid times (H:i).', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+		if ( $start_time >= $end_time ) {
+			return new WP_Error( 'byzo_invalid_time_range', __( 'start_time must be before end_time.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$item = BYZO_Bookable_Item::get( $bookable_item_id );
+		if ( ! $item ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$inserted = $wpdb->insert(
+			self::table(),
+			array(
+				'bookable_item_id'   => $bookable_item_id,
+				'start_datetime'     => "{$date} {$start_time}",
+				'end_datetime'       => "{$date} {$end_time}",
+				'capacity_remaining' => max( 1, (int) $item['capacity'] ),
+				'status'             => 'open',
+			)
+		);
+
+		if ( false === $inserted ) {
+			return new WP_Error( 'byzo_db_error', __( 'Could not create this occurrence.', 'bookyzo' ) );
+		}
+
+		return (int) $wpdb->insert_id;
+	}
+
+	/**
+	 * Removes one occurrence — refuses if any booking references it
+	 * (DETAILED-SPEC.md §1.3: "refuse if bookings exist"), same
+	 * never-silently-orphan-a-booking principle as everywhere else in this
+	 * plugin (e.g. BYZO_Booking's slot_id FK is nullable specifically so a
+	 * booking record survives its slot being removed, but the removal
+	 * itself must still be a deliberate, blocked-until-resolved action).
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function delete_occurrence( $id ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Occurrence not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$bookings_table = $wpdb->prefix . 'byzo_bookings';
+		$booking_count  = (int) $wpdb->get_var(
+			$wpdb->prepare( "SELECT COUNT(*) FROM {$bookings_table} WHERE slot_id = %d", $id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		);
+
+		if ( $booking_count > 0 ) {
+			return new WP_Error(
+				'byzo_occurrence_has_bookings',
+				__( 'This occurrence has bookings against it and cannot be deleted.', 'bookyzo' ),
+				array( 'status' => 409 )
+			);
+		}
+
+		$wpdb->delete( self::table(), array( 'id' => $id ) );
+
+		return true;
+	}
+
 	private static function sanitize_date( $value ) {
 		$value = trim( (string) $value );
 		$dt    = DateTime::createFromFormat( 'Y-m-d', $value );
 		return ( $dt && $dt->format( 'Y-m-d' ) === $value ) ? $value : false;
+	}
+
+	private static function sanitize_time( $value ) {
+		$value = trim( (string) $value );
+		if ( preg_match( '/^([01]\d|2[0-3]):([0-5]\d)$/', $value ) ) {
+			return $value . ':00';
+		}
+		if ( preg_match( '/^([01]\d|2[0-3]):([0-5]\d):([0-5]\d)$/', $value ) ) {
+			return $value;
+		}
+		return false;
 	}
 
 	private static function cast( $row ) {

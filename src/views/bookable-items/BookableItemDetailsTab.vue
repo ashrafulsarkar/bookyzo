@@ -26,12 +26,15 @@
       </div>
 
       <div class="grid grid-cols-2 gap-4">
-        <div class="flex flex-col gap-1.5">
+        <!-- Hidden for Event (DETAILED-SPEC.md §A2/A3 field matrix): its
+             duration comes from each occurrence's own end − start on the
+             Dates tab, there's no single fixed duration to set here. -->
+        <div v-if="form.type !== 'event'" class="flex flex-col gap-1.5">
           <Label for="duration">Duration (minutes)</Label>
           <Input id="duration" v-model.number="form.duration_minutes" type="number" min="5" step="5" />
         </div>
         <div class="flex flex-col gap-1.5">
-          <Label for="price">Price</Label>
+          <Label for="price">{{ priceLabel }}</Label>
           <Input id="price" v-model="form.price" type="number" min="0" step="0.01" placeholder="0.00" />
         </div>
       </div>
@@ -97,6 +100,11 @@ const CAPACITY_LABELS = {
   slot: 'Spots per slot',
 };
 const capacityLabel = computed(() => CAPACITY_LABELS[props.form.type] || 'Capacity');
+
+const PRICE_LABELS = {
+  event: 'Ticket price',
+};
+const priceLabel = computed(() => PRICE_LABELS[props.form.type] || 'Price');
 
 // photo field deferred (ROADMAP.md Phase 1 step 2 note) — needs a WP
 // media-library picker (wp.media frame), not just a plain input; tracked

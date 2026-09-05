@@ -130,6 +130,40 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 				),
 			)
 		);
+
+		// Event occurrence CRUD (DETAILED-SPEC.md §1.3/§5 item 7, Phase 1.5
+		// step 5) — event-type items only, admin-only. GET added alongside
+		// the POST/DELETE the spec planned, since the "Dates" tab needs some
+		// way to list what it's managing; natural REST completion of the
+		// same collection route, not a new concept.
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/' . $this->get_rest_base() . '/(?P<id>\d+)/slots',
+			array(
+				array(
+					'methods'             => WP_REST_Server::READABLE,
+					'callback'            => array( $this, 'get_occurrences' ),
+					'permission_callback' => array( $this, 'admin_permissions_check' ),
+				),
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'add_occurrence' ),
+					'permission_callback' => array( $this, 'admin_permissions_check' ),
+				),
+			)
+		);
+
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/' . $this->get_rest_base() . '/(?P<id>\d+)/slots/(?P<slot_id>\d+)',
+			array(
+				array(
+					'methods'             => WP_REST_Server::DELETABLE,
+					'callback'            => array( $this, 'delete_occurrence' ),
+					'permission_callback' => array( $this, 'admin_permissions_check' ),
+				),
+			)
+		);
 	}
 
 	public function get_items( WP_REST_Request $request ) {
@@ -334,6 +368,99 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 		}
 
 		return rest_ensure_response( BYZO_Availability::get_for_bookable_item( $id ) );
+	}
+
+	/**
+	 * GET /bookable-items/{id}/slots — lists every occurrence for an
+	 * event-type item (DETAILED-SPEC.md §1.3/§5 item 7), the "Dates" tab's
+	 * own listing. Rejects non-event items with the same 400
+	 * `byzo_not_event_type` this whole occurrence-CRUD trio uses — see
+	 * check_event_type()'s docblock for why.
+	 */
+	public function get_occurrences( WP_REST_Request $request ) {
+		$id    = (int) $request->get_param( 'id' );
+		$check = $this->check_event_type( $id );
+		if ( is_wp_error( $check ) ) {
+			return $check;
+		}
+
+		return rest_ensure_response( BYZO_Slot::list_for_bookable_item( $id ) );
+	}
+
+	/**
+	 * POST /bookable-items/{id}/slots — creates one event occurrence.
+	 * Body: `{ date, start_time, end_time }`.
+	 */
+	public function add_occurrence( WP_REST_Request $request ) {
+		$id    = (int) $request->get_param( 'id' );
+		$check = $this->check_event_type( $id );
+		if ( is_wp_error( $check ) ) {
+			return $check;
+		}
+
+		$result = BYZO_Slot::create_occurrence( $id, $request->get_json_params() );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		$response = rest_ensure_response( BYZO_Slot::get( $result ) );
+		$response->set_status( 201 );
+
+		return $response;
+	}
+
+	/**
+	 * DELETE /bookable-items/{id}/slots/{slot_id} — removes one occurrence;
+	 * refuses (409, via BYZO_Slot::delete_occurrence()) if it has bookings.
+	 */
+	public function delete_occurrence( WP_REST_Request $request ) {
+		$id      = (int) $request->get_param( 'id' );
+		$slot_id = (int) $request->get_param( 'slot_id' );
+
+		$check = $this->check_event_type( $id );
+		if ( is_wp_error( $check ) ) {
+			return $check;
+		}
+
+		$slot = BYZO_Slot::get( $slot_id );
+		if ( ! $slot || $slot['bookable_item_id'] !== $id ) {
+			return new WP_Error( 'byzo_not_found', __( 'Occurrence not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$result = BYZO_Slot::delete_occurrence( $slot_id );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( BYZO_Slot::list_for_bookable_item( $id ) );
+	}
+
+	/**
+	 * Shared guard for all 3 occurrence-CRUD routes above: the item must
+	 * exist AND be type=event. Direct slot-row management only makes sense
+	 * for event items (DETAILED-SPEC.md §1.3) — every other type gets its
+	 * slots exclusively from BYZO_Slot_Generator, and letting an admin poke
+	 * a stray manual row into e.g. an Appointment's slots would create a
+	 * row the generator doesn't know about and never cleans up.
+	 */
+	private function check_event_type( $id ) {
+		$item = BYZO_Bookable_Item::get( $id );
+
+		if ( ! $item ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		if ( 'event' !== $item['type'] ) {
+			return new WP_Error(
+				'byzo_not_event_type',
+				__( 'Occurrences can only be managed for event-type bookable items.', 'bookyzo' ),
+				array( 'status' => 400 )
+			);
+		}
+
+		return true;
 	}
 
 	/**

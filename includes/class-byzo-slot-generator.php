@@ -27,6 +27,18 @@ class BYZO_Slot_Generator {
 			return 0;
 		}
 
+		// Event-type items have no weekly schedule to generate from — their
+		// occurrences are admin-entered directly via BYZO_Slot::create_occurrence()
+		// (DETAILED-SPEC.md §1.3/§5 item 7, Phase 1.5 step 5). Every caller of
+		// this method (the nightly cron via generate_all(), the
+		// byzo_bookable_item_created/_activated hooks, and the
+		// availability/exception REST endpoints' regenerate-on-save calls) is
+		// safe to leave unconditionally calling this — this single early
+		// return is the one place that has to know event items are different.
+		if ( 'event' === $item['type'] ) {
+			return 0;
+		}
+
 		$settings   = self::get_settings();
 		$days_ahead = null === $days_ahead ? (int) $settings['max_advance_days'] : (int) $days_ahead;
 		$days_ahead = max( 0, $days_ahead );

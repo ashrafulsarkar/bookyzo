@@ -112,11 +112,6 @@ import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
 import { api } from '@/api/client';
 
-// All 4 enum values are listed here even though the type-first "Add
-// bookable item" picker only offers 3 today (Event's occurrence model
-// isn't built yet, see BookableItemTypeStep.vue) — an Event-type item
-// created directly via REST before then should still filter/label
-// correctly rather than falling back to a raw enum string.
 const TYPES = ['appointment', 'table', 'event', 'slot'];
 const TYPE_LABELS = { appointment: 'Appointment', table: 'Table', event: 'Event', slot: 'Slot' };
 

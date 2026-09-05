@@ -18,14 +18,14 @@
 	var PanelBody = components.PanelBody;
 	var SelectControl = components.SelectControl;
 
-	// Same 3 types BookableItemTypeStep.vue's Add-bookable-item picker
-	// offers (DETAILED-SPEC.md §5 item 6) — Event is left out here too
-	// until Phase 1.5 step 5's occurrence model ships; filtering the
-	// widget to a type with zero items behind it isn't useful either way.
+	// Same 4 types BookableItemTypeStep.vue's Add-bookable-item picker
+	// offers (DETAILED-SPEC.md §5 item 6) — Event included now that Phase
+	// 1.5 step 5's occurrence model has shipped.
 	var TYPE_OPTIONS = [
 		{ label: __( 'Any type', 'bookyzo' ), value: '' },
 		{ label: __( 'Appointment', 'bookyzo' ), value: 'appointment' },
 		{ label: __( 'Table', 'bookyzo' ), value: 'table' },
+		{ label: __( 'Event', 'bookyzo' ), value: 'event' },
 		{ label: __( 'Slot', 'bookyzo' ), value: 'slot' },
 	];
 

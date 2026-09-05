@@ -34,22 +34,15 @@ import { Button } from '@/components/ui/button';
 defineEmits(['selected']);
 
 // Same radio-card pattern as the setup wizard's BookingTypeStep.vue
-// (DETAILED-SPEC.md §A2's "reuse the wizard's 4-option card UI"), but
-// deliberately still 3 options here, not 4: Event needs its own
-// occurrence-based "Dates" tab and a slot-generator that skips it
-// entirely (ROADMAP.md Phase 1.5 step 5, not built yet) — creating an
-// Event-type item today would fall through to the Availability/Exceptions
-// tabs and get real weekly-recurring slots generated for it, which
-// directly violates the decided architecture (DETAILED-SPEC.md §1.3:
-// "Event-type items bypass the generator entirely... never wire
-// event items into the weekly-schedule path"). Appointment/Table/Slot
-// all safely share that same weekly-schedule engine today, so those three
-// are real, functional choices — Event is added here once step 5 lands,
-// mirroring BookingTypeStep.vue's own "don't list a choice with nothing
-// behind it" rule.
+// (DETAILED-SPEC.md §A2's "reuse the wizard's 4-option card UI"). All 4
+// real options now that Event's occurrence model + generator-skip logic
+// landed (Phase 1.5 step 5) — an Event item gets its own "Dates" tab
+// (BookableItemDatesTab.vue) instead of Availability/Exceptions, matching
+// DETAILED-SPEC.md §1.3's decided architecture.
 const types = [
   { value: 'appointment', label: 'Appointment', description: 'One-on-one bookings with staff — salons, clinics, consultants.' },
   { value: 'table', label: 'Table', description: 'Reservations for a table, room, or group — restaurants, venues.' },
+  { value: 'event', label: 'Event', description: 'Ticketed, dated occurrences — concerts, workshops, one-off sessions.' },
   { value: 'slot', label: 'Slot', description: 'Fixed-capacity time slots — classes, workshops, rental sessions.' },
 ];
 

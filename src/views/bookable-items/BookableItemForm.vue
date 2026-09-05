@@ -36,12 +36,20 @@
             @cancel="router.push({ name: 'bookable-items' })"
           />
         </TabsContent>
-        <TabsContent value="availability">
-          <BookableItemAvailabilityTab :bookable-item-id="route.params.id" />
+        <!-- Event items have no weekly schedule (DETAILED-SPEC.md §1.3) —
+             a Dates tab replaces Availability/Exceptions entirely, it
+             doesn't sit alongside them. -->
+        <TabsContent v-if="form.type === 'event'" value="dates">
+          <BookableItemDatesTab :bookable-item-id="route.params.id" />
         </TabsContent>
-        <TabsContent value="exceptions">
-          <BookableItemExceptionsTab :bookable-item-id="route.params.id" />
-        </TabsContent>
+        <template v-else>
+          <TabsContent value="availability">
+            <BookableItemAvailabilityTab :bookable-item-id="route.params.id" />
+          </TabsContent>
+          <TabsContent value="exceptions">
+            <BookableItemExceptionsTab :bookable-item-id="route.params.id" />
+          </TabsContent>
+        </template>
       </Tabs>
 
       <BookableItemDetailsTab
@@ -65,6 +73,7 @@ import BookableItemTypeStep from './BookableItemTypeStep.vue';
 import BookableItemDetailsTab from './BookableItemDetailsTab.vue';
 import BookableItemAvailabilityTab from './BookableItemAvailabilityTab.vue';
 import BookableItemExceptionsTab from './BookableItemExceptionsTab.vue';
+import BookableItemDatesTab from './BookableItemDatesTab.vue';
 import { api } from '@/api/client';
 
 const route = useRoute();
@@ -76,11 +85,20 @@ const saving = ref(false);
 const error = ref('');
 const activeTab = ref('details');
 
-const tabs = [
-  { id: 'details', label: 'Details' },
-  { id: 'availability', label: 'Availability' },
-  { id: 'exceptions', label: 'Exceptions' },
-];
+// Event items get a single "Dates" tab instead of Availability/Exceptions
+// (DETAILED-SPEC.md §1.3 — no weekly schedule to configure).
+const tabs = computed(() =>
+  form.value.type === 'event'
+    ? [
+        { id: 'details', label: 'Details' },
+        { id: 'dates', label: 'Dates' },
+      ]
+    : [
+        { id: 'details', label: 'Details' },
+        { id: 'availability', label: 'Availability' },
+        { id: 'exceptions', label: 'Exceptions' },
+      ]
+);
 
 const form = ref({
   // Empty on a fresh create — BookableItemTypeStep must be answered first
@@ -154,9 +172,15 @@ async function save() {
       router.push({ name: 'bookable-items' });
     } else {
       const created = await api.post('/bookable-items', payload);
-      // Straight to the new item's Availability tab — a bookable item
-      // with no schedule generates zero slots (BYZO_Slot_Generator), so
+      // Straight to the new item's Availability tab (or Dates, for an
+      // event) — a bookable item with no schedule/dates generates zero
+      // slots (BYZO_Slot_Generator / BYZO_Slot::create_occurrence()), so
       // this is the natural next step, not a dead end at the list.
+      // router.push alone doesn't do this: navigating from /new to
+      // /:id/edit resolves to the same route component, so Vue Router
+      // reuses this instance rather than remounting it, and activeTab's
+      // ref('details') default is never re-evaluated on its own.
+      activeTab.value = form.value.type === 'event' ? 'dates' : 'availability';
       router.push({ name: 'bookable-items.edit', params: { id: created.id } });
     }
   } catch (e) {
