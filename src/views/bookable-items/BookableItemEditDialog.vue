@@ -160,7 +160,6 @@ const wizardData = reactive({
   type: '',
   name: '',
   description: '',
-  tags: '',
   duration_minutes: 30,
   capacity: 1,
   price: null,
@@ -217,7 +216,6 @@ async function load(id) {
       type: item.type,
       name: item.name,
       description: item.description || '',
-      tags: item.tags || '',
       duration_minutes: item.duration_minutes,
       capacity: item.capacity || 1,
       price: item.price === null || item.price === undefined ? null : item.price,
@@ -271,7 +269,6 @@ async function save() {
     const payload = {
       name: wizardData.name,
       description: wizardData.description,
-      tags: wizardData.tags,
       status: wizardData.status,
       price: wizardData.price === '' || wizardData.price === null ? null : wizardData.price,
       // Appointment is single-person by definition (DETAILED-SPEC.md §A2/A3

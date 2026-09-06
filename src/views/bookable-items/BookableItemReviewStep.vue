@@ -88,9 +88,6 @@ const rows = computed(() => {
   if (d.meeting_link) {
     list.push({ label: 'Meeting link', value: d.meeting_link });
   }
-  if (d.tags) {
-    list.push({ label: 'Tags', value: d.tags });
-  }
   list.push({ label: 'Price', value: d.price ? `${d.currency} ${Number(d.price).toFixed(2)}` : 'Free' });
   if (d.status) {
     list.push({ label: 'Status', value: STATUS_LABELS[d.status] || d.status });

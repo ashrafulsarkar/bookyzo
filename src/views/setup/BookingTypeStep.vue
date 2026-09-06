@@ -15,9 +15,12 @@
           selected === type.value ? 'border-primary bg-accent' : 'border-border',
         ]"
       >
-        <input type="radio" name="booking_type" class="mt-1" :value="type.value" v-model="selected" />
+        <!-- Same first-line centring as the Add/Edit wizard's TypeStep.vue. -->
+        <span class="flex h-5 shrink-0 items-center">
+          <input type="radio" name="booking_type" :value="type.value" v-model="selected" />
+        </span>
         <span>
-          <span class="block font-medium">{{ type.label }}</span>
+          <span class="block font-medium leading-5">{{ type.label }}</span>
           <span class="block text-sm text-muted-foreground">{{ type.description }}</span>
         </span>
       </label>

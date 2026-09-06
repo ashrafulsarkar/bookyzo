@@ -47,7 +47,6 @@ class BYZO_Activator {
 			name VARCHAR(255) NOT NULL,
 			description TEXT NULL,
 			photo_id BIGINT UNSIGNED NULL,
-			tags VARCHAR(255) NULL,
 			capacity SMALLINT UNSIGNED NOT NULL DEFAULT 1,
 			price DECIMAL(10,2) NULL,
 			duration_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 30,

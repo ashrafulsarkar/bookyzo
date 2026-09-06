@@ -24,7 +24,7 @@ Bookyzo is NOT built on WooCommerce products. It uses its own custom DB tables (
 | name | VARCHAR(255) | |
 | description | TEXT | |
 | photo_id | BIGINT UNSIGNED | attachment ID |
-| tags | VARCHAR(255) | comma-separated, Free-tier simple tagging |
+| tags | VARCHAR(255) | **Removed from the schema 2026-09-06** — nothing ever read it: no column in the Bookable Items list, no filter or search, nothing on the booking widget. The wizard collected it and the review step echoed it back; that was the whole lifecycle. Free's one-active-bookable-item-per-type cap (§A9) also leaves at most four items, which is nothing to tag *for*. Comes back with its consumer if B3's "customers filter bookable items by date, capacity, or tags" ever ships. Customer tags (§1.5) are unaffected — those have a real list column. |
 | capacity | SMALLINT UNSIGNED | 1 = single person/seat, N = party/group size |
 | price | DECIMAL(10,2) NULL | flat price for the bookable item's single service (Free's single-service-per-type model, see §A7); NULL = no price set / free booking |
 | duration_minutes | SMALLINT UNSIGNED | slot length for this bookable item's single service (Free's single-service-per-type model, fixed duration per §A9); default 30. Added 2026-09-02 — the slot generator (§1.3) needs a concrete duration per bookable item, "fixed duration" in §A9 was previously prose-only with no schema column. |
@@ -110,7 +110,7 @@ Free-owned table (created by Free's own `dbDelta` activator, not gated to Pro) �
 | email | VARCHAR(255) | unique index — the natural key for upsert-on-booking and CSV import de-duplication |
 | phone | VARCHAR(50) NULL | |
 | notes | TEXT NULL | |
-| tags | VARCHAR(255) NULL | comma-separated, mirrors `bookable_items.tags`'s Free-tier simple tagging |
+| tags | VARCHAR(255) NULL | comma-separated, admin-curated (e.g. `vip, regular`) — shown as a column in the Customers list and settable from the customer form. Unlike the bookable-item tags dropped in §1.1, these have a consumer and a list long enough to need them. |
 | source | VARCHAR(20) | `booking` (auto-created the first time this email books) or `import` (created via A10's CSV import with no booking yet) |
 | created_at, updated_at | DATETIME | |
 
@@ -201,7 +201,7 @@ Selected add-ons are stored in `wp_byzo_bookings.addons` (§1.4), keyed by this 
 
 | Field | Appointment | Table | Event | Slot |
 |---|---|---|---|---|
-| name / description / photo / tags / status | ✓ | ✓ | ✓ | ✓ |
+| name / description / photo / status | ✓ | ✓ | ✓ | ✓ |
 | duration_minutes | ✓ ("Appointment length") | ✓ ("Reservation length") | — (per-occurrence, end − start) | ✓ ("Slot length") |
 | capacity | hidden, fixed 1 | ✓ ("Seats") | ✓ ("Total tickets/seats") | ✓ ("Spots per slot") |
 | price | ✓ ("Price") | ✓ (optional, e.g. per-seat fee) | ✓ ("Ticket price") | ✓ ("Price") |

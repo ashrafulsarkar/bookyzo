@@ -2,7 +2,7 @@
   <Card ref="rootEl">
     <CardHeader>
       <CardTitle>{{ compact ? `Tell us about your first ${typeLabel.toLowerCase()}` : `${typeLabel} details` }}</CardTitle>
-      <CardDescription>{{ compact ? 'You can add photos, tags, and more later.' : 'Only the name is required — everything else is optional.' }}</CardDescription>
+      <CardDescription>{{ compact ? 'You can add a photo and more later.' : 'Only the name is required — everything else is optional.' }}</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
@@ -16,12 +16,6 @@
       </div>
 
       <template v-if="!compact">
-        <div class="flex flex-col gap-1.5">
-          <Label for="wizard-item-tags">Tags</Label>
-          <Input id="wizard-item-tags" v-model="form.tags" type="text" placeholder="e.g. haircut, senior stylist" />
-          <p class="text-xs text-muted-foreground">Comma-separated.</p>
-        </div>
-
         <div class="flex flex-col gap-1.5">
           <Label>Photo</Label>
           <div class="flex items-center gap-3">
@@ -103,7 +97,7 @@ const props = defineProps({
   // what's already there instead of the per-type defaults. The wizard
   // v-if-mounts each step, so local state alone is gone by then.
   initial: { type: Object, default: null },
-  // Onboarding keeps this to the essentials — no tags/photo/status. Those
+  // Onboarding keeps this to the essentials — no photo/status. Those
   // stay editable from Bookable Items afterwards.
   compact: { type: Boolean, default: false },
 });
@@ -136,7 +130,6 @@ function seedName() {
 const form = ref({
   name: seedName(),
   description: props.initial?.description ?? '',
-  tags: props.initial?.tags ?? '',
   photo_id: props.initial?.photo_id ?? null,
   duration_minutes: props.initial?.duration_minutes ?? 30,
   capacity: props.initial?.capacity ?? 1,

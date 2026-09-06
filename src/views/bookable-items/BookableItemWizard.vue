@@ -22,21 +22,21 @@
       <!-- Each step is v-if-mounted, so its local form state dies on Back.
            `:initial` hands the accumulated wizardData back in (on edit,
            pre-filled from the loaded item) and every step seeds itself
-           from it. `class="border-0 shadow-none"` falls through each
-           step's root Card (Card.vue reads $attrs.class) so the step
-           doesn't render as a bordered card nested inside the dialog's
-           own bordered surface. -->
+           from it. `STEP_CARD_CLASS` falls through each step's root Card
+           (Card.vue reads $attrs.class) so the step doesn't render as a
+           bordered, separately-padded card inside the dialog's own
+           bordered, padded surface. -->
       <template v-else>
         <TypeStep
           v-if="step === 'type'"
-          class="border-0 shadow-none"
+          :class="STEP_CARD_CLASS"
           :initial="wizardData.type"
           :locked="isEdit"
           @selected="onTypeSelected"
         />
         <DetailsStep
           v-else-if="step === 'details'"
-          class="border-0 shadow-none"
+          :class="STEP_CARD_CLASS"
           :type="wizardData.type"
           :initial="wizardData"
           @next="onDetailsNext"
@@ -44,7 +44,7 @@
         />
         <AvailabilityStep
           v-else-if="step === 'availability'"
-          class="border-0 shadow-none"
+          :class="STEP_CARD_CLASS"
           :type="wizardData.type"
           :default-start-time="defaultStartTime"
           :default-end-time="defaultEndTime"
@@ -54,7 +54,7 @@
         />
         <PricingStep
           v-else-if="step === 'pricing'"
-          class="border-0 shadow-none"
+          :class="STEP_CARD_CLASS"
           :type="wizardData.type"
           :currency="currency"
           :initial="wizardData"
@@ -63,7 +63,7 @@
         />
         <ReviewStep
           v-else-if="step === 'review'"
-          class="border-0 shadow-none"
+          :class="STEP_CARD_CLASS"
           :data="{ ...wizardData, currency }"
           :saving="saving"
           :error="saveError"
@@ -105,6 +105,17 @@ const emit = defineEmits(['update:open', 'saved']);
 
 const isEdit = computed(() => props.itemId !== null && props.itemId !== undefined && props.itemId !== '');
 
+// A step's Card IS the dialog body here, so its card chrome and its own
+// p-6 stacked on top of DialogContent's border and p-6: the step's title,
+// fields and buttons all sat 24px further in than the dialog's own title
+// and the progress bar directly above them. Dropping the border/shadow and
+// the sections' horizontal padding puts every edge on one line. The `!` is
+// needed because `[&>*]:px-0` and CardHeader/CardContent/CardFooter's own
+// `p-6` are the same specificity, so without it source order decides.
+// SetupWizard.vue renders the same steps unmodified — there they ARE
+// standalone cards on a page and keep their padding.
+const STEP_CARD_CLASS = 'border-0 shadow-none [&>*]:!px-0 [&>*:first-child]:!pt-0 [&>*:last-child]:!pb-0';
+
 const STEP_ORDER = ['type', 'details', 'availability', 'pricing', 'review'];
 const step = ref('type');
 const currentIndex = computed(() => STEP_ORDER.indexOf(step.value));
@@ -121,7 +132,6 @@ function emptyData() {
     type: '',
     name: '',
     description: '',
-    tags: '',
     photo_id: null,
     status: 'active',
     duration_minutes: 30,
@@ -255,7 +265,6 @@ async function loadItem(id) {
       type: item.type,
       name: item.name,
       description: item.description || '',
-      tags: item.tags || '',
       photo_id: item.photo_id || null,
       status: item.status || 'active',
       duration_minutes: item.duration_minutes,
@@ -304,7 +313,6 @@ function buildPayload() {
     type: wizardData.type,
     name: wizardData.name,
     description: wizardData.description,
-    tags: wizardData.tags,
     status: wizardData.status || 'active',
     price: wizardData.price === '' || wizardData.price === null ? null : wizardData.price,
     // Appointment is single-person by definition (DETAILED-SPEC.md §A2/A3

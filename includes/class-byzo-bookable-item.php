@@ -206,10 +206,6 @@ class BYZO_Bookable_Item {
 			$out['photo_id'] = absint( $data['photo_id'] ) ?: null;
 		}
 
-		if ( isset( $data['tags'] ) ) {
-			$out['tags'] = sanitize_text_field( $data['tags'] );
-		}
-
 		// location/meeting_link (added 2026-09-05, Phase 1.6, DETAILED-SPEC.md
 		// §1.1) — free-text address/room/"Online" plus an optional meeting
 		// URL, available on every type. array_key_exists (not isset), same

@@ -147,6 +147,7 @@
 #byzo-admin-app input[type='tel'],
 #byzo-admin-app input[type='number'],
 #byzo-admin-app input[type='date'],
+#byzo-admin-app input[type='time'],
 #byzo-admin-app input[type='search'],
 #byzo-admin-app input[type='url'],
 #byzo-admin-app select,
@@ -154,4 +155,86 @@
   border-radius: var(--byzo-radius-sm);
   border: 1px solid hsl(var(--input));
   background-color: hsl(var(--background));
+}
+
+/*
+ * forms.css also repaints these same elements on `:focus` —
+ * `border-color: var(--wp-admin-theme-color)` plus a
+ * `box-shadow: 0 0 0 1.5px var(--wp-admin-theme-color)` ring — and that
+ * selector (element + attribute + pseudo-class) is one type-selector
+ * heavier than Tailwind's `.focus-visible\:ring-2:focus-visible` utility
+ * pair, so it silently won on focus even after the base reset above:
+ * clicking into a field swapped Tailwind's ring-2/ring-offset-2 look for a
+ * plain 1.5px outline in whatever colour the site's wp-admin colour
+ * scheme happens to use (Midnight/Ocean/Sunrise/etc. — not necessarily
+ * anywhere near --primary). Adding #byzo-admin-app here (an ID, which
+ * forms.css's rule has no equivalent of) pushes this override a full
+ * specificity tier above it, so it wins regardless of stylesheet order;
+ * it only neutralizes border-color/box-shadow, leaving Tailwind's own
+ * focus-visible:ring-* utility as the one thing left drawing a focus
+ * ring.
+ */
+#byzo-admin-app input[type='text']:focus,
+#byzo-admin-app input[type='password']:focus,
+#byzo-admin-app input[type='email']:focus,
+#byzo-admin-app input[type='tel']:focus,
+#byzo-admin-app input[type='number']:focus,
+#byzo-admin-app input[type='date']:focus,
+#byzo-admin-app input[type='time']:focus,
+#byzo-admin-app input[type='search']:focus,
+#byzo-admin-app input[type='url']:focus,
+#byzo-admin-app select:focus,
+#byzo-admin-app textarea:focus {
+  border-color: hsl(var(--input));
+  box-shadow: none;
+}
+
+/*
+ * Same forms.css problem, second half: wp-admin also repaints
+ * `input[type="radio"]`/`input[type="checkbox"]` by hand — it sets
+ * `-webkit-appearance: none`, a `#1e1e1e` border, and draws the checked
+ * mark itself as a ::before (a dot for radio, a dashicon SVG for
+ * checkbox) filled with `var(--wp-admin-theme-color)`. So every radio in
+ * the app rendered in the *admin colour scheme's* blue instead of
+ * `--primary`, with a near-black ring the design system never asks for.
+ * Worse for layout: that rule carries `margin: -0.25rem 0.25rem 0 0`,
+ * which out-specifies any Tailwind `mt-*`/gap and lifted the control 4px
+ * clear of the label it belongs to (visible on the Add/Edit wizard's type
+ * picker, where the dot floated above "Appointment").
+ *
+ * Restoring `appearance: auto` hands the control back to the browser and
+ * `accent-color` tints it with the plugin's own primary, which is both
+ * less CSS than re-drawing the mark and automatically correct in every
+ * browser's native shape. The ::before has to be cancelled explicitly or
+ * wp-admin's mark stacks on top of the native one.
+ */
+#byzo-admin-app input[type='radio'],
+#byzo-admin-app input[type='checkbox'] {
+  -webkit-appearance: auto;
+  appearance: auto;
+  accent-color: hsl(var(--primary));
+  width: 1rem;
+  height: 1rem;
+  min-width: 1rem;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  line-height: normal;
+  vertical-align: baseline;
+}
+
+#byzo-admin-app input[type='radio']::before,
+#byzo-admin-app input[type='checkbox']::before {
+  content: none;
+}
+
+/* wp-admin's focus style for these is a 1px box-shadow ring plus a
+   transparent outline — killed above with the rest of its chrome, so the
+   design system's own ring token replaces it. */
+#byzo-admin-app input[type='radio']:focus-visible,
+#byzo-admin-app input[type='checkbox']:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
 }

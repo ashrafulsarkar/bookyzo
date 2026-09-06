@@ -16,16 +16,21 @@
           locked ? (selected === type.value ? 'cursor-default' : 'cursor-not-allowed opacity-50') : 'cursor-pointer hover:border-primary',
         ]"
       >
-        <input
-          type="radio"
-          name="bookable_item_type"
-          class="mt-1"
-          :value="type.value"
-          :disabled="locked && selected !== type.value"
-          v-model="selected"
-        />
+        <!-- h-5 matches the title's line box below, so the control centres
+             on the FIRST line of the label instead of being nudged down by
+             a hand-tuned margin (which wp-admin's own radio margin used to
+             out-specify anyway — see styles/tailwind.css). -->
+        <span class="flex h-5 shrink-0 items-center">
+          <input
+            type="radio"
+            name="bookable_item_type"
+            :value="type.value"
+            :disabled="locked && selected !== type.value"
+            v-model="selected"
+          />
+        </span>
         <span>
-          <span class="block font-medium">{{ type.label }}</span>
+          <span class="block font-medium leading-5">{{ type.label }}</span>
           <span class="block text-sm text-muted-foreground">{{ type.description }}</span>
         </span>
       </label>

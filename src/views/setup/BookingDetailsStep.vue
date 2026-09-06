@@ -23,16 +23,10 @@
         <Textarea id="wizard-item-description" v-model="form.description" rows="2" />
       </div>
 
-      <!-- Tags + photo are edit-only: the quick-add flows deliberately defer
-           them ("you can add photos, tags, and more later") to keep the
-           first pass short. -->
+      <!-- Photo is edit-only: the quick-add flows deliberately defer it
+           ("you can add a photo and more later") to keep the first pass
+           short. -->
       <template v-if="isEdit">
-        <div class="flex flex-col gap-1.5">
-          <Label for="wizard-item-tags">Tags</Label>
-          <Input id="wizard-item-tags" v-model="form.tags" type="text" placeholder="e.g. haircut, senior stylist" />
-          <p class="text-xs text-muted-foreground">Comma-separated.</p>
-        </div>
-
         <div class="flex flex-col gap-1.5">
           <Label>Photo</Label>
           <div class="flex items-center gap-3">
@@ -112,8 +106,8 @@ const props = defineProps({
   initial: { type: Object, default: null },
   // Which flow this step sits in. 'setup' (onboarding) and 'add' (the
   // Bookable Items popup) collect the short field set; 'edit' adds the
-  // type badge, tags, photo, and status — the fields the quick flows
-  // defer with "you can add photos, tags, and more later".
+  // type badge, photo, and status — the fields the quick flows
+  // defer with "you can add a photo and more later".
   context: { type: String, default: 'setup' },
   backLabel: { type: String, default: 'Back' },
 });
@@ -138,7 +132,7 @@ const title = computed(() => {
   return props.context === 'add' ? `Tell us about this ${noun}` : `Tell us about your first ${noun}`;
 });
 const description = computed(() =>
-  isEdit.value ? 'Name, photo, tags, and where it happens.' : 'You can add photos, tags, and more later.'
+  isEdit.value ? 'Name, photo, and where it happens.' : 'You can add a photo and more later.'
 );
 
 // "Staff Member 1" matches DETAILED-SPEC.md §A1's per-type sensible-default
@@ -159,7 +153,6 @@ function seedName() {
 const form = ref({
   name: seedName(),
   description: props.initial?.description ?? '',
-  tags: props.initial?.tags ?? '',
   duration_minutes: props.initial?.duration_minutes ?? 30,
   capacity: props.initial?.capacity ?? 1,
   location: props.initial?.location ?? '',

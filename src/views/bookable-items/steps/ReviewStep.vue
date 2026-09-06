@@ -88,9 +88,6 @@ const rows = computed(() => {
   if (d.meeting_link) {
     list.push({ label: 'Meeting link', value: d.meeting_link });
   }
-  if (d.tags) {
-    list.push({ label: 'Tags', value: d.tags });
-  }
   list.push({ label: d.type === 'event' ? 'Dates' : 'Availability', value: availabilitySummary.value });
   if (d.type !== 'event' && Array.isArray(d.exceptions)) {
     list.push({ label: 'Exceptions', value: exceptionsSummary.value });

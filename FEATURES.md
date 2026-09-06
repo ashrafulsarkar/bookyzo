@@ -38,7 +38,7 @@ The free version should be genuinely usable for a small single-location business
 - **Type-first creation flow (decided 2026-09-02):** "Add New" starts with a booking-type picker (Appointment / Table / Event / Slot), THEN shows the type-specific form — the fields shown depend on the chosen type (see A9 for what each type's form needs). Type is fixed after creation (changing type would orphan the bookable item's schedule/slots).
 - Create/edit bookable items (staff, table, room, rental item, event — one core entity, type-specific fields)
 - All four booking types available on Free; **one active bookable item per type** (the Free cap — enforced centrally per A9, so up to 4 active bookable items total, one of each type)
-- Bookable Item photo, description, short tags
+- Bookable Item photo, description
 - Capacity setting (1 person / N people) — editable for Table (seats), Event (total tickets/seats) and Slot; fixed at 1 for Appointment (one-on-one by definition)
 - Bookable Item status (active/inactive/archived)
 - Bookable Items list shows each bookable item's own copyable shortcode (see A5) plus a type column/filter
@@ -154,7 +154,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Customer booking history and profile (repeat customer detection)
 - Multiple cancellation/refund policy tiers (flexible per bookable item type)
 - Timeline view — all bookable items of a type shown as rows with time across the top, for scanning multi-bookable item availability at a glance (only useful once Pro's unlimited bookable items are in play)
-- Availability search — customers filter bookable items by date, capacity, or tags once more than one bookable item of a type exists
+- Availability search — customers filter bookable items by date, capacity, or tags once more than one bookable item of a type exists (the per-item tag field itself ships with this — it was dropped from Free on 2026-09-06, since with Free's four-item cap nothing read it; see `DETAILED-SPEC.md` §1.1)
 - Export the customer list to CSV, including each customer's booking and payment history
 - **Duplicate booking (added 2026-09-05):** clone an existing booking's bookable item/customer/details as the starting point for a new one — walk-in regulars, recurring phone bookings that don't need a full series
 
