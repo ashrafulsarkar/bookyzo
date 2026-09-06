@@ -13,6 +13,7 @@ class BYZO_Activator {
 		self::create_tables();
 		self::maybe_seed_default_settings();
 		self::schedule_cron_events();
+		self::maybe_register_customer_role();
 
 		update_option( 'byzo_db_version', BYZO_DB_VERSION );
 
@@ -111,7 +112,10 @@ class BYZO_Activator {
 		// Universal-Booking-Plugin gap audit, DETAILED-SPEC.md §1.4) —
 		// `addons` is reserved now but unused until Pro's add-on feature
 		// (B6, `wp_byzo_addons`) actually writes to it, same "don't gate
-		// the data model" pattern as `custom_fields` below.
+		// the data model" pattern as `custom_fields` below. `attendees`
+		// added 2026-09-06 (Phase 1.7 step 1, DETAILED-SPEC.md §1.4) —
+		// reserved the same way; only consumed once Phase 2 step 20 flips
+		// the `byzo_collect_attendee_details` filter on.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
@@ -128,6 +132,7 @@ class BYZO_Activator {
 			tax_amount DECIMAL(10,2) NULL,
 			custom_fields LONGTEXT NULL,
 			addons LONGTEXT NULL,
+			attendees LONGTEXT NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			cancelled_at DATETIME NULL,
@@ -148,6 +153,10 @@ class BYZO_Activator {
 		// import (A10) to make sense. Upserted by email on every booking
 		// creation (BYZO_Customer::upsert_by_email(), called from
 		// BYZO_Booking::create()) and directly by A10's CSV import.
+		// `wp_user_id` added 2026-09-06 (Phase 1.7 step 1, DETAILED-SPEC.md
+		// §1.5) — links to a real byzo_customer-role WP account once they
+		// register; NULL for guest-only customers. UNIQUE permits multiple
+		// NULLs in MySQL, so guest rows are unaffected.
 		$sql[] = "CREATE TABLE {$prefix}byzo_customers (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			name VARCHAR(255) NOT NULL,
@@ -156,10 +165,12 @@ class BYZO_Activator {
 			notes TEXT NULL,
 			tags VARCHAR(255) NULL,
 			source VARCHAR(20) NOT NULL DEFAULT 'booking',
+			wp_user_id BIGINT UNSIGNED NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
-			UNIQUE KEY email (email)
+			UNIQUE KEY email (email),
+			UNIQUE KEY wp_user_id (wp_user_id)
 		) {$charset_collate};";
 
 		self::maybe_rename_legacy_schema( $prefix );
@@ -240,6 +251,22 @@ class BYZO_Activator {
 
 		if ( ! wp_next_scheduled( 'byzo_send_reminders' ) ) {
 			wp_schedule_event( time(), 'hourly', 'byzo_send_reminders' );
+		}
+	}
+
+	/**
+	 * Registers the zero-capability `byzo_customer` WP role (Phase 1.7 step
+	 * 1, DETAILED-SPEC.md §A11) — never granted wp-admin access, just an
+	 * identity for the self-service dashboard's login. `add_role()` is
+	 * itself idempotent (WP no-ops if the role already exists), so this is
+	 * safe to call unconditionally on every activation. Also called from
+	 * `BYZO_Plugin::maybe_upgrade_db()` so an existing install picks the
+	 * role up on a version bump alone, without needing a deactivate/
+	 * reactivate cycle (only `register_activation_hook` fires `activate()`).
+	 */
+	public static function maybe_register_customer_role() {
+		if ( null === get_role( 'byzo_customer' ) ) {
+			add_role( 'byzo_customer', __( 'Customer', 'bookyzo' ), array() );
 		}
 	}
 

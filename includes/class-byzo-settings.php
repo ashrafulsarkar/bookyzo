@@ -46,6 +46,11 @@ class BYZO_Settings {
 			// and not part of this schema touch; Free's UI only ever writes
 			// this one site-wide value.
 			'tax_rate'                => 0,
+			// Added 2026-09-06 (Phase 1.7 step 1, DETAILED-SPEC.md §A11) —
+			// off by default; flips on the [bookyzo_account] shortcode's
+			// login/register UI and the widget's booking-time "Create an
+			// account" opt-in. Inert (no wp_user_id ever created) while off.
+			'customer_accounts_enabled' => false,
 		);
 
 		return wp_parse_args( get_option( 'byzo_settings', array() ), $defaults );
@@ -115,7 +120,7 @@ class BYZO_Settings {
 			$patch['default_end_time'] = $time;
 		}
 
-		foreach ( array( 'require_phone', 'auto_confirm', 'send_confirmation_email', 'send_admin_notification' ) as $bool_field ) {
+		foreach ( array( 'require_phone', 'auto_confirm', 'send_confirmation_email', 'send_admin_notification', 'customer_accounts_enabled' ) as $bool_field ) {
 			if ( isset( $data[ $bool_field ] ) ) {
 				$patch[ $bool_field ] = (bool) $data[ $bool_field ];
 			}

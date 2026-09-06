@@ -10,6 +10,8 @@
 
 > **UNIVERSAL-BOOKING-PLUGIN GAP AUDIT 2026-09-05:** user supplied a full feature wishlist for a from-scratch "Universal Booking Plugin" (28 categories). Cross-checked against Bookyzo's existing scope — most items were already covered, often just named differently (the wishlist's "Service"/"Room-Resource" booking types already map onto Appointment/Slot per the 2026-09-03 onboarding-reconciliation callout above; SMS/WhatsApp, multi-location, deposits, analytics, QR check-in, Google Calendar sync, etc. were already in Part B). Genuinely new items added below: location/online-meeting-link field (A2), a `rejected` status distinct from `cancelled` + basic admin reschedule + an agenda calendar view (A4), add-on/extra-service line items + a flat booking/service fee (B6), a downloadable PDF invoice (B4), an automated post-visit follow-up email (B5), and explicit analytics breakdowns — popular bookable items/time slots/staff, booking trend charts, conversion rate (B8). **One item flagged, not adopted:** a bookable item needing a second entity free at the same time (e.g. a room, alongside staff) is a real architectural fork, not a feature-list addition — see `DETAILED-SPEC.md` §5 item 9, `ROADMAP.md`'s matching callout.
 
+> **CUSTOMER DASHBOARD MOVED TO FREE 2026-09-06 (user decision):** self-service customer accounts — register, log in, view/reschedule/cancel your own bookings — move from Pro (the old B4) into **Free** as new **A11**, gated by a site-wide admin on/off toggle (default OFF — turning it on opens a real registration/login surface on the site, not something to silently enable). This was Free's most-named self-service gap (see the now-removed "no customer self-service" row in `ROADMAP.md`'s conversion table) and every competitor audited so far ships some form of it free, not paid. Accounts are real WordPress users (a new, zero-capability `byzo_customer` role — never wp-admin access) authenticated by password through WP core's own `wp_signon()`/lost-password machinery, not a magic-link/custom-session scheme — simpler to build correctly (reuses core-hardened auth code instead of hand-rolling it) and the foundation any future Pro extension on a real identity would need anyway. Guest booking is completely unaffected — the existing one-off "Manage Booking" signed-token link (A5) still works exactly as before for anyone who never creates an account. In its place, Pro's B4 gets a genuinely new, narrower feature: **per-ticket attendee details** — an Event booking with quantity > 1 collects each ticket's own name/email instead of one contact name for the whole purchase. Full schema/API detail in `DETAILED-SPEC.md`'s same-day companion callout; build order in `ROADMAP.md`'s new Phase 1.7.
+
 **Stack:** WordPress plugin (PHP + custom DB tables), REST API, Vue 3 admin dashboard, optional WooCommerce integration, PayPal and Stripe for payments.
 
 ---
@@ -108,7 +110,7 @@ Bookyzo's admin IA, reconciled against the source onboarding spec's flatter nav 
 - **Customers** — A10
 - **Payments** — payment gateway settings (A7)
 - **Notifications** — email template settings (A6)
-- **Settings** — business profile, tax rate, auto-confirm toggle, cancellation policy
+- **Settings** — business profile, tax rate, auto-confirm toggle, cancellation policy, customer accounts toggle (A11)
 - **Availability is NOT its own top-level item** — it stays a tab on each bookable item's edit screen (A2/A3), since Bookyzo's model is bookable item-scoped, not one shared business-wide calendar of availability rules
 
 ### A9. Type-Specific Free Scope
@@ -125,6 +127,18 @@ The per-type cap (1 bookable item per type) stays enforced centrally via `BYZO_C
 ### A10. Customer Management
 - Customer list auto-populated from bookings, searchable and sortable
 - Import an existing customer list from CSV (lowers the switching cost from another booking tool)
+
+### A11. Customer Account & Dashboard (moved from Pro 2026-09-06)
+
+Self-service so a business stops fielding "can I reschedule?" calls/emails for every little change — the single most-requested gap found across the competitor audit (Bookly/Booking Calendar/Amelia all ship some form of this on their free tier).
+
+- **Admin on/off toggle** (Settings, default OFF): while off, the account/dashboard shortcode and its registration/login routes don't exist at all — no half-built or visibly-disabled state, the same "absent, not locked" rule the Free/Pro boundary already follows (Guideline 5), even though this particular toggle has nothing to do with Pro.
+- Real WordPress accounts on a new `byzo_customer` role — zero admin capabilities, can never reach wp-admin. Registration/login/logout/forgot-password all use WordPress core's own account machinery (`wp_insert_user()`, `wp_signon()`, the native lost-password/reset screens) rather than a custom session system — a deliberate choice over the guest one-off link's token scheme (A5), since a *persistent* login needs a real account either way, and reusing core auth is both less custom code and more battle-tested than hand-rolling it.
+- **No email verification at registration (v1)** — a booking with a fabricated email already carries the same trust level today's guest checkout does (nothing currently verifies a guest's email either), so an account shouldn't need a stronger bar than checkout already clears. Revisit only if real abuse shows up.
+- `[bookyzo_account]` shortcode: a login/register form when logged out, the dashboard when logged in. Registering with an email that already has a guest customer record (A10) simply links to it — that customer's full existing booking history shows up immediately, no separate "claim your bookings" flow needed.
+- Dashboard: the logged-in customer's own upcoming + past bookings, reschedule (reuses A4's existing reschedule action) and cancel (reuses A4's existing single cancellation-policy window — the same `cancellation_hours` rule the guest token-link already respects) — scoped strictly to their own bookings, never another customer's.
+- **Booking-time opt-in**: a "Create an account" checkbox + password field on the widget's contact-details step (A5). Unchecked (default) books as a guest exactly as today; checked, the account is created in the same `POST /bookings` call, linked to the customer record that call already upserts (A10).
+- Saved details for faster repeat booking (moved here from the old B4) — a logged-in customer's next booking pre-fills name/email/phone from their account.
 
 ---
 
@@ -158,11 +172,9 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Export the customer list to CSV, including each customer's booking and payment history
 - **Duplicate booking (added 2026-09-05):** clone an existing booking's bookable item/customer/details as the starting point for a new one — walk-in regulars, recurring phone bookings that don't need a full series
 
-### B4. Customer Account & Self-Service
-- Customer dashboard (view/reschedule/cancel own bookings)
-- Self-service reschedule within policy rules
-- Saved customer details for faster repeat booking
-- **Downloadable PDF invoice/receipt (added 2026-09-05):** branded, itemized (price, add-ons, tax) — Free's confirmation email already includes a plain-text amount breakdown (A6/A7), this is the formatted/downloadable version. Needs a PDF-generation approach decided first, see `DETAILED-SPEC.md` §5 item 10.
+### B4. Advanced Ticketing (renamed from "Customer Account & Self-Service" 2026-09-06 — the account/dashboard half of this section moved to Free, see A11)
+- **Per-ticket attendee details (added 2026-09-06):** an Event booking with quantity/party size > 1 collects each ticket's own name (and optionally email) instead of one contact name for the whole purchase — e.g. buying 10 conference tickets prompts for all 10 attendees before checkout completes. Feeds B7 Event Pro's attendee list export and QR e-tickets with real per-person data instead of one name repeated N times. Distinct from B11's custom form field builder, which adds arbitrary new fields to a booking as a whole — this repeats one small fixed field set once per ticket.
+- **Downloadable PDF invoice/receipt (added 2026-09-05):** branded, itemized (price, add-ons, tax) — available from the now-Free dashboard (A11), but the formatted/downloadable file itself stays Pro; Free's confirmation email and dashboard already show a plain amount breakdown (A6/A7), this is the branded/downloadable version, same "Free shows the number, Pro brands the document" line B10 already draws elsewhere. Needs a PDF-generation approach decided first, see `DETAILED-SPEC.md` §5 item 10.
 
 ### B5. Notifications & Communication
 - SMS notifications (via a chosen SMS gateway)

@@ -40,6 +40,11 @@ class BYZO_Plugin {
 			BYZO_Activator::create_tables();
 			update_option( 'byzo_db_version', BYZO_DB_VERSION );
 		}
+
+		// Idempotent — cheap enough to check every plugins_loaded, and
+		// ensures an install merely updated (not reactivated) still gets
+		// the byzo_customer role from Phase 1.7 step 1.
+		BYZO_Activator::maybe_register_customer_role();
 	}
 
 	private function load_includes() {

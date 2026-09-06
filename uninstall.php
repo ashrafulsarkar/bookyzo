@@ -10,6 +10,12 @@
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 
+// Role removal is unconditional, unlike the data purge below — it only
+// removes the role definition (not any byzo_customer-role users or their
+// wp_users/wp_usermeta rows), so it isn't the kind of data loss the
+// delete_data_on_uninstall opt-in below exists to gate (Phase 1.7 step 1).
+remove_role( 'byzo_customer' );
+
 $settings = get_option( 'byzo_settings', array() );
 
 if ( empty( $settings['delete_data_on_uninstall'] ) ) {
@@ -24,6 +30,7 @@ $tables = array(
 	"{$wpdb->prefix}byzo_availability_exceptions",
 	"{$wpdb->prefix}byzo_schedules",
 	"{$wpdb->prefix}byzo_bookable_items",
+	"{$wpdb->prefix}byzo_customers",
 );
 
 foreach ( $tables as $table ) {
