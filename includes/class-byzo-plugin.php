@@ -75,6 +75,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-payment-gateways.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-payment-settings.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-widget.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-account-widget.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/functions.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-email-templates.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-notifications.php';
@@ -96,6 +97,7 @@ class BYZO_Plugin {
 		BYZO_Booking_Cancel::init();
 		BYZO_Customer_Auth::init();
 		BYZO_Public_Widget::init();
+		BYZO_Account_Widget::init();
 		BYZO_Notifications::init();
 
 		add_filter( 'byzo_rest_controllers', array( $this, 'register_core_rest_controllers' ) );

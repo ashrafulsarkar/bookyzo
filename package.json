@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "npm run build:admin && npm run build:widget",
+    "build": "npm run build:admin && npm run build:widget && npm run build:account",
     "build:admin": "vite build",
     "build:widget": "vite build --config vite.widget.config.js",
+    "build:account": "vite build --config vite.account.config.js",
     "build:release": "node bin/build-release.js"
   },
   "dependencies": {

@@ -1,6 +1,7 @@
 node_modules/
 /assets/admin/
 /assets/widget/
+/assets/account/
 /release/
 /languages/
 /.dev-server-running

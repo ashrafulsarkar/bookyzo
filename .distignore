@@ -27,6 +27,7 @@ postcss.config.js
 tailwind.config.js
 vite.config.js
 vite.widget.config.js
+vite.account.config.js
 src
 scratchpad
 *.zip

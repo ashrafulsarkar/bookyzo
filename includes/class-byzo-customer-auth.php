@@ -2,33 +2,37 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Customer self-service registration/login/logout (Phase 1.7 step 2,
+ * Customer self-service registration/login/logout (Phase 1.7 steps 2-3,
  * DETAILED-SPEC.md §A11) — front-end `admin-post.php` handlers, the same
  * guest-write pattern BYZO_Booking_Cancel already established (no
  * REST+nonce plumbing for a not-yet-authenticated visitor; the credentials
  * themselves, checked by wp_signon()/wp_insert_user(), are the real
  * authorization, same reasoning as that class's token check).
  *
- * Renders a minimal standalone login/register page via `template_redirect`
- * (own query var, bypasses the theme, mirrors manage-booking.php) as a
- * placeholder landing target — Phase 1.7 step 4 replaces this with the
- * real `[bookyzo_account]` Vue-mounted page; this class's admin-post
- * handlers and their behavior are unaffected by that later swap.
+ * Redirect targets are always "the page the form was submitted from"
+ * (build_redirect_target(), backed by wp_get_referer()) rather than a
+ * fixed URL — there's no dedicated "this is THE account page" setting
+ * (a site could embed `[bookyzo_account]`, BYZO_Account_Widget's
+ * shortcode, on more than one page), so a customer always lands back on
+ * whichever page they actually started from. Forgot-password reuses WP
+ * core's own wp-login.php screens entirely unmodified (step 3); the
+ * login_redirect filter below is what keeps a byzo_customer-role account
+ * out of wp-admin after ANY core auth action, not just this class's own
+ * login handler.
  *
  * Entirely inert while `customer_accounts_enabled` is off (DETAILED-SPEC.md
  * §A11: "absent, not visibly disabled" — same rule as every Free/Pro
  * capability gate in this doc, applied here even though this toggle has
- * nothing to do with Pro).
+ * nothing to do with Pro): both admin-post actions redirect straight to
+ * an error state rather than half-functioning.
  */
 class BYZO_Customer_Auth {
 
-	const QUERY_VAR       = 'byzo_account';
 	const ACTION_REGISTER = 'byzo_customer_register';
 	const ACTION_LOGIN    = 'byzo_customer_login';
 	const ACTION_LOGOUT   = 'byzo_customer_logout';
 
 	public static function init() {
-		add_action( 'template_redirect', array( __CLASS__, 'maybe_render_page' ) );
 		add_action( 'admin_post_nopriv_' . self::ACTION_REGISTER, array( __CLASS__, 'handle_register' ) );
 		add_action( 'admin_post_nopriv_' . self::ACTION_LOGIN, array( __CLASS__, 'handle_login' ) );
 		add_action( 'admin_post_' . self::ACTION_LOGOUT, array( __CLASS__, 'handle_logout' ) );
@@ -38,72 +42,45 @@ class BYZO_Customer_Auth {
 	/**
 	 * Phase 1.7 step 3 (DETAILED-SPEC.md §A11) — WP core's own
 	 * `wp-login.php` (lost-password/reset screens, reused entirely
-	 * unmodified) and `wp_signon()` both funnel their post-auth redirect
-	 * through this one filter, so it's the single place that keeps a
-	 * byzo_customer-role account out of wp-admin after ANY core auth
-	 * action succeeds for them — not just this class's own login handler.
+	 * unmodified) funnels its post-auth redirect through this one filter,
+	 * so it's the single place that keeps a byzo_customer-role account
+	 * out of wp-admin after ANY core auth action succeeds for them — not
+	 * just this class's own login handler.
 	 */
 	public static function redirect_customer_away_from_wp_admin( $redirect_to, $requested_redirect_to, $user ) {
 		if ( $user instanceof WP_User && in_array( 'byzo_customer', (array) $user->roles, true ) ) {
-			return self::build_link();
+			return self::build_redirect_target();
 		}
 
 		return $redirect_to;
 	}
 
-	private static function enabled() {
+	public static function enabled() {
 		return (bool) BYZO_Settings::get()['customer_accounts_enabled'];
 	}
 
-	public static function build_link( $args = array() ) {
-		return add_query_arg( array_merge( array( self::QUERY_VAR => 1 ), $args ), home_url( '/' ) );
-	}
-
-	public static function maybe_render_page() {
-		if ( ! isset( $_GET[ self::QUERY_VAR ] ) ) { // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- read-only page render, nothing here authorizes a write.
-			return;
-		}
-
-		$error = isset( $_GET['error'] ) ? sanitize_key( wp_unslash( $_GET['error'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-		$mode  = ( isset( $_GET['mode'] ) && 'register' === $_GET['mode'] ) ? 'register' : 'login'; // phpcs:ignore WordPress.Security.NonceVerification.Recommended
-
-		echo self::render( $mode, $error ); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render()'s own template escapes everything it outputs, see templates/account.php.
-
-		exit;
-	}
-
 	/**
-	 * Public (not called directly by WP, only via maybe_render_page() above)
-	 * so a CLI smoke test can exercise the page-state logic directly,
-	 * matching BYZO_Booking_Cancel::render()'s own documented reasoning.
+	 * Where an admin-post handler sends the browser back to — the page
+	 * the form was submitted from (wp_get_referer(), the same page a
+	 * `[bookyzo_account]` shortcode renders on), falling back to the site
+	 * home when no referer is available (e.g. a direct POST with no
+	 * Referer header). $args are appended as query args (?error=/?mode=)
+	 * for BYZO_Account_Widget's config() to pick back up.
 	 */
-	public static function render( $mode, $error_code ) {
-		if ( is_user_logged_in() ) {
-			$state = 'dashboard';
-		} elseif ( ! self::enabled() ) {
-			$state = 'disabled';
-		} else {
-			$state = $mode;
-		}
+	public static function build_redirect_target( $args = array() ) {
+		$base = wp_get_referer() ?: home_url( '/' );
 
-		return byzo_get_template(
-			'account.php',
-			array(
-				'state'            => $state,
-				'error_message'    => self::error_message( $error_code ),
-				'register_action'  => self::ACTION_REGISTER,
-				'login_action'     => self::ACTION_LOGIN,
-				'logout_action'    => self::ACTION_LOGOUT,
-			)
-		);
+		return $args ? add_query_arg( $args, $base ) : $base;
 	}
 
 	/**
 	 * A real switch (not an array lookup) so `wp i18n make-pot` can
 	 * statically extract every literal __() call, same requirement every
-	 * other translatable string in this plugin already follows.
+	 * other translatable string in this plugin already follows. Public —
+	 * BYZO_Account_Widget::config() calls this to hand Vue the same
+	 * mapped message a failed admin-post redirect's ?error= arg names.
 	 */
-	private static function error_message( $error_code ) {
+	public static function error_message( $error_code ) {
 		switch ( $error_code ) {
 			case 'disabled':
 				return __( 'Customer accounts are not enabled on this site.', 'bookyzo' );
@@ -148,11 +125,11 @@ class BYZO_Customer_Auth {
 
 		$user_id = wp_insert_user(
 			array(
-				'user_login' => $email,
-				'user_email' => $email,
-				'user_pass'  => $password,
+				'user_login'   => $email,
+				'user_email'   => $email,
+				'user_pass'    => $password,
 				'display_name' => $name,
-				'role'       => 'byzo_customer',
+				'role'         => 'byzo_customer',
 			)
 		);
 
@@ -173,7 +150,7 @@ class BYZO_Customer_Auth {
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id, true );
 
-		wp_safe_redirect( self::build_link() );
+		wp_safe_redirect( self::build_redirect_target() );
 		exit;
 	}
 
@@ -198,18 +175,20 @@ class BYZO_Customer_Auth {
 			self::redirect_with_error( 'invalid_login', 'login' );
 		}
 
-		wp_safe_redirect( self::build_link() );
+		wp_safe_redirect( self::build_redirect_target() );
 		exit;
 	}
 
 	public static function handle_logout() {
 		wp_logout();
-		wp_safe_redirect( self::build_link() );
+
+		$redirect_to = isset( $_GET['redirect_to'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- logout is a destructive-to-session, not destructive-to-data action; wp_logout() itself needs no confirmation beyond being logged in, same as core's own logout link.
+		wp_safe_redirect( $redirect_to ?: self::build_redirect_target() );
 		exit;
 	}
 
 	private static function redirect_with_error( $error_code, $mode ) {
-		wp_safe_redirect( self::build_link( array( 'error' => $error_code, 'mode' => $mode ) ) );
+		wp_safe_redirect( self::build_redirect_target( array( 'error' => $error_code, 'mode' => $mode ) ) );
 		exit;
 	}
 }

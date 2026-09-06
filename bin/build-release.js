@@ -1,21 +1,23 @@
 #!/usr/bin/env node
 /**
  * Builds the WordPress.org-ready release zip (ROADMAP.md Phase 1 step
- * 10) — runs a fresh `npm run build` (assets/admin/ + assets/widget/), copies
- * everything from the plugin root EXCEPT what .distignore lists into a
- * staging folder, then zips that staging folder as bookyzo.zip.
+ * 10) — runs a fresh `npm run build` (assets/admin/ + assets/widget/ +
+ * assets/account/), copies everything from the plugin root EXCEPT what
+ * .distignore lists into a staging folder, then zips that staging folder
+ * as bookyzo.zip.
  *
  * This is the "plugin build" the user distinguished from the ordinary
  * npm/Vite build early in Phase 1 step 1: that one produces
- * assets/admin/ and assets/widget/ (compiled JS/CSS) but leaves src/,
- * node_modules, and every
+ * assets/admin/, assets/widget/, and assets/account/ (compiled JS/CSS)
+ * but leaves src/, node_modules, and every
  * dev-tooling config file sitting right next to them at the plugin
  * root; this script is the one that actually assembles a clean,
  * submittable plugin folder from everything that survives .distignore.
  *
  * Usage: `npm run build:release` (runs `npm run build` first via the
  * package.json script chain) or `node bin/build-release.js` directly
- * if assets/admin/ and assets/widget/ are already freshly built.
+ * if assets/admin/, assets/widget/, and assets/account/ are already
+ * freshly built.
  */
 
 import { execSync } from 'node:child_process';
