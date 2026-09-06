@@ -32,6 +32,23 @@ class BYZO_Customer_Auth {
 		add_action( 'admin_post_nopriv_' . self::ACTION_REGISTER, array( __CLASS__, 'handle_register' ) );
 		add_action( 'admin_post_nopriv_' . self::ACTION_LOGIN, array( __CLASS__, 'handle_login' ) );
 		add_action( 'admin_post_' . self::ACTION_LOGOUT, array( __CLASS__, 'handle_logout' ) );
+		add_filter( 'login_redirect', array( __CLASS__, 'redirect_customer_away_from_wp_admin' ), 10, 3 );
+	}
+
+	/**
+	 * Phase 1.7 step 3 (DETAILED-SPEC.md §A11) — WP core's own
+	 * `wp-login.php` (lost-password/reset screens, reused entirely
+	 * unmodified) and `wp_signon()` both funnel their post-auth redirect
+	 * through this one filter, so it's the single place that keeps a
+	 * byzo_customer-role account out of wp-admin after ANY core auth
+	 * action succeeds for them — not just this class's own login handler.
+	 */
+	public static function redirect_customer_away_from_wp_admin( $redirect_to, $requested_redirect_to, $user ) {
+		if ( $user instanceof WP_User && in_array( 'byzo_customer', (array) $user->roles, true ) ) {
+			return self::build_link();
+		}
+
+		return $redirect_to;
 	}
 
 	private static function enabled() {
