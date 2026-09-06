@@ -52,6 +52,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-install-redirect.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-bookable-item.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-customer.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-customer-auth.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-availability.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-slot-generator.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-slot.php';
@@ -93,6 +94,7 @@ class BYZO_Plugin {
 		BYZO_Booking_Export::init();
 		BYZO_Customer_Import::init();
 		BYZO_Booking_Cancel::init();
+		BYZO_Customer_Auth::init();
 		BYZO_Public_Widget::init();
 		BYZO_Notifications::init();
 

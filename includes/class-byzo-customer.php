@@ -40,6 +40,22 @@ class BYZO_Customer {
 	}
 
 	/**
+	 * Added Phase 1.7 step 2 (DETAILED-SPEC.md §A11) — dashboard-scoping
+	 * lookup for an authenticated byzo_customer-role request: resolves the
+	 * customer row linked to the currently logged-in WP account.
+	 */
+	public static function get_by_wp_user_id( $wp_user_id ) {
+		global $wpdb;
+
+		$row = $wpdb->get_row(
+			$wpdb->prepare( 'SELECT * FROM ' . self::table() . ' WHERE wp_user_id = %d', $wp_user_id ), // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+			ARRAY_A
+		);
+
+		return $row ? self::cast( $row ) : null;
+	}
+
+	/**
 	 * @param array $args {
 	 *     @type string $search   Matches against name/email/phone (LIKE).
 	 *     @type int    $per_page Default 20, max 100.
@@ -261,6 +277,15 @@ class BYZO_Customer {
 			$out['source'] = $data['source'];
 		} elseif ( $require_all ) {
 			$out['source'] = 'booking';
+		}
+
+		// Added Phase 1.7 step 2 (DETAILED-SPEC.md §A11) — links this row to
+		// a real WP account once registered. Not part of the public REST
+		// controller's writable fields (no route passes it); only
+		// BYZO_Customer_Auth sets it, via array_key_exists (not isset) so
+		// a null explicitly clears the link if ever needed.
+		if ( array_key_exists( 'wp_user_id', $data ) ) {
+			$out['wp_user_id'] = null === $data['wp_user_id'] ? null : absint( $data['wp_user_id'] );
 		}
 
 		return $out;
