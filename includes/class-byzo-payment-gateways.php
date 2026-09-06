@@ -24,16 +24,30 @@ class BYZO_Payment_Gateways {
 				'stripe' => array(
 					'id'          => 'stripe',
 					'label'       => __( 'Stripe', 'bookyzo' ),
-					'description' => __( 'Accept card payments online with Stripe.', 'bookyzo' ),
+					'description' => __( 'Card payments via Stripe', 'bookyzo' ),
+					// Stripe's own brand purple — the Payments list's icon
+					// badge is colored per gateway so the list reads at a
+					// glance, same as any billing-settings UI. A future
+					// gateway that doesn't set this falls back to a neutral
+					// gray below rather than breaking the badge.
+					'color'       => '#635bff',
 				),
 			)
 		);
 
 		// Defensive against a filter returning a malformed entry — the
-		// Vue tab list indexes straight into `id`/`label`, so a gateway
-		// missing either would render a blank/broken tab.
+		// Vue list indexes straight into `id`/`label`, so a gateway
+		// missing either would render a blank/broken row.
 		return array_filter(
-			$gateways,
+			array_map(
+				function ( $gateway ) {
+					if ( ! is_array( $gateway ) ) {
+						return $gateway;
+					}
+					return wp_parse_args( $gateway, array( 'color' => '#6b7280' ) );
+				},
+				$gateways
+			),
 			function ( $gateway ) {
 				return is_array( $gateway ) && ! empty( $gateway['id'] ) && ! empty( $gateway['label'] );
 			}

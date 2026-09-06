@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader title="Payments" subtitle="Configure the payment gateways available on your site.">
+    <ByzoPageHeader title="Payment Methods" subtitle="Configure accepted payment methods">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="1" y="4" width="22" height="16" rx="2" />
@@ -12,31 +12,35 @@
       </template>
     </ByzoPageHeader>
 
-    <div class="px-6 pb-8 flex flex-col gap-6">
+    <div class="px-6 pb-8 flex flex-col gap-3">
       <ByzoLoading v-if="loading" />
 
-      <!-- Each registered gateway is its own self-contained on/off block
-           (not a tab to switch between) — FEATURES.md §B6 has Pro running
-           several gateways simultaneously, so the UI shouldn't imply
-           picking just one. The list itself is driven by whatever
-           BYZO_Payment_Gateways::all() actually registers: Free only ever
-           registers Stripe, so this renders one block today and gains
+      <!-- Each registered gateway is its own collapsed row — an icon
+           badge, an Enabled/Disabled pill, and its own toggle, expanding
+           to its settings fields on click. Not a tab to switch between:
+           FEATURES.md §B6 has Pro running several gateways
+           simultaneously, so the list shouldn't imply picking just one.
+           The list itself is driven by whatever
+           BYZO_Payment_Gateways::all() actually registers — Free only
+           ever registers Stripe, so this renders one row today and gains
            more automatically if something else (Pro) hooks
-           `byzo_payment_gateways` later — no disabled/locked entries are
+           `byzo_payment_gateways` later — no disabled/locked rows are
            ever shown for a gateway that isn't registered, see
            bookyzo-dev SKILL.md's Guideline-5 rule. -->
-      <template v-else v-for="gateway in gateways" :key="gateway.id">
+      <PaymentGatewayRow
+        v-else
+        v-for="gateway in gateways"
+        :key="gateway.id"
+        :gateway="gateway"
+        v-model="form.gateways[gateway.id]"
+      >
         <component
           :is="gatewayComponents[gateway.id]"
           v-if="gatewayComponents[gateway.id] && form.gateways[gateway.id]"
           v-model="form.gateways[gateway.id]"
         />
-        <Card v-else>
-          <CardContent class="pt-6 text-sm text-muted-foreground">
-            {{ gateway.label }} settings aren't available in this version.
-          </CardContent>
-        </Card>
-      </template>
+        <p v-else class="text-sm text-muted-foreground">{{ gateway.label }} settings aren't available in this version.</p>
+      </PaymentGatewayRow>
     </div>
   </div>
 </template>
@@ -44,18 +48,19 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
-import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoLoading from '@/components/base/ByzoLoading.vue';
+import PaymentGatewayRow from './payment-gateways/PaymentGatewayRow.vue';
 import StripeGatewaySettings from './payment-gateways/StripeGatewaySettings.vue';
 import { api } from '@/api/client';
 
 // Maps a registered gateway's `id` to the component that renders its
-// settings block. A gateway can be registered (appears in the list)
-// without an entry here — the fallback message above covers that rather
-// than rendering nothing — but in practice every gateway this plugin
-// registers ships its own entry alongside the PHP side that registers it.
+// settings fields (shown inside PaymentGatewayRow once expanded). A
+// gateway can be registered (appears in the list) without an entry here
+// — the fallback message above covers that rather than an empty expanded
+// panel — but in practice every gateway this plugin registers ships its
+// own entry alongside the PHP side that registers it.
 const gatewayComponents = {
   stripe: StripeGatewaySettings,
 };
