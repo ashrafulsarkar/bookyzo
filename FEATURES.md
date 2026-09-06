@@ -87,6 +87,7 @@ The free version should be genuinely usable for a small single-location business
 - One payment gateway integration (Stripe, pick one for Free)
 - No deposits/partial payments on Free (Pro feature)
 - Optional flat tax/VAT rate, applied site-wide to every booking (single percentage — per-service/per-region rules are Pro, see B6)
+- **Gateway architecture (added 2026-09-06):** Payments settings is a registry-driven list of on/off blocks, one per available gateway (a toggle per method, not a tab picker) — Free's registry only ever contains Stripe, extended by Pro (see B6) without any Free-side change.
 
 ### A8. Dashboard
 
@@ -174,7 +175,8 @@ Pro should unlock everything a growing/multi-location business actually needs �
 
 ### B6. Payments
 - Deposit / partial payment support
-- Multiple payment gateways simultaneously (Stripe + PayPal)
+- Multiple payment gateways simultaneously (Stripe + PayPal; Paddle/Mollie are further candidates, added to the registry the same way once there's demand) — each gateway is its own toggle block on the Payments screen, not exclusive tabs
+- **WooCommerce is NOT a gateway in this list** — routing checkout through WooCommerce's own configured gateways is the separate WooCommerce bridge (Part C launch step 6 / `ROADMAP.md` Phase 5), not another entry here
 - Coupon/discount codes
 - Package/membership pre-purchase (buy 10 sessions, redeem over time)
 - Automated refund handling on cancellation

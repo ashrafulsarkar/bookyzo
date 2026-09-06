@@ -32,11 +32,11 @@ class BYZO_Stripe {
 	 * @return array|WP_Error { client_secret, payment_intent_id } on success.
 	 */
 	public static function create_payment_intent( $booking ) {
-		$settings = BYZO_Payment_Settings::get();
-
 		if ( ! BYZO_Payment_Settings::is_stripe_ready() ) {
 			return new WP_Error( 'byzo_stripe_not_configured', __( 'Online card payment is not available right now.', 'bookyzo' ), array( 'status' => 503 ) );
 		}
+
+		$stripe = BYZO_Payment_Settings::get()['gateways']['stripe'];
 
 		if ( null === $booking['payment_amount'] || $booking['payment_amount'] <= 0 ) {
 			return new WP_Error( 'byzo_nothing_to_charge', __( 'This booking has nothing to charge.', 'bookyzo' ), array( 'status' => 400 ) );
@@ -49,7 +49,7 @@ class BYZO_Stripe {
 			self::API_BASE . '/payment_intents',
 			array(
 				'headers' => array(
-					'Authorization' => 'Bearer ' . $settings['stripe_secret_key'],
+					'Authorization' => 'Bearer ' . $stripe['secret_key'],
 					'Content-Type'  => 'application/x-www-form-urlencoded',
 				),
 				'body'    => array(

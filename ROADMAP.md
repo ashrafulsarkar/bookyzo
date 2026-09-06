@@ -117,12 +117,14 @@ Schema: `BYZO_DB_VERSION` bumped 1.4→1.5 — `bookable_items.location`/`meetin
 
 Per `FEATURES.md` Part C step 5 — do NOT start this until the Free plugin is live and has some real installs/feedback. Building Pro against a Free plugin nobody has used yet risks building the wrong things. (Retitled 2026-09-02 — was "Appointment Pro"; Pro now spans all four types since all four are Free.)
 
+> **Gateway registry built ahead of this phase (2026-09-06):** the Payments settings screen and its `byzo_payment_settings` option are already registry-driven (`BYZO_Payment_Gateways`, filter `byzo_payment_gateways`) — done directly in Free, not gated behind the Pro-scaffold step below, since it's real architecture Free benefits from regardless of when Pro ships. Step 6's "PayPal as a second gateway" now just means: build `BYZOP_PayPal` in the (not-yet-started) Pro plugin and hook `byzo_payment_gateways` to register it — no Free-side changes needed. Paddle and Mollie are further gateway candidates for the same registry, sequenced by demand. See `FEATURES.md` A7/B6 and `DETAILED-SPEC.md` §A7.
+
 1. Pro plugin scaffold: `bookyzo-pro` folder, `BYZOP_` prefix, license-server integration reusing the exact pattern from `license-envato-pro-project` (activate/deactivate/update-check endpoints, self-update mechanism, `byzop_license_key`/`byzop_license_status` options).
 2. Multi-staff: remove the `byzo_max_bookable_items_per_type` cap via Pro's filter override (see Guideline-5 note below — this must be the ONLY thing that changes, no Free-side UI edits).
 3. Multiple shifts per day: unlock the "+ Add shift" UI affordance in the availability grid (schema already supports `shift_group` from Phase 0).
 4. Per-staff individual schedules overriding the business default.
 5. "Any available staff" auto-assignment + staff-specific service/pricing.
-6. Deposits/partial payments + PayPal as a second gateway.
+6. Deposits/partial payments + PayPal as a second gateway (registered into the existing `byzo_payment_gateways` filter — see the callout above). Paddle/Mollie can follow the same way once there's demand.
 7. SMS + WhatsApp Cloud API notifications, customizable multi-reminder timing.
 8. Customer dashboard (self-service view/reschedule/cancel), built on the signed-token mechanism already in Free.
 9. Staff calendar sync (Google/Outlook two-way).

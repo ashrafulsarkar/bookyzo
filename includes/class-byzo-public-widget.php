@@ -155,16 +155,16 @@ class BYZO_Public_Widget {
 		// the widget skip rendering a payment step entirely when the
 		// merchant hasn't turned Stripe on, rather than showing a "Pay
 		// now" button that would just error.
-		$payment_settings = class_exists( 'BYZO_Payment_Settings' ) ? BYZO_Payment_Settings::get() : array();
-		$currency         = class_exists( 'BYZO_Settings' ) ? BYZO_Settings::get()['currency'] : 'USD';
+		$stripe   = class_exists( 'BYZO_Payment_Settings' ) ? BYZO_Payment_Settings::get()['gateways']['stripe'] : array();
+		$currency = class_exists( 'BYZO_Settings' ) ? BYZO_Settings::get()['currency'] : 'USD';
 
 		wp_add_inline_script(
 			'byzo-widget',
 			sprintf(
 				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s };',
 				wp_json_encode( esc_url_raw( rest_url( 'bookyzo/v1' ) ) ),
-				wp_json_encode( ! empty( $payment_settings['stripe_enabled'] ) && ! empty( $payment_settings['stripe_publishable_key'] ) ),
-				wp_json_encode( $payment_settings['stripe_publishable_key'] ?? '' ),
+				wp_json_encode( ! empty( $stripe['enabled'] ) && ! empty( $stripe['publishable_key'] ) ),
+				wp_json_encode( $stripe['publishable_key'] ?? '' ),
 				wp_json_encode( $currency )
 			),
 			'before'

@@ -66,6 +66,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-token.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-cancel.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-guard.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-payment-gateways.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-payment-settings.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-widget.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/functions.php';
@@ -73,6 +74,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-notifications.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-email-templates-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-stripe.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-payment-gateways-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-payment-settings-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-stripe-webhook-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-reports.php';
@@ -116,6 +118,7 @@ class BYZO_Plugin {
 		$controllers[] = new BYZO_REST_Settings_Controller();
 		$controllers[] = new BYZO_REST_Setup_Controller();
 		$controllers[] = new BYZO_REST_Email_Templates_Controller();
+		$controllers[] = new BYZO_REST_Payment_Gateways_Controller();
 		$controllers[] = new BYZO_REST_Payment_Settings_Controller();
 		$controllers[] = new BYZO_REST_Stripe_Webhook_Controller();
 		$controllers[] = new BYZO_REST_Reports_Controller();

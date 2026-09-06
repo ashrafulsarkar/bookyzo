@@ -29,12 +29,12 @@ class BYZO_REST_Stripe_Webhook_Controller extends BYZO_REST_Controller {
 	}
 
 	public function handle( WP_REST_Request $request ) {
-		$settings = BYZO_Payment_Settings::get();
+		$stripe = BYZO_Payment_Settings::get()['gateways']['stripe'];
 
 		$verified = BYZO_Stripe::verify_webhook_signature(
 			$request->get_body(),
 			$request->get_header( 'stripe-signature' ),
-			$settings['stripe_webhook_secret']
+			$stripe['webhook_secret']
 		);
 
 		if ( is_wp_error( $verified ) ) {
