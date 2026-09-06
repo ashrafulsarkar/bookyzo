@@ -1,5 +1,6 @@
 <template>
-  <aside class="byzo-sidebar flex w-60 flex-shrink-0 flex-col self-stretch border-r" style="background: var(--byzo-surface); border-color: var(--byzo-border)">
+  <div class="byzo-sidebar-slot flex-shrink-0" aria-hidden="true"></div>
+  <aside class="byzo-sidebar flex flex-col border-r" style="background: var(--byzo-surface); border-color: var(--byzo-border)">
     <div class="flex items-center gap-3 border-b px-5 py-5" style="border-color: var(--byzo-border)">
       <div
         class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-white"
@@ -44,6 +45,57 @@
 // short and unlikely to grow quickly.
 const icon = (paths) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${paths}</svg>`;
 
+// The sidebar is `position: fixed` (see <style> below) so it stays put
+// regardless of *why* wp-admin's page is taller than the viewport — most
+// commonly wp-admin's own left menu (grown tall by other installed
+// plugins) forces #wpwrap taller than our own content, which a
+// `position: sticky` sidebar can't survive since its containing block
+// (this component's own flex row) is only ever as tall as our content.
+// Fixed positioning needs its top/left measured from the live DOM instead
+// of guessed constants, since wp-admin's admin-bar height and menu width
+// vary (mobile admin bar, folded/collapsed menu, RTL, third-party admin
+// themes) and shift live via CSS-transitioned classes on <body> rather
+// than a JS event we could subscribe to.
+import { onMounted, onBeforeUnmount } from 'vue';
+
+let resizeHandler = null;
+let bodyClassObserver = null;
+let settleTimer = null;
+
+function syncFixedOffsets() {
+  const adminBar = document.getElementById('wpadminbar');
+  const wpContent = document.getElementById('wpcontent');
+  const top = adminBar ? adminBar.getBoundingClientRect().bottom : 32;
+  const left = wpContent ? wpContent.getBoundingClientRect().left : 0;
+  const root = document.documentElement.style;
+  root.setProperty('--byzo-sidebar-top', `${Math.max(top, 0)}px`);
+  root.setProperty('--byzo-sidebar-left', `${Math.max(left, 0)}px`);
+}
+
+onMounted(() => {
+  syncFixedOffsets();
+
+  resizeHandler = () => syncFixedOffsets();
+  window.addEventListener('resize', resizeHandler);
+
+  // wp-admin toggles classes on <body> (folded menu, mobile nav open) to
+  // resize/reposition its own left menu; re-measure whenever that happens
+  // instead of duplicating wp-admin's own breakpoints here. The fold is a
+  // CSS transition, not instant, so re-measure again once it settles.
+  bodyClassObserver = new MutationObserver(() => {
+    syncFixedOffsets();
+    clearTimeout(settleTimer);
+    settleTimer = setTimeout(syncFixedOffsets, 350);
+  });
+  bodyClassObserver.observe(document.body, { attributes: true, attributeFilter: ['class'] });
+});
+
+onBeforeUnmount(() => {
+  if (resizeHandler) window.removeEventListener('resize', resizeHandler);
+  bodyClassObserver?.disconnect();
+  clearTimeout(settleTimer);
+});
+
 const items = [
   { to: '/', label: 'Dashboard', icon: icon('<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>') },
   { to: '/calendar', label: 'Calendar', icon: icon('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>') },
@@ -57,6 +109,22 @@ const items = [
 </script>
 
 <style scoped>
+/* Invisible flex spacer that reserves the sidebar's width in the shell's
+   layout, since the real `.byzo-sidebar` below is taken out of flow by
+   `position: fixed` and can no longer do that itself. */
+.byzo-sidebar-slot {
+  width: var(--byzo-sidebar-width, 240px);
+}
+
+.byzo-sidebar {
+  position: fixed;
+  top: var(--byzo-sidebar-top, 32px);
+  left: var(--byzo-sidebar-left, 160px);
+  width: var(--byzo-sidebar-width, 240px);
+  height: calc(100vh - var(--byzo-sidebar-top, 32px));
+  z-index: 20;
+}
+
 .byzo-sidebar-item {
   color: var(--byzo-text-muted);
 }

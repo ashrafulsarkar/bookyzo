@@ -13,10 +13,10 @@
     </ByzoPageHeader>
 
     <div class="px-6 pb-8">
-      <div v-if="loading" class="py-12 text-center text-sm text-muted-foreground">Loading…</div>
+      <ByzoLoading v-if="loading" />
 
       <div v-else class="flex flex-col gap-4">
-        <Card v-for="event in events" :key="event.id" class="max-w-2xl">
+        <Card v-for="event in events" :key="event.id">
           <CardHeader>
             <CardTitle>{{ event.label }}</CardTitle>
             <CardDescription>{{ event.description }}</CardDescription>
@@ -51,6 +51,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
+import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import { api } from '@/api/client';
 
 // Free = plain textarea per event, no visual/HTML builder

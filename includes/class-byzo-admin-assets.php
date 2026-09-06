@@ -44,6 +44,8 @@ class BYZO_Admin_Assets {
 			return;
 		}
 
+		self::enqueue_boot_loader_style();
+
 		// The Bookable Item photo picker (BookableItemDetailsTab.vue) opens
 		// a wp.media frame — that JS only exists once this is called, in
 		// either dev or built mode, so it lives here rather than in either
@@ -184,6 +186,31 @@ class BYZO_Admin_Assets {
 			// navigation after this first one.
 			wp_json_encode( self::initial_route() )
 		);
+	}
+
+	/**
+	 * Styles templates/admin/admin-root.php's pre-mount spinner — hardcoded
+	 * hex rather than the `--byzo-*` CSS variables (which only exist once
+	 * the built/dev bundle's own stylesheet has loaded) so the placeholder
+	 * renders correctly the instant this page paints, in dev mode, built
+	 * mode, or even if the build is missing entirely. Same treatment as
+	 * BackReload's BYZO_Admin_Assets-equivalent (Backreload\Admin::render_app()
+	 * + loader_css_rules()) — brand accent color swapped in, everything
+	 * else (track color, size, spin timing) identical so a "please wait"
+	 * moment looks the same across both plugins.
+	 */
+	private static function enqueue_boot_loader_style() {
+		wp_register_style( 'byzo-boot-loader', false, array(), BYZO_VERSION );
+		wp_enqueue_style( 'byzo-boot-loader' );
+		wp_add_inline_style( 'byzo-boot-loader', self::boot_loader_css_rules() );
+	}
+
+	private static function boot_loader_css_rules() {
+		return '.byzo-boot-loader{display:flex;align-items:center;justify-content:center;'
+			. 'gap:10px;min-height:60vh;color:#6b7280;font-size:14px;}'
+			. '.byzo-boot-spinner{display:inline-block;width:18px;height:18px;border-radius:50%;'
+			. 'border:2.5px solid #dbeafe;border-top-color:#2563eb;animation:byzo-boot-spin 800ms linear infinite;}'
+			. '@keyframes byzo-boot-spin{to{transform:rotate(360deg);}}';
 	}
 
 	private static function enqueue_built() {

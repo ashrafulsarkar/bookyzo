@@ -1,22 +1,27 @@
-<template>
-  <button :class="cn(buttonVariants({ variant, size }), $attrs.class)" v-bind="omitClass($attrs)">
-    <slot />
-  </button>
-</template>
-
 <script setup>
-import { cn } from '@/lib/utils';
-import { buttonVariants } from './variants';
+import { Primitive } from "reka-ui";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from ".";
 
-defineOptions({ inheritAttrs: false });
-
-defineProps({
-  variant: { type: String, default: 'default' },
-  size: { type: String, default: 'default' },
+const props = defineProps({
+  variant: { type: null, required: false },
+  size: { type: null, required: false },
+  class: {
+    type: [Boolean, null, String, Object, Array],
+    required: false,
+    skipCheck: true,
+  },
+  asChild: { type: Boolean, required: false },
+  as: { type: null, required: false, default: "button" },
 });
-
-function omitClass(attrs) {
-  const { class: _class, ...rest } = attrs;
-  return rest;
-}
 </script>
+
+<template>
+  <Primitive
+    :as="as"
+    :as-child="asChild"
+    :class="cn(buttonVariants({ variant, size }), props.class)"
+  >
+    <slot />
+  </Primitive>
+</template>

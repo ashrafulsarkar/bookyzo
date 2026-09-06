@@ -13,10 +13,10 @@
     </ByzoPageHeader>
 
     <div class="px-6 pb-8 flex flex-col gap-4">
-      <div v-if="loading" class="py-12 text-center text-sm text-muted-foreground">Loading…</div>
+      <ByzoLoading v-if="loading" />
 
       <template v-else>
-        <Card class="max-w-xl">
+        <Card>
           <CardHeader>
             <CardTitle>Business profile</CardTitle>
           </CardHeader>
@@ -52,7 +52,7 @@
           </CardContent>
         </Card>
 
-        <Card class="max-w-xl">
+        <Card>
           <CardHeader>
             <CardTitle>Booking behavior</CardTitle>
             <CardDescription>Set once during setup — change anytime here.</CardDescription>
@@ -78,7 +78,7 @@
           </CardContent>
         </Card>
 
-        <Card class="max-w-xl">
+        <Card>
           <CardHeader>
             <CardTitle>Notifications</CardTitle>
           </CardHeader>
@@ -95,7 +95,7 @@
           </CardContent>
         </Card>
 
-        <p v-if="error" class="max-w-xl text-sm text-destructive">{{ error }}</p>
+        <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
       </template>
     </div>
   </div>
@@ -110,6 +110,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
+import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import { api } from '@/api/client';
 
 // The single ongoing home for every byzo_settings field the setup

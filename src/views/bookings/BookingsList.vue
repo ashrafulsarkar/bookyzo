@@ -15,17 +15,47 @@
     </ByzoPageHeader>
 
     <div class="px-6 pb-8">
-      <div class="mb-4 flex flex-wrap items-end gap-3">
+      <div class="mb-4 flex flex-wrap items-end gap-4 rounded-lg border border-border bg-muted/30 p-4">
         <div class="flex flex-col gap-1.5">
-          <Label class="text-xs text-muted-foreground" for="f-from">From</Label>
-          <Input id="f-from" v-model="filters.from" type="date" class="h-9" />
+          <Label class="text-xs font-medium text-muted-foreground">From</Label>
+          <Popover>
+            <PopoverTrigger as-child>
+              <Button
+                type="button"
+                variant="outline"
+                class="h-9 w-40 justify-start font-normal"
+                :class="!filters.from && 'text-muted-foreground'"
+              >
+                <CalendarIcon class="h-4 w-4 shrink-0" />
+                {{ filters.from ? formatFilterDate(filters.from) : 'Any date' }}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-auto p-0" align="start">
+              <Calendar :model-value="toCalendarDate(filters.from)" @update:model-value="(v) => (filters.from = fromCalendarDate(v))" />
+            </PopoverContent>
+          </Popover>
         </div>
         <div class="flex flex-col gap-1.5">
-          <Label class="text-xs text-muted-foreground" for="f-to">To</Label>
-          <Input id="f-to" v-model="filters.to" type="date" class="h-9" />
+          <Label class="text-xs font-medium text-muted-foreground">To</Label>
+          <Popover>
+            <PopoverTrigger as-child>
+              <Button
+                type="button"
+                variant="outline"
+                class="h-9 w-40 justify-start font-normal"
+                :class="!filters.to && 'text-muted-foreground'"
+              >
+                <CalendarIcon class="h-4 w-4 shrink-0" />
+                {{ filters.to ? formatFilterDate(filters.to) : 'Any date' }}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent class="w-auto p-0" align="start">
+              <Calendar :model-value="toCalendarDate(filters.to)" @update:model-value="(v) => (filters.to = fromCalendarDate(v))" />
+            </PopoverContent>
+          </Popover>
         </div>
         <div class="flex flex-col gap-1.5">
-          <Label class="text-xs text-muted-foreground">Bookable item</Label>
+          <Label class="text-xs font-medium text-muted-foreground">Bookable item</Label>
           <Select v-model="filters.bookable_item_id">
             <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -35,7 +65,7 @@
           </Select>
         </div>
         <div class="flex flex-col gap-1.5">
-          <Label class="text-xs text-muted-foreground">Status</Label>
+          <Label class="text-xs font-medium text-muted-foreground">Status</Label>
           <Select v-model="filters.status">
             <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -44,10 +74,19 @@
             </SelectContent>
           </Select>
         </div>
-        <Button variant="ghost" @click="clearFilters">Clear</Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          class="ml-auto text-muted-foreground hover:text-foreground"
+          :disabled="!hasActiveFilters"
+          @click="clearFilters"
+        >
+          <X class="h-4 w-4" />
+          Clear filters
+        </Button>
       </div>
 
-      <div v-if="loading" class="py-12 text-center text-sm text-muted-foreground">Loading…</div>
+      <ByzoLoading v-if="loading" />
 
       <Card v-else-if="bookings.length === 0" class="py-16 text-center text-sm text-muted-foreground">
         No bookings match these filters.
@@ -62,11 +101,15 @@
               <TableHead>Party</TableHead>
               <TableHead>When</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-for="booking in bookings" :key="booking.id">
+            <TableRow
+              v-for="booking in paginatedBookings"
+              :key="booking.id"
+              class="cursor-pointer"
+              @click="activeBooking = booking"
+            >
               <TableCell>
                 <span class="block font-medium">{{ booking.customer_name }}</span>
                 <span class="block text-xs text-muted-foreground">{{ booking.customer_email }}</span>
@@ -75,24 +118,23 @@
               <TableCell class="text-muted-foreground">{{ booking.party_size }}</TableCell>
               <TableCell class="text-muted-foreground">{{ whenLabel(booking) }}</TableCell>
               <TableCell><ByzoBadge :status="booking.status">{{ booking.status.replace('_', ' ') }}</ByzoBadge></TableCell>
-              <TableCell class="text-right">
-                <Select
-                  v-if="allowedTransitions(booking.status).length > 0"
-                  :model-value="booking.status"
-                  @update:model-value="(v) => onStatusChange(booking, v)"
-                >
-                  <SelectTrigger class="h-8 w-36 text-xs"><SelectValue /></SelectTrigger>
-                  <SelectContent>
-                    <SelectItem :value="booking.status" disabled>{{ booking.status.replace('_', ' ') }}</SelectItem>
-                    <SelectItem v-for="next in allowedTransitions(booking.status)" :key="next" :value="next">{{ transitionLabel(next) }}</SelectItem>
-                  </SelectContent>
-                </Select>
-              </TableCell>
             </TableRow>
           </TableBody>
         </Table>
+
+        <ByzoPagination v-model:page="currentPage" :total-pages="totalPages" :total="totalCount" :page-size="pageSize" />
       </Card>
     </div>
+
+    <!-- Same detail popup the Calendar screen opens on a booking click
+         (ByzoCalendarWeek/Month/Agenda) — reused as-is so a booking looks
+         and behaves identically whichever screen it's opened from. -->
+    <BookingDetailModal
+      v-if="activeBooking"
+      :booking="activeBooking"
+      @close="activeBooking = null"
+      @updated="onBookingUpdated"
+    />
   </div>
 </template>
 
@@ -101,32 +143,27 @@ import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
+import ByzoPagination from '@/components/base/ByzoPagination.vue';
+import ByzoLoading from '@/components/base/ByzoLoading.vue';
+import BookingDetailModal from '../calendar/BookingDetailModal.vue';
+import { Calendar as CalendarIcon, X } from 'lucide-vue-next';
+import { parseDate } from '@internationalized/date';
 import { api } from '@/api/client';
+import { useClientPagination } from '@/composables/useClientPagination';
 
-// Mirrors BYZO_Booking::TRANSITIONS server-side — see the same note in
-// BookingDetailModal.vue (calendar screen); the server remains the real
-// enforcement, this only decides which options the dropdown offers.
-// `rejected` added 2026-09-05 (Phase 1.6) — same shape as
-// BookingDetailModal.vue's copy of the server-side table.
-const TRANSITIONS = {
-  pending: ['confirmed', 'rejected', 'cancelled', 'no_show'],
-  confirmed: ['completed', 'cancelled', 'no_show'],
-  completed: [],
-  cancelled: [],
-  no_show: [],
-  rejected: [],
-};
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show', 'rejected'];
 
 const items = ref([]);
 const bookings = ref([]);
 const loading = ref(true);
+const activeBooking = ref(null);
 
 const filters = reactive({
   from: '',
@@ -134,6 +171,9 @@ const filters = reactive({
   bookable_item_id: '__all__',
   status: '__all__',
 });
+
+const { page: currentPage, total: totalCount, totalPages, pageItems: paginatedBookings, pageSize, reset: resetPage } =
+  useClientPagination(bookings, 10);
 
 async function loadItems() {
   try {
@@ -159,11 +199,33 @@ async function loadBookings() {
   }
 }
 
+const hasActiveFilters = computed(() =>
+  Boolean(filters.from || filters.to || filters.bookable_item_id !== '__all__' || filters.status !== '__all__')
+);
+
 function clearFilters() {
   filters.from = '';
   filters.to = '';
   filters.bookable_item_id = '__all__';
   filters.status = '__all__';
+}
+
+// The From/To filters swapped a native `<input type="date">` — its
+// unstyled, browser-drawn "dd-----yyyy" placeholder looked broken next to
+// the rest of the app — for a Popover + Calendar picker. `filters.from/to`
+// stay plain 'YYYY-MM-DD' strings (what the REST API and the CSV export
+// URL both expect); these two just bridge that string to/from the
+// Calendar's own @internationalized/date value.
+function toCalendarDate(value) {
+  return value ? parseDate(value) : undefined;
+}
+
+function fromCalendarDate(value) {
+  return value ? value.toString() : '';
+}
+
+function formatFilterDate(value) {
+  return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function itemName(id) {
@@ -182,21 +244,13 @@ function whenLabel(booking) {
   });
 }
 
-function allowedTransitions(status) {
-  return TRANSITIONS[status] || [];
-}
-
-function transitionLabel(status) {
-  return { confirmed: 'Confirm', completed: 'Mark completed', cancelled: 'Cancel', no_show: 'No-show', rejected: 'Reject' }[status] || status;
-}
-
-async function onStatusChange(booking, newStatus) {
-  try {
-    const updated = await api.put(`/bookings/${booking.id}`, { status: newStatus });
-    bookings.value = bookings.value.map((b) => (b.id === updated.id ? updated : b));
-    toast.success(`Booking marked ${newStatus.replace('_', ' ')}.`);
-  } catch (e) {
-    toast.error(e.message || 'Could not update this booking.');
+// Mirrors BookingCalendar.vue's own handler — the modal is the same
+// component either way, so it emits the same shape of event.
+function onBookingUpdated(updated) {
+  bookings.value = bookings.value.map((b) => (b.id === updated.id ? updated : b));
+  activeBooking.value = updated;
+  if (['completed', 'cancelled', 'no_show', 'rejected'].includes(updated.status)) {
+    activeBooking.value = null;
   }
 }
 
@@ -220,7 +274,7 @@ const exportUrl = computed(() => {
 let debounceTimer = null;
 watch(filters, () => {
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(loadBookings, 250);
+  debounceTimer = setTimeout(() => { resetPage(); loadBookings(); }, 250);
 });
 
 onMounted(async () => {

@@ -3,7 +3,7 @@
     <h2>Pick a time</h2>
     <p>{{ item.name }}</p>
 
-    <div v-if="loading" class="empty">Loading…</div>
+    <WidgetLoading v-if="loading" />
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else-if="dates.length === 0" class="empty">No available times in the next few weeks.</div>
     <template v-else>
@@ -42,6 +42,7 @@
 <script setup>
 import { ref, computed, onMounted, watch } from 'vue';
 import { getSlots } from '../api';
+import WidgetLoading from '../WidgetLoading.vue';
 
 const props = defineProps({
   item: { type: Object, required: true },

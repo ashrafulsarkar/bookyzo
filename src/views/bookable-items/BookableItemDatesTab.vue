@@ -24,7 +24,7 @@
       </CardFooter>
     </Card>
 
-    <div v-if="loading" class="py-8 text-center text-sm text-muted-foreground">Loading…</div>
+    <ByzoLoading v-if="loading" size="compact" />
 
     <Card v-else-if="occurrences.length > 0" :class="['overflow-hidden', embedded ? 'mx-6' : 'max-w-xl']">
       <Table>
@@ -68,6 +68,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
+import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import { api } from '@/api/client';
 
 const props = defineProps({

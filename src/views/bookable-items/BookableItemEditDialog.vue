@@ -35,7 +35,7 @@
         </template>
       </div>
 
-      <div v-if="loading" class="py-12 text-center text-sm text-muted-foreground">Loading…</div>
+      <ByzoLoading v-if="loading" />
 
       <div v-else-if="loadError" class="flex flex-col gap-4">
         <p class="text-sm text-destructive">{{ loadError }}</p>
@@ -127,6 +127,7 @@ import { ref, reactive, computed, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import { Dialog, DialogScrollContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import BookingDetailsStep from '../setup/BookingDetailsStep.vue';
 import AvailabilityStep from '../setup/AvailabilityStep.vue';
 import PricingStep from '../setup/PricingStep.vue';

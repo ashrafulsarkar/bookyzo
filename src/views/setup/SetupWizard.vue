@@ -59,6 +59,7 @@
 
     <BookingDetailsStep
       v-else-if="state.step === 'booking_details'"
+      compact
       :type="wizardData.type"
       :initial="wizardData"
       @next="(details) => { Object.assign(wizardData, details); advanceTo('availability'); }"
@@ -67,6 +68,7 @@
 
     <AvailabilityStep
       v-else-if="state.step === 'availability'"
+      compact
       :type="wizardData.type"
       :default-start-time="wizardData.default_start_time"
       :default-end-time="wizardData.default_end_time"
@@ -125,10 +127,10 @@ import { markSetupComplete } from '../../router';
 import WelcomeStep from './WelcomeStep.vue';
 import BookingTypeStep from './BookingTypeStep.vue';
 import BusinessProfileStep from './BusinessProfileStep.vue';
-import BookingDetailsStep from './BookingDetailsStep.vue';
-import AvailabilityStep from './AvailabilityStep.vue';
+import BookingDetailsStep from '../bookable-items/steps/DetailsStep.vue';
+import AvailabilityStep from '../bookable-items/steps/AvailabilityStep.vue';
 import CustomerFieldsStep from './CustomerFieldsStep.vue';
-import PricingStep from './PricingStep.vue';
+import PricingStep from '../bookable-items/steps/PricingStep.vue';
 import ConfirmationStep from './ConfirmationStep.vue';
 import ReviewStep from './ReviewStep.vue';
 import SuccessStep from './SuccessStep.vue';
@@ -163,7 +165,7 @@ const wizardData = reactive({
   duration_minutes: 30,
   capacity: 1,
   schedules: null,
-  occurrence: { date: '', start_time: '19:00', end_time: '22:00' },
+  occurrences: null,
   require_phone: false,
   price: null,
   location: '',
@@ -185,7 +187,7 @@ const createdItemId = ref(null);
 // fails, a retry must UPDATE the existing item rather than POST a second
 // one — which, on Free's 1-active-per-type cap (BYZO_Capabilities), would
 // otherwise fail with "Upgrade to add more" and strand a half-configured
-// item behind it. Same guard as BookableItemAddWizard.vue's createItem().
+// item behind it. Same guard as BookableItemWizard.vue's submit().
 const createdId = ref(null);
 const createdType = ref('');
 
@@ -230,7 +232,7 @@ async function createEverything() {
       description: wizardData.description,
       status: 'active',
       price: wizardData.price === '' || wizardData.price === null ? null : wizardData.price,
-      // Same appointment-is-always-1 rule as BookableItemEditDialog.vue's own save().
+      // Same appointment-is-always-1 rule as BookableItemWizard.vue's own submit().
       capacity: wizardData.type === 'appointment' ? 1 : Math.max(1, Number(wizardData.capacity) || 1),
       location: wizardData.location || null,
       meeting_link: wizardData.meeting_link || null,
@@ -258,7 +260,9 @@ async function createEverything() {
     }
 
     if ('event' === wizardData.type) {
-      await api.post(`/bookable-items/${created.id}/slots`, { ...wizardData.occurrence });
+      for (const occurrence of wizardData.occurrences || []) {
+        await api.post(`/bookable-items/${created.id}/slots`, { date: occurrence.date, start_time: occurrence.start_time, end_time: occurrence.end_time });
+      }
     } else {
       await api.put(`/bookable-items/${created.id}/availability`, { schedules: wizardData.schedules });
     }
@@ -288,11 +292,11 @@ function goManage() {
 
 function goAddAnother() {
   // Re-uses the regular Add New flow's own type picker
-  // (BookableItemTypeStep.vue) rather than re-entering this completed
+  // (the wizard's TypeStep.vue) rather than re-entering this completed
   // wizard — byzo_setup_step is already 'done' by this point, and the
   // setup wizard's own state machine isn't built to restart partway
   // through. Deliberately NOT filtered to "types not yet used" yet
-  // (DETAILED-SPEC.md's aspiration) — that needs BookableItemTypeStep.vue
+  // (DETAILED-SPEC.md's aspiration) — that needs the wizard's TypeStep.vue
   // to know which types already have an active item, which it doesn't
   // fetch today; flagged as a follow-up, not silently skipped.
   router.push({ name: 'bookable-items.new' });

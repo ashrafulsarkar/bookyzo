@@ -126,3 +126,32 @@
 .toplevel_page_bookyzo #byzo-admin-app > .byzo-app > .byzo-shell {
   flex: 1 1 auto;
 }
+
+/*
+ * wp-admin's own forms.css targets `input[type="text"]` (plus most other
+ * input types), `select`, and `textarea` directly with a hardcoded
+ * `border-radius: 2px` and `border: 1px solid #949494` — an attribute
+ * selector that out-specifies a plain Tailwind utility class. Every native
+ * <input>/<textarea> in the app (the Customers search box, the Add/Edit
+ * Customer dialog's fields, etc.) silently lost its intended rounded-md +
+ * border-input styling to that, while button-based controls (Select
+ * trigger, Popover trigger, Button — none of them a bare <input>) were
+ * never touched by it, which is exactly why some corners looked rounded
+ * and others square across the same screen. #byzo-admin-app is present on
+ * every Bookyzo page (unlike the .toplevel_page_bookyzo body class above,
+ * which is only that one route), so this reaches all of them.
+ */
+#byzo-admin-app input[type='text'],
+#byzo-admin-app input[type='password'],
+#byzo-admin-app input[type='email'],
+#byzo-admin-app input[type='tel'],
+#byzo-admin-app input[type='number'],
+#byzo-admin-app input[type='date'],
+#byzo-admin-app input[type='search'],
+#byzo-admin-app input[type='url'],
+#byzo-admin-app select,
+#byzo-admin-app textarea {
+  border-radius: var(--byzo-radius-sm);
+  border: 1px solid hsl(var(--input));
+  background-color: hsl(var(--background));
+}

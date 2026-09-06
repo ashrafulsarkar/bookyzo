@@ -22,7 +22,7 @@
         <span class="font-medium">{{ data.capacity }}</span>
       </div>
       <div class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">{{ data.type === 'event' ? 'Date' : 'Availability' }}</span>
+        <span class="text-muted-foreground">{{ data.type === 'event' ? 'Dates' : 'Availability' }}</span>
         <span class="font-medium">{{ availabilitySummary }}</span>
       </div>
       <div class="flex justify-between border-b border-border pb-2">
@@ -78,9 +78,12 @@ const WEEKDAY_NAMES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
 const availabilitySummary = computed(() => {
   if ('event' === props.data.type) {
-    return props.data.occurrence?.date
-      ? `${props.data.occurrence.date}, ${props.data.occurrence.start_time}–${props.data.occurrence.end_time}`
-      : '—';
+    const occurrences = props.data.occurrences || [];
+    if (occurrences.length === 0) {
+      return '—';
+    }
+    const shown = occurrences.slice(0, 3).map((o) => `${o.date} ${o.start_time}–${o.end_time}`).join(', ');
+    return occurrences.length > 3 ? `${shown} +${occurrences.length - 3} more` : shown;
   }
 
   const open = (props.data.schedules || []).slice().sort((a, b) => a.weekday - b.weekday);

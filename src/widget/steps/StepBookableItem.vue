@@ -1,5 +1,5 @@
 <template>
-  <div v-if="loading" class="empty">Loading…</div>
+  <WidgetLoading v-if="loading" />
   <div v-else-if="error" class="error">{{ error }}</div>
   <div v-else-if="items.length === 0" class="empty">No bookable services are available right now.</div>
   <div v-else-if="!autoSkipping">
@@ -24,6 +24,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { getPublicBookableItems } from '../api';
+import WidgetLoading from '../WidgetLoading.vue';
 
 // Auto-skips this whole step — straight to slot picking — whenever
 // there's only one real choice to make: either the embed is pinned to

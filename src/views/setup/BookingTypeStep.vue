@@ -41,10 +41,10 @@ const props = defineProps({
 });
 defineEmits(['next']);
 
-// Same 4 real options as BookableItemTypeStep.vue's Add New picker and
+// Same 4 real options as the Add/Edit wizard's TypeStep.vue and
 // the block editor's type selector (all landed across Phase 1.5 steps
 // 3-5) — kept in sync by hand across the 3 pickers, matching how
-// BookableItemTypeStep.vue's own comment already flags this duplication.
+// TypeStep.vue's own comment already flags this duplication.
 const types = [
   { value: 'appointment', label: 'Appointment', description: 'One-on-one bookings with staff — salons, clinics, consultants.' },
   { value: 'table', label: 'Table', description: 'Reservations for a table, room, or group — restaurants, venues.' },

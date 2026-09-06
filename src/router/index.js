@@ -26,10 +26,10 @@ const routes = [
   { path: '/', name: 'dashboard', component: Dashboard },
   { path: '/setup', name: 'setup', component: SetupWizard },
   { path: '/bookable-items', name: 'bookable-items', component: BookableItemsList },
-  // Add / Edit are popups on the list screen (BookableItemAddWizard.vue /
-  // BookableItemEditDialog.vue), so these two routes render the list
-  // itself — BookableItemsList.vue reads route.name/params to open the
-  // right dialog. Kept as real routes (not local state) so a reload or a
+  // Add / Edit are one and the same popup wizard on the list screen
+  // (BookableItemWizard.vue — no id creates, an id edits), so these two
+  // routes render the list itself — BookableItemsList.vue reads
+  // route.name/params to open it in the right mode. Kept as real routes (not local state) so a reload or a
   // shared link reopens the same dialog, and SetupWizard.vue's "Manage" /
   // "Add another" can navigate straight into either.
   { path: '/bookable-items/new', name: 'bookable-items.new', component: BookableItemsList },

@@ -50,7 +50,12 @@ export default {
       borderRadius: {
         xl: 'calc(var(--radius) + 4px)',
         lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
+        // Form controls (Input, Button, Select/Popover triggers, Textarea —
+        // every shadcn-vue primitive built on `rounded-md`) all read this
+        // one value, so they stay in lockstep at Bookyzo's own small-radius
+        // token instead of `--radius`'s card-sized 14px scaled down to an
+        // arbitrary 12px no design token actually calls for.
+        md: 'var(--byzo-radius-sm)',
         sm: 'calc(var(--radius) - 4px)',
       },
     },

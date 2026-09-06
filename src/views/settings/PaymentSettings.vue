@@ -13,9 +13,9 @@
     </ByzoPageHeader>
 
     <div class="px-6 pb-8">
-      <div v-if="loading" class="py-12 text-center text-sm text-muted-foreground">Loading…</div>
+      <ByzoLoading v-if="loading" />
 
-      <Card v-else class="max-w-xl">
+      <Card v-else>
         <CardContent class="flex flex-col gap-4 pt-6">
           <label class="flex items-center gap-2 text-sm font-medium">
             <Switch v-model="form.stripe_enabled" />
@@ -56,6 +56,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
+import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import { api } from '@/api/client';
 
 const form = ref({

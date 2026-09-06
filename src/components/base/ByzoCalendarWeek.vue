@@ -1,51 +1,66 @@
 <template>
-  <div class="flex overflow-x-auto">
-    <!-- Hour rail -->
-    <div class="w-14 shrink-0 border-r border-border">
-      <div class="h-10 border-b border-border"></div>
-      <div v-for="hour in hours" :key="hour" class="h-12 border-b border-border/60 px-1 text-right text-xs text-muted-foreground">
-        {{ formatHour(hour) }}
+  <!--
+    A bounded, internally-scrolling grid instead of letting all 14 hours
+    push the whole wp-admin page tall — a full day/week grid routinely
+    exceeded the viewport, and since wp-admin's own page height is driven
+    by whatever's tallest (often its own left menu, see ByzoSidebar.vue),
+    the extra hours just left a very long, mostly-blank page rather than a
+    self-contained calendar. Day headers and the hour rail use `sticky`
+    *within this same scroll container* (not the page), which is exactly
+    the case position:sticky is built for — unlike ByzoSidebar's, this
+    container's own height IS the scrollable range, so there's no
+    containing-block boundary for it to prematurely un-stick at.
+  -->
+  <div class="calendar-scroll max-h-[calc(100vh-320px)] min-h-[320px] overflow-auto">
+    <div class="flex">
+      <!-- Hour rail: pinned to the left edge on horizontal scroll -->
+      <div class="sticky left-0 z-20 w-14 shrink-0 border-r border-border bg-card">
+        <div class="sticky top-0 z-30 h-10 border-b border-border bg-card"></div>
+        <div v-for="hour in hours" :key="hour" class="h-12 border-b border-border/60 px-1 text-right text-xs text-muted-foreground">
+          {{ formatHour(hour) }}
+        </div>
       </div>
-    </div>
 
-    <!-- Day columns -->
-    <div
-      v-for="day in dayList"
-      :key="day.key"
-      class="min-w-[140px] flex-1 border-r border-border last:border-r-0"
-    >
-      <button
-        type="button"
-        class="flex h-10 w-full flex-col items-center justify-center border-b border-border text-xs hover:bg-muted/50"
-        @click="$emit('select-slot', { date: day.date, time: null })"
+      <!-- Day columns -->
+      <div
+        v-for="day in dayList"
+        :key="day.key"
+        class="min-w-[140px] flex-1 border-r border-border last:border-r-0"
       >
-        <span class="font-medium">{{ day.dowLabel }}</span>
-        <span :class="day.isToday ? 'font-semibold text-primary' : 'text-muted-foreground'">{{ day.dateLabel }}</span>
-      </button>
-
-      <div class="relative">
-        <div v-for="hour in hours" :key="hour" class="h-12 border-b border-border/60"></div>
-
         <button
-          v-for="hour in hours"
-          :key="'slot-' + hour"
           type="button"
-          class="absolute w-full hover:bg-primary/5"
-          :style="{ top: `${hour * 48}px`, height: '48px' }"
-          @click="$emit('select-slot', { date: day.date, time: hour })"
-        />
-
-        <button
-          v-for="booking in day.bookings"
-          :key="booking.id"
-          type="button"
-          class="absolute left-0.5 right-0.5 overflow-hidden rounded px-1.5 py-0.5 text-left text-xs text-white shadow-sm"
-          :style="booking.style"
-          @click.stop="$emit('select-booking', booking)"
+          class="sticky top-0 z-10 flex h-10 w-full flex-col items-center justify-center border-b border-border bg-card text-xs hover:bg-muted/50"
+          @click="$emit('select-slot', { date: day.date, time: null })"
         >
-          <span class="block truncate font-medium">{{ booking.customer_name }}</span>
-          <span class="block truncate opacity-90">{{ booking.timeLabel }}</span>
+          <span class="font-medium">{{ day.dowLabel }}</span>
+          <span :class="day.isToday ? 'font-semibold text-primary' : 'text-muted-foreground'">{{ day.dateLabel }}</span>
         </button>
+
+        <div class="relative">
+          <div v-for="hour in hours" :key="hour" class="h-12 border-b border-border/60"></div>
+
+          <button
+            v-for="hour in hours"
+            :key="'slot-' + hour"
+            type="button"
+            class="absolute w-full hover:bg-primary/5"
+            :style="{ top: `${(hour - hours[0]) * 48}px`, height: '48px' }"
+            @click="$emit('select-slot', { date: day.date, time: hour })"
+          />
+
+          <button
+            v-for="booking in day.bookings"
+            :key="booking.id"
+            type="button"
+            class="absolute left-0.5 right-0.5 overflow-hidden rounded px-1.5 py-0.5 text-left text-xs leading-tight text-white shadow-sm"
+            :style="booking.style"
+            :title="`${booking.customer_name} — ${booking.timeLabel}`"
+            @click.stop="$emit('select-booking', booking)"
+          >
+            <span class="block truncate font-medium">{{ booking.customer_name }}</span>
+            <span v-if="booking.showTime" class="block truncate opacity-90">{{ booking.timeLabel }}</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -113,24 +128,60 @@ const dayList = computed(() => {
   });
 });
 
+// Text-xs + leading-tight lines run ~15px each; below this a block can only
+// fit the customer-name line without the time line clipping through it
+// (previously reported as "booking details not showing properly" — a
+// 20-minute-floor booking rendered at just 16px tall, so the time line
+// overlapped the name instead of sitting under it).
+const TWO_LINE_HEIGHT = 34;
+const MIN_BLOCK_HEIGHT = 20;
+
 function positionBooking(booking, date) {
   const start = new Date(booking.slot_start);
   const end = booking.slot_end ? new Date(booking.slot_end) : new Date(start.getTime() + 30 * 60000);
 
   const dayStartMinutes = hours[0] * 60;
   const startMinutes = start.getHours() * 60 + start.getMinutes() - dayStartMinutes;
-  const durationMinutes = Math.max(20, (end - start) / 60000);
+  const durationMinutes = (end - start) / 60000;
 
   const pxPerMinute = 48 / 60;
+  const rawHeight = durationMinutes * pxPerMinute;
 
   return {
     ...booking,
     timeLabel: formatTime(start),
+    // Short bookings drop the time line rather than clip it; it's still
+    // available via the button's `title` tooltip.
+    showTime: rawHeight >= TWO_LINE_HEIGHT,
     style: {
       top: `${startMinutes * pxPerMinute}px`,
-      height: `${durationMinutes * pxPerMinute}px`,
+      height: `${Math.max(MIN_BLOCK_HEIGHT, rawHeight)}px`,
       backgroundColor: STATUS_COLORS[booking.status] || STATUS_COLORS.pending,
     },
   };
 }
 </script>
+
+<style scoped>
+/* The grid scrolls both ways inside a rounded Card; an unstyled native
+   scrollbar (thick, square) looked out of place against it, especially
+   the horizontal one sitting right under the last row. */
+.calendar-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--byzo-border) transparent;
+}
+.calendar-scroll::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.calendar-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.calendar-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--byzo-border);
+  border-radius: 9999px;
+}
+.calendar-scroll::-webkit-scrollbar-thumb:hover {
+  background-color: var(--byzo-text-muted);
+}
+</style>

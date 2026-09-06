@@ -3,7 +3,7 @@
     <h2>Payment</h2>
     <p>{{ booking.customer_name }}, your total is {{ formattedAmount }}.</p>
 
-    <div v-if="loadingStripe" class="empty">Loading payment form…</div>
+    <WidgetLoading v-if="loadingStripe" label="Loading payment form…" />
     <div v-else-if="setupError" class="error">{{ setupError }}</div>
     <template v-else>
       <div ref="cardElementRef" class="field" style="border: 1px solid var(--byzo-border); border-radius: var(--byzo-radius-sm); padding: 10px"></div>
@@ -33,6 +33,7 @@
 // docblock for the same caveat on the backend half of this flow.
 import { ref, onMounted } from 'vue';
 import { createBookingPaymentIntent } from '../api';
+import WidgetLoading from '../WidgetLoading.vue';
 
 const props = defineProps({
   booking: { type: Object, required: true },

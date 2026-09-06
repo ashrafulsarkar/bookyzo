@@ -22,11 +22,23 @@
 
     <div class="px-6 pb-8">
       <div class="mb-4 flex flex-col gap-1.5">
-        <Label class="text-xs text-muted-foreground" for="c-search">Search</Label>
-        <Input id="c-search" v-model="search" type="text" placeholder="Name, email, or phone…" class="w-72" />
+        <Label class="text-xs font-medium text-muted-foreground" for="c-search">Search</Label>
+        <div class="relative w-72">
+          <SearchIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input id="c-search" v-model="search" type="text" placeholder="Name, email, or phone…" class="h-9 !pl-9 !pr-8" />
+          <button
+            v-if="search"
+            type="button"
+            class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+            aria-label="Clear search"
+            @click="search = ''"
+          >
+            <X class="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
-      <div v-if="loading" class="py-12 text-center text-sm text-muted-foreground">Loading…</div>
+      <ByzoLoading v-if="loading" />
 
       <Card v-else-if="items.length === 0 && !search" class="flex flex-col items-center gap-3 py-16 text-center">
         <p class="font-medium">No customers yet</p>
@@ -48,11 +60,11 @@
               <TableHead>Phone</TableHead>
               <TableHead>Tags</TableHead>
               <TableHead>Source</TableHead>
-              <TableHead></TableHead>
+              <TableHead class="text-right">Action</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            <TableRow v-for="customer in items" :key="customer.id">
+            <TableRow v-for="customer in paginatedItems" :key="customer.id">
               <TableCell class="font-medium">{{ customer.name }}</TableCell>
               <TableCell class="text-muted-foreground">{{ customer.email }}</TableCell>
               <TableCell class="text-muted-foreground">{{ customer.phone || '—' }}</TableCell>
@@ -65,6 +77,8 @@
             </TableRow>
           </TableBody>
         </Table>
+
+        <ByzoPagination v-model:page="currentPage" :total-pages="totalPages" :total="totalCount" :page-size="pageSize" />
       </Card>
     </div>
 
@@ -129,10 +143,14 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
+import { Search as SearchIcon, X } from 'lucide-vue-next';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
+import ByzoPagination from '@/components/base/ByzoPagination.vue';
+import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import { api } from '@/api/client';
+import { useClientPagination } from '@/composables/useClientPagination';
 
 const items = ref([]);
 const loading = ref(true);
@@ -145,6 +163,9 @@ const fileInput = ref(null);
 const importForm = ref(null);
 
 const form = reactive({ name: '', email: '', phone: '', tags: '', notes: '' });
+
+const { page: currentPage, total: totalCount, totalPages, pageItems: paginatedItems, pageSize, reset: resetPage } =
+  useClientPagination(items, 10);
 
 // admin-post.php isn't part of the REST API, so this rides its own
 // nonce/URL from window.byzoAdmin (see BYZO_Admin_Assets), same pattern
@@ -176,7 +197,7 @@ async function load() {
 let debounceTimer = null;
 watch(search, () => {
   clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(load, 300);
+  debounceTimer = setTimeout(() => { resetPage(); load(); }, 300);
 });
 
 function openCreate() {

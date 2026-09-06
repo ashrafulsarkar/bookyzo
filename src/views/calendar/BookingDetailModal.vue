@@ -2,21 +2,49 @@
   <Dialog :open="true" @update:open="(v) => { if (!v) $emit('close'); }">
     <DialogContent class="max-w-md">
       <DialogHeader>
-        <div class="flex items-start justify-between pr-6">
-          <div>
-            <DialogTitle>{{ booking.customer_name }}</DialogTitle>
-            <DialogDescription>{{ timeRangeLabel }}</DialogDescription>
+        <div class="flex items-start justify-between gap-3 pr-6">
+          <div class="min-w-0">
+            <DialogTitle class="truncate">{{ booking.customer_name }}</DialogTitle>
+            <DialogDescription class="mt-0.5 flex items-center gap-1.5">
+              <CalendarClock class="h-3.5 w-3.5 shrink-0" />
+              <span class="truncate">{{ timeRangeLabel }}</span>
+            </DialogDescription>
           </div>
-          <ByzoBadge :status="booking.status">{{ booking.status.replace('_', ' ') }}</ByzoBadge>
+          <ByzoBadge :status="booking.status" class="shrink-0">{{ booking.status.replace('_', ' ') }}</ByzoBadge>
         </div>
       </DialogHeader>
-      <div class="flex flex-col gap-2 text-sm">
-        <p><span class="text-muted-foreground">Email:</span> {{ booking.customer_email }}</p>
-        <p v-if="booking.customer_phone"><span class="text-muted-foreground">Phone:</span> {{ booking.customer_phone }}</p>
-        <p v-if="booking.party_size > 1"><span class="text-muted-foreground">Party size:</span> {{ booking.party_size }}</p>
-        <p v-if="booking.customer_notes"><span class="text-muted-foreground">Notes:</span> {{ booking.customer_notes }}</p>
-        <p v-if="booking.payment_amount !== null" class="flex items-center gap-2">
-          <span class="text-muted-foreground">Payment:</span> {{ Number(booking.payment_amount).toFixed(2) }} ({{ booking.payment_status }})
+
+      <div class="flex flex-col gap-3 text-sm">
+        <div class="flex flex-col gap-2 rounded-lg border border-border bg-muted/30 p-3">
+          <div class="flex items-center gap-2.5">
+            <Mail class="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span class="truncate">{{ booking.customer_email }}</span>
+          </div>
+          <div v-if="booking.customer_phone" class="flex items-center gap-2.5">
+            <Phone class="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span>{{ booking.customer_phone }}</span>
+          </div>
+          <div v-if="booking.party_size > 1" class="flex items-center gap-2.5">
+            <Users class="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span>{{ booking.party_size }} people</span>
+          </div>
+          <div v-if="booking.customer_notes" class="flex items-start gap-2.5">
+            <StickyNote class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
+            <span class="text-muted-foreground">{{ booking.customer_notes }}</span>
+          </div>
+        </div>
+
+        <div v-if="booking.payment_amount !== null" class="flex items-center justify-between gap-2 rounded-lg border border-border p-3">
+          <div class="flex items-center gap-2.5">
+            <Wallet class="h-4 w-4 shrink-0 text-muted-foreground" />
+            <span class="font-medium">{{ Number(booking.payment_amount).toFixed(2) }}</span>
+            <span
+              class="text-xs font-medium capitalize"
+              :style="{ color: booking.payment_status === 'unpaid' ? 'var(--byzo-warning)' : 'var(--byzo-success)' }"
+            >
+              {{ booking.payment_status.replace('_', ' ') }}
+            </span>
+          </div>
           <Button
             v-if="booking.payment_status === 'unpaid'"
             variant="outline"
@@ -26,16 +54,16 @@
           >
             {{ markingPaid ? 'Marking…' : 'Mark as paid' }}
           </Button>
-        </p>
+        </div>
 
         <!-- Basic reschedule (added 2026-09-05, Phase 1.6, DETAILED-SPEC.md
              §1.4/§A4) — only offered for a still-open booking; a
              completed/cancelled/no_show/rejected booking has nothing left
              to move. -->
-        <div v-if="canReschedule" class="border-t border-border pt-3">
+        <div v-if="canReschedule" class="rounded-lg border border-border p-3">
           <Button v-if="!rescheduling" type="button" variant="outline" size="sm" @click="startReschedule">Reschedule</Button>
           <div v-else class="flex flex-col gap-2">
-            <Label for="reschedule-slot" class="text-xs text-muted-foreground">Move to a different time</Label>
+            <Label for="reschedule-slot" class="text-xs font-medium text-muted-foreground">Move to a different time</Label>
             <Select v-model="newSlotId">
               <SelectTrigger id="reschedule-slot" class="h-9">
                 <SelectValue :placeholder="loadingSlots ? 'Loading…' : (slots.length === 0 ? 'No other available slots' : 'Choose a time')" />
@@ -53,20 +81,45 @@
           </div>
         </div>
 
-        <p v-if="error" class="text-destructive">{{ error }}</p>
+        <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
       </div>
-      <DialogFooter class="flex-wrap gap-2">
-        <Button variant="outline" @click="$emit('close')">Close</Button>
-        <Button
-          v-for="transition in allowedTransitions"
-          :key="transition"
-          :variant="declineTransitions.includes(transition) ? 'outline' : 'default'"
-          :class="declineTransitions.includes(transition) && 'text-destructive hover:text-destructive'"
-          :disabled="updating"
-          @click="changeStatus(transition)"
-        >
-          {{ label(transition) }}
-        </Button>
+
+      <!--
+        One primary action (whatever moves the booking forward — Confirm,
+        Mark completed) stays a normal button; anything that ends the
+        booking without moving it forward (Reject/Cancel/No-show) is
+        equally destructive-looking and used far less often, so it's tucked
+        into one "More actions" menu instead of three same-weight red
+        buttons sitting next to Confirm — that layout made it easy to fire
+        the wrong one and wrapped onto its own messy row once Reschedule
+        was open (see the two screenshots this was reported against).
+      -->
+      <DialogFooter class="flex items-center justify-between gap-2 sm:justify-between">
+        <Button variant="ghost" @click="$emit('close')">Close</Button>
+        <div class="flex items-center gap-2">
+          <DropdownMenu v-if="secondaryTransitions.length">
+            <DropdownMenuTrigger as-child>
+              <Button type="button" variant="outline" :disabled="updating">
+                More actions
+                <ChevronDown class="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                v-for="transition in secondaryTransitions"
+                :key="transition"
+                class="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                :disabled="updating"
+                @select="changeStatus(transition)"
+              >
+                {{ label(transition) }}
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <Button v-if="primaryTransition" :disabled="updating" @click="changeStatus(primaryTransition)">
+            {{ updating ? 'Updating…' : label(primaryTransition) }}
+          </Button>
+        </div>
       </DialogFooter>
     </DialogContent>
   </Dialog>
@@ -78,6 +131,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem } from '@/components/ui/dropdown-menu';
+import { CalendarClock, Mail, Phone, Users, StickyNote, Wallet, ChevronDown } from 'lucide-vue-next';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
 import { api } from '@/api/client';
 import { formatTime } from '@/lib/date';
@@ -111,6 +166,13 @@ const markingPaid = ref(false);
 const error = ref('');
 
 const allowedTransitions = computed(() => TRANSITIONS[props.booking.status] || []);
+
+// The one transition that moves a booking forward (Confirm, Mark completed)
+// is the prominent button; everything else for this status is a "decline"
+// transition and goes in the "More actions" menu instead of sitting next
+// to it at equal visual weight (see the footer's comment in <template>).
+const primaryTransition = computed(() => allowedTransitions.value.find((t) => !declineTransitions.includes(t)) || null);
+const secondaryTransitions = computed(() => allowedTransitions.value.filter((t) => t !== primaryTransition.value));
 
 // Basic reschedule (added 2026-09-05, Phase 1.6) — offered whenever the
 // server would actually allow it (BYZO_Booking::reschedule() enforces the
