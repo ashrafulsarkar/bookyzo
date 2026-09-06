@@ -57,4 +57,39 @@ abstract class BYZO_REST_Controller {
 	public function public_permissions_check( WP_REST_Request $request ) {
 		return apply_filters( 'byzo_rest_public_permission', true, $request );
 	}
+
+	/**
+	 * Phase 1.7 step 5 (DETAILED-SPEC.md §A11) — a route an admin OR a
+	 * logged-in byzo_customer may both call, each auto-scoped to their own
+	 * data by the callback itself (see BYZO_REST_Bookings_Controller's own
+	 * get_items()/reschedule_item(), which never trust a client-supplied
+	 * customer_id — only what this check resolves server-side from the
+	 * real session). A guest (no session at all) is rejected the same way
+	 * admin_permissions_check() already rejects a non-admin.
+	 */
+	public function admin_or_own_customer_permissions_check( WP_REST_Request $request ) {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+
+		return $this->customer_permissions_check( $request );
+	}
+
+	/**
+	 * Permission callback for a route only a logged-in byzo_customer
+	 * session may call (not admin — an admin route to the same effect
+	 * already exists elsewhere, e.g. the general status PUT for
+	 * cancellation). Phase 1.7 step 5.
+	 */
+	public function customer_permissions_check( WP_REST_Request $request ) {
+		if ( is_user_logged_in() && in_array( 'byzo_customer', (array) wp_get_current_user()->roles, true ) ) {
+			return true;
+		}
+
+		return new WP_Error(
+			'byzo_rest_forbidden',
+			__( 'You do not have permission to do this.', 'bookyzo' ),
+			array( 'status' => rest_authorization_required_code() )
+		);
+	}
 }

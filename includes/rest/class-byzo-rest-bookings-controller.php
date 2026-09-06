@@ -22,7 +22,12 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_items' ),
-					'permission_callback' => array( $this, 'admin_permissions_check' ),
+					// Widened Phase 1.7 step 5 (DETAILED-SPEC.md §A11) — a
+					// logged-in byzo_customer may also call this, auto-scoped
+					// to their own bookings by get_items() below (never able
+					// to pass bookable_item_id/an arbitrary filter to see
+					// anyone else's rows — see get_items()'s own comment).
+					'permission_callback' => array( $this, 'admin_or_own_customer_permissions_check' ),
 					'args'                => array(
 						'from'             => array( 'type' => 'string' ),
 						'to'               => array( 'type' => 'string' ),
@@ -58,9 +63,13 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 		);
 
 		// Reschedule (DETAILED-SPEC.md §1.4/§A4, ROADMAP.md Phase 1.6 step
-		// 3) — admin-only, changes slot_id rather than status. Separate
-		// narrow route from the general status PUT above, same "only one
-		// field writable here" rule as /payment below.
+		// 3) — changes slot_id rather than status. Separate narrow route
+		// from the general status PUT above, same "only one field writable
+		// here" rule as /payment below. Widened Phase 1.7 step 5 to also
+		// accept a logged-in byzo_customer — reschedule_item() itself
+		// enforces the ownership check the permission callback alone can't
+		// (it needs the specific booking's customer_id, not just "is this
+		// caller a customer at all").
 		register_rest_route(
 			self::NAMESPACE_V1,
 			'/' . $this->get_rest_base() . '/(?P<id>\d+)/reschedule',
@@ -68,7 +77,27 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 				array(
 					'methods'             => WP_REST_Server::EDITABLE,
 					'callback'            => array( $this, 'reschedule_item' ),
-					'permission_callback' => array( $this, 'admin_permissions_check' ),
+					'permission_callback' => array( $this, 'admin_or_own_customer_permissions_check' ),
+				),
+			)
+		);
+
+		// Phase 1.7 step 5 (DETAILED-SPEC.md §A11) — the dashboard's own
+		// cancel action, a second authorization path onto the exact same
+		// cancellation policy the guest token link already enforces
+		// (BYZO_Booking::cancel_within_policy(), shared by both). Guest
+		// cancellation itself is untouched — this route is reachable only
+		// by a real logged-in session, never by admin_permissions_check's
+		// manage_options (the admin Bookings screen already has its own
+		// unrestricted status-PUT for that).
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/' . $this->get_rest_base() . '/(?P<id>\d+)/cancel-as-customer',
+			array(
+				array(
+					'methods'             => WP_REST_Server::EDITABLE,
+					'callback'            => array( $this, 'cancel_as_customer' ),
+					'permission_callback' => array( $this, 'customer_permissions_check' ),
 				),
 			)
 		);
@@ -110,16 +139,36 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 	}
 
 	public function get_items( WP_REST_Request $request ) {
-		$result = BYZO_Booking::query(
-			array(
-				'from'             => $request->get_param( 'from' ),
-				'to'               => $request->get_param( 'to' ),
-				'bookable_item_id' => $request->get_param( 'bookable_item_id' ),
-				'status'           => $request->get_param( 'status' ),
-				'per_page'         => $request->get_param( 'per_page' ),
-				'page'             => $request->get_param( 'page' ),
-			)
+		$args = array(
+			'from'             => $request->get_param( 'from' ),
+			'to'               => $request->get_param( 'to' ),
+			'bookable_item_id' => $request->get_param( 'bookable_item_id' ),
+			'status'           => $request->get_param( 'status' ),
+			'per_page'         => $request->get_param( 'per_page' ),
+			'page'             => $request->get_param( 'page' ),
 		);
+
+		// Phase 1.7 step 5 (DETAILED-SPEC.md §A11) — a byzo_customer caller
+		// is force-scoped to their own customer_id, resolved server-side
+		// from the real session, never from a request param (there is no
+		// customer_id request arg registered at all — see register_routes()
+		// — so a customer can't pass bookable_item_id/anything else to
+		// widen this beyond their own rows either). An admin's request is
+		// completely unaffected — customer_id stays 0, query()'s existing
+		// unscoped behavior.
+		if ( ! current_user_can( 'manage_options' ) ) {
+			$customer = BYZO_Customer::get_by_wp_user_id( get_current_user_id() );
+			$args     = array(
+				'from'      => $args['from'],
+				'to'        => $args['to'],
+				'status'    => $args['status'],
+				'per_page'  => $args['per_page'],
+				'page'      => $args['page'],
+				'customer_id' => $customer ? $customer['id'] : -1, // no linked row -> guaranteed zero results, never falls through to "unscoped".
+			);
+		}
+
+		$result = BYZO_Booking::query( $args );
 
 		$response = rest_ensure_response( $result['items'] );
 		$response->header( 'X-WP-Total', (string) $result['total'] );
@@ -191,6 +240,11 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 	/**
 	 * Body: `{ "slot_id": 123 }` — moves the booking to a different open
 	 * slot (BYZO_Booking::reschedule() does the actual work/validation).
+	 * Phase 1.7 step 5: a non-admin (byzo_customer) caller is additionally
+	 * required to own the booking — admin_or_own_customer_permissions_check()
+	 * only confirms "is this caller an admin or A customer," it has no way
+	 * to know which specific booking is being asked for, so the ownership
+	 * check has to happen here once $id is known.
 	 */
 	public function reschedule_item( WP_REST_Request $request ) {
 		$id   = (int) $request->get_param( 'id' );
@@ -200,6 +254,11 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return new WP_Error( 'byzo_missing_slot_id', __( 'slot_id is required.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
+		$ownership_check = $this->require_owns_booking_if_customer( $id );
+		if ( is_wp_error( $ownership_check ) ) {
+			return $ownership_check;
+		}
+
 		$result = BYZO_Booking::reschedule( $id, absint( $body['slot_id'] ) );
 
 		if ( is_wp_error( $result ) ) {
@@ -207,6 +266,50 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 		}
 
 		return rest_ensure_response( BYZO_Booking::get( $id ) );
+	}
+
+	/**
+	 * Phase 1.7 step 5 (DETAILED-SPEC.md §A11) — the dashboard's own
+	 * cancel action. No request body: the booking id in the URL plus the
+	 * caller's own session (customer_permissions_check already confirmed
+	 * it's a byzo_customer) is everything BYZO_Booking::cancel_as_customer()
+	 * needs — it re-derives the customer row and checks ownership itself,
+	 * same shape as cancel_via_token() re-deriving from a token rather than
+	 * trusting anything the request claims.
+	 */
+	public function cancel_as_customer( WP_REST_Request $request ) {
+		$id       = (int) $request->get_param( 'id' );
+		$customer = BYZO_Customer::get_by_wp_user_id( get_current_user_id() );
+
+		$result = BYZO_Booking::cancel_as_customer( $id, $customer ? $customer['id'] : 0 );
+
+		if ( is_wp_error( $result ) ) {
+			return $result;
+		}
+
+		return rest_ensure_response( BYZO_Booking::get( $id ) );
+	}
+
+	/**
+	 * Shared ownership guard for any admin-or-own-customer route that
+	 * needs to know about one SPECIFIC booking (reschedule, potentially
+	 * others later) — an admin always passes; a byzo_customer must own
+	 * the booking in question or gets the same 403 shape
+	 * customer_permissions_check() itself would return.
+	 */
+	private function require_owns_booking_if_customer( $booking_id ) {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+
+		$booking  = BYZO_Booking::get( $booking_id );
+		$customer = BYZO_Customer::get_by_wp_user_id( get_current_user_id() );
+
+		if ( ! $booking || ! $customer || (int) $booking['customer_id'] !== (int) $customer['id'] ) {
+			return new WP_Error( 'byzo_not_owner', __( 'This booking does not belong to your account.', 'bookyzo' ), array( 'status' => 403 ) );
+		}
+
+		return true;
 	}
 
 	/**

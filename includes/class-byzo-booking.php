@@ -80,6 +80,7 @@ class BYZO_Booking {
 			'to'               => '',
 			'bookable_item_id' => 0,
 			'status'           => '',
+			'customer_id'      => 0,
 			'per_page'         => 20,
 			'page'             => 1,
 		);
@@ -94,6 +95,17 @@ class BYZO_Booking {
 		if ( $args['bookable_item_id'] ) {
 			$where[]  = 'b.bookable_item_id = %d';
 			$params[] = (int) $args['bookable_item_id'];
+		}
+
+		// Phase 1.7 step 5 (DETAILED-SPEC.md §A11) — the dashboard-scoping
+		// filter for an authenticated byzo_customer request. Always passed
+		// by the REST controller for that caller, never client-suppliable
+		// as an arbitrary filter (see get_items()'s own permission check) —
+		// this is what actually prevents a customer from ever seeing
+		// another customer's rows, not just a UI convenience filter.
+		if ( $args['customer_id'] ) {
+			$where[]  = 'b.customer_id = %d';
+			$params[] = (int) $args['customer_id'];
 		}
 
 		// A comma-separated list is accepted alongside a single value
@@ -600,13 +612,54 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_invalid_token', __( 'This cancellation link is invalid.', 'bookyzo' ), array( 'status' => 403 ) );
 		}
 
+		return self::cancel_within_policy( $booking );
+	}
+
+	/**
+	 * Phase 1.7 step 5 (DETAILED-SPEC.md §A11) — the logged-in dashboard's
+	 * own cancel action. Ownership-by-session is a second valid
+	 * authorization path alongside cancel_via_token()'s token check, NOT a
+	 * replacement for it — the guest one-off link keeps working unchanged
+	 * for anyone who never creates an account. Same cancellation_hours
+	 * policy either way (cancel_within_policy() is the one shared guard
+	 * both entry points funnel through).
+	 *
+	 * @param int $id          Booking ID.
+	 * @param int $customer_id The requesting customer's own row id
+	 *                         (BYZO_Customer::get_by_wp_user_id() of the
+	 *                         current session) — the caller must have
+	 *                         already resolved this, this method only
+	 *                         checks it matches the booking's owner.
+	 */
+	public static function cancel_as_customer( $id, $customer_id ) {
+		$booking = self::get( $id );
+		if ( ! $booking ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		if ( ! $customer_id || (int) $booking['customer_id'] !== (int) $customer_id ) {
+			return new WP_Error( 'byzo_not_owner', __( 'This booking does not belong to your account.', 'bookyzo' ), array( 'status' => 403 ) );
+		}
+
+		return self::cancel_within_policy( $booking );
+	}
+
+	/**
+	 * The cancellation-eligibility guard both cancel_via_token() and
+	 * cancel_as_customer() share once their own authorization check has
+	 * already passed — status/window rules are identical either way, only
+	 * *who's allowed to ask* differs between the two callers.
+	 *
+	 * @return true|WP_Error
+	 */
+	private static function cancel_within_policy( $booking ) {
 		if ( ! in_array( $booking['status'], array( 'pending', 'confirmed' ), true ) ) {
 			return new WP_Error( 'byzo_invalid_transition', __( 'This booking cannot be cancelled.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
-		// byzo_settings.cancellation_hours: 0 disables guest cancellation
-		// entirely; otherwise it's only allowed while the slot is still
-		// more than this many hours away.
+		// byzo_settings.cancellation_hours: 0 disables self-service
+		// cancellation entirely; otherwise it's only allowed while the slot
+		// is still more than this many hours away.
 		$cancellation_hours = (int) BYZO_Settings::get()['cancellation_hours'];
 		if ( $cancellation_hours <= 0 ) {
 			return new WP_Error( 'byzo_cancellation_disabled', __( "Online cancellation isn't available for this booking — please contact us directly.", 'bookyzo' ), array( 'status' => 403 ) );
@@ -621,7 +674,7 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_cancellation_window_passed', __( 'This booking is too close to cancel online — please contact us directly.', 'bookyzo' ), array( 'status' => 403 ) );
 		}
 
-		return self::update_status( $id, 'cancelled' );
+		return self::update_status( $booking['id'], 'cancelled' );
 	}
 
 	/**

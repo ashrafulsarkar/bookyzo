@@ -31,8 +31,16 @@ async function request(path, options = {}) {
   return data;
 }
 
-// Reserved for Phase 1.7 step 5 (dashboard data: GET /bookings widened to
-// accept an authenticated byzo_customer request, auto-scoped server-side
-// to their own customer_id) — not called anywhere yet in step 4, which
-// only needs the logged-in state itself, not the booking list.
+// Phase 1.7 step 5 (dashboard data, DETAILED-SPEC.md §A11): GET /bookings
+// is now widened server-side to accept an authenticated byzo_customer
+// request, auto-scoped to their own customer_id — this call never passes
+// any filter param, since the server-side scoping is what actually
+// enforces "only your own rows," not a client-side filter that could be
+// omitted or tampered with.
 export const getMyBookings = () => request('/bookings');
+
+// Reuses the SAME PUT /bookings/{id}/cancel-as-customer route
+// BYZO_Booking::cancel_as_customer() backs — a second authorization path
+// onto the exact cancellation_hours policy the guest token link already
+// enforces, not a separate/looser rule for logged-in customers.
+export const cancelMyBooking = (bookingId) => request(`/bookings/${bookingId}/cancel-as-customer`, { method: 'PUT' });
