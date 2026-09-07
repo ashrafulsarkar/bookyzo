@@ -192,7 +192,8 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return $guard_check;
 		}
 
-		$id = BYZO_Booking::create( $request->get_json_params() );
+		$body = $request->get_json_params();
+		$id   = BYZO_Booking::create( $body );
 
 		if ( is_wp_error( $id ) ) {
 			return $id;
@@ -207,10 +208,81 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 		// matched to its actual use today.
 		$booking['manage_token'] = BYZO_Booking_Token::generate( $booking['id'], $booking['customer_email'] );
 
+		// Phase 1.7 step 6 (DETAILED-SPEC.md §A11) — booking-time account
+		// opt-in. Deliberately never fails the booking itself: the booking
+		// is the primary action the guest came here for, account creation
+		// is a bonus; a booking that already succeeded shouldn't be undone
+		// or errored out because e.g. the chosen email already has an
+		// account. `account_created`/`account_error` on the response let
+		// the widget tell the guest what happened without a second
+		// round-trip.
+		if ( ! empty( $body['create_account'] ) && ! empty( $body['password'] ) ) {
+			$account_result = self::maybe_create_account_for_booking( $booking, $body['password'] );
+			if ( is_wp_error( $account_result ) ) {
+				$booking['account_created'] = false;
+				$booking['account_error']   = $account_result->get_error_message();
+			} else {
+				$booking['account_created'] = true;
+			}
+		}
+
 		$response = rest_ensure_response( $booking );
 		$response->set_status( 201 );
 
 		return $response;
+	}
+
+	/**
+	 * Same registration logic BYZO_Customer_Auth::handle_register() uses
+	 * (email as username, byzo_customer role, links the wp_user_id onto
+	 * the customer row BYZO_Booking::create() already upserted above —
+	 * never creates a second customer row) — not called directly from
+	 * there since this is a JSON REST request, not an admin-post form
+	 * submit, but the underlying steps are identical. Silently no-ops
+	 * (returns a WP_Error, not a fatal) when customer_accounts_enabled is
+	 * off, matching every other capability gate in this doc.
+	 */
+	private static function maybe_create_account_for_booking( $booking, $password ) {
+		if ( ! BYZO_Customer_Auth::enabled() ) {
+			return new WP_Error( 'byzo_accounts_disabled', __( 'Customer accounts are not enabled on this site.', 'bookyzo' ) );
+		}
+
+		if ( strlen( (string) $password ) < 8 ) {
+			return new WP_Error( 'byzo_weak_password', __( 'Password must be at least 8 characters.', 'bookyzo' ) );
+		}
+
+		$email = $booking['customer_email'];
+
+		if ( email_exists( $email ) ) {
+			return new WP_Error( 'byzo_email_taken', __( 'An account with this email already exists.', 'bookyzo' ) );
+		}
+
+		$user_id = wp_insert_user(
+			array(
+				'user_login'   => $email,
+				'user_email'   => $email,
+				'user_pass'    => $password,
+				'display_name' => $booking['customer_name'],
+				'role'         => 'byzo_customer',
+			)
+		);
+
+		if ( is_wp_error( $user_id ) ) {
+			return $user_id;
+		}
+
+		// The booking's own create() call already upserted this customer
+		// row (by email) before this method ever runs — link onto it
+		// rather than upserting again, so we never risk creating a second
+		// row for the same email.
+		if ( ! empty( $booking['customer_id'] ) ) {
+			BYZO_Customer::update( $booking['customer_id'], array( 'wp_user_id' => $user_id ) );
+		}
+
+		wp_set_current_user( $user_id );
+		wp_set_auth_cookie( $user_id, true );
+
+		return true;
 	}
 
 	/**

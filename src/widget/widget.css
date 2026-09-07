@@ -103,6 +103,23 @@
   outline-offset: 1px;
 }
 
+.bookyzo-widget .field-account-optin {
+  gap: 8px;
+}
+
+.bookyzo-widget .checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.bookyzo-widget .checkbox-label input[type='checkbox'] {
+  width: auto;
+  margin: 0;
+}
+
 .bookyzo-widget .honeypot {
   position: absolute;
   left: -9999px;
@@ -290,4 +307,14 @@
 .bookyzo-widget .confirmation .add-to-calendar .sep {
   color: var(--byzo-text-muted);
   margin: 0 6px;
+}
+
+.bookyzo-widget .confirmation .account-note {
+  margin-top: 14px;
+  font-size: 13px;
+  color: var(--byzo-text-muted);
+}
+
+.bookyzo-widget .confirmation .account-note--error {
+  color: var(--byzo-danger);
 }

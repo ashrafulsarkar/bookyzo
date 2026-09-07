@@ -77,6 +77,12 @@ async function onDetailsSubmit(form) {
       // Honeypot — see BYZO_Public_Guard. Always empty for a real
       // visitor (the field is visually hidden in StepDetails.vue).
       website: form.website,
+      // Booking-time account opt-in (Phase 1.7 step 6) — only meaningful
+      // when create_account is true; the server ignores password
+      // otherwise. Omitted entirely (undefined) rather than sent as
+      // false/'' when the accounts feature is off, since StepDetails.vue
+      // never even renders the checkbox in that case.
+      ...(form.create_account ? { create_account: true, password: form.password } : {}),
     });
     createdBooking.value = booking;
 

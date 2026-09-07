@@ -158,14 +158,21 @@ class BYZO_Public_Widget {
 		$stripe   = class_exists( 'BYZO_Payment_Settings' ) ? BYZO_Payment_Settings::get()['gateways']['stripe'] : array();
 		$currency = class_exists( 'BYZO_Settings' ) ? BYZO_Settings::get()['currency'] : 'USD';
 
+		// customerAccountsEnabled added Phase 1.7 step 6 (DETAILED-SPEC.md
+		// §A11) — gates StepDetails.vue's "Create an account" checkbox the
+		// same way every other capability toggle in this doc gates its own
+		// UI: absent when off, not a disabled/greyed-out control.
+		$accounts_enabled = class_exists( 'BYZO_Settings' ) ? (bool) BYZO_Settings::get()['customer_accounts_enabled'] : false;
+
 		wp_add_inline_script(
 			'byzo-widget',
 			sprintf(
-				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s };',
+				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s };',
 				wp_json_encode( esc_url_raw( rest_url( 'bookyzo/v1' ) ) ),
 				wp_json_encode( ! empty( $stripe['enabled'] ) && ! empty( $stripe['publishable_key'] ) ),
 				wp_json_encode( $stripe['publishable_key'] ?? '' ),
-				wp_json_encode( $currency )
+				wp_json_encode( $currency ),
+				wp_json_encode( $accounts_enabled )
 			),
 			'before'
 		);

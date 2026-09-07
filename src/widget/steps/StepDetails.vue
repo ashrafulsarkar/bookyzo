@@ -27,6 +27,28 @@
       <textarea id="bw-notes" v-model="form.notes" rows="2" />
     </div>
 
+    <!-- Booking-time account opt-in (Phase 1.7 step 6, DETAILED-SPEC.md
+         §A11) — absent entirely when customer_accounts_enabled is off,
+         same "absent, not disabled" rule every other capability toggle in
+         this doc follows. Unchecked (the default) behaves exactly like
+         today's guest booking; checked, the account is created inside the
+         SAME POST /bookings call (BYZO_REST_Bookings_Controller's
+         maybe_create_account_for_booking()) rather than a second round trip. -->
+    <div v-if="accountsEnabled" class="field field-account-optin">
+      <label class="checkbox-label">
+        <input v-model="form.create_account" type="checkbox" />
+        Create an account to manage this booking later
+      </label>
+      <input
+        v-if="form.create_account"
+        v-model="form.password"
+        type="password"
+        placeholder="Choose a password"
+        autocomplete="new-password"
+        minlength="8"
+      />
+    </div>
+
     <!-- Honeypot (BYZO_Public_Guard) — visually hidden, never seen or
          filled by a real visitor, tabindex/autocomplete off so
          keyboard/autofill users can't stumble into it either. Bots that
@@ -73,6 +95,10 @@ const showPartySize = computed(() => props.item.type !== 'appointment');
 const partySizeLabel = computed(() => PARTY_SIZE_LABELS[props.item.type] || 'Party size');
 const partySizeMax = computed(() => Math.max(1, props.slot.capacity_remaining || 1));
 
+// Phase 1.7 step 6 — window.byzoWidget.customerAccountsEnabled (added
+// alongside restUrl/stripeEnabled/etc. by BYZO_Public_Widget::enqueue_assets()).
+const accountsEnabled = Boolean(window.byzoWidget && window.byzoWidget.customerAccountsEnabled);
+
 const form = reactive({
   party_size: 1,
   name: '',
@@ -80,6 +106,8 @@ const form = reactive({
   phone: '',
   notes: '',
   website: '',
+  create_account: false,
+  password: '',
 });
 
 const canSubmit = computed(
@@ -87,6 +115,7 @@ const canSubmit = computed(
     form.name.trim() !== '' &&
     /\S+@\S+\.\S+/.test(form.email) &&
     form.party_size >= 1 &&
-    form.party_size <= partySizeMax.value
+    form.party_size <= partySizeMax.value &&
+    (!form.create_account || form.password.length >= 8)
 );
 </script>

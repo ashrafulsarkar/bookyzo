@@ -19,6 +19,12 @@
       <span class="sep">·</span>
       <a href="#" @click.prevent="downloadIcs">Download .ics</a>
     </div>
+    <!-- Booking-time account opt-in result (Phase 1.7 step 6) — only
+         present at all when the widget actually sent create_account:true;
+         a booking that succeeded is never blocked or hidden behind this,
+         it's purely an acknowledgment of the secondary action. -->
+    <p v-if="booking?.account_created" class="account-note">Your account has been created — you're now logged in.</p>
+    <p v-else-if="booking?.account_error" class="account-note account-note--error">Your booking was made, but the account couldn't be created: {{ booking.account_error }}</p>
   </div>
 </template>
 
