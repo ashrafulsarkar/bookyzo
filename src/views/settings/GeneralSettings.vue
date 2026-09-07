@@ -80,6 +80,26 @@
 
         <Card>
           <CardHeader>
+            <CardTitle>Customer accounts</CardTitle>
+            <CardDescription>Let customers register, log in, and manage their own bookings.</CardDescription>
+          </CardHeader>
+          <CardContent class="flex flex-col gap-4">
+            <label class="flex items-center gap-2 text-sm">
+              <Switch v-model="form.customer_accounts_enabled" />
+              Enable customer accounts
+            </label>
+            <p class="text-xs text-muted-foreground">
+              When on, visitors can create an account at booking time or from the
+              <code>[bookyzo_account]</code> page you embed, and see their booking history,
+              reschedule, and cancel without contacting you. Off by default — turning it on
+              opens a real registration/login surface on your site. The existing one-off
+              "manage my booking" email link keeps working for guests either way.
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>Notifications</CardTitle>
           </CardHeader>
           <CardContent class="flex flex-col gap-4">
@@ -134,6 +154,11 @@ const form = ref({
   cancellation_hours: 24,
   send_confirmation_email: true,
   send_admin_notification: true,
+  // Phase 1.7 step 7 (DETAILED-SPEC.md §A11) — the last piece of the
+  // customer-accounts feature; backend support (BYZO_Settings, the role,
+  // the shortcode/bundle, every REST route) has existed since steps 1-6,
+  // this is purely the missing admin control to actually turn it on.
+  customer_accounts_enabled: false,
 });
 const loading = ref(true);
 const saving = ref(false);
