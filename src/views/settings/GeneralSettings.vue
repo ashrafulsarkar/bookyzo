@@ -60,6 +60,21 @@
           </CardContent>
         </Card>
 
+        <!-- Phase 2 step 4 (DETAILED-SPEC.md §A2) — the shared default a
+             bookable item can link to instead of its own schedule
+             (Bookable Items → Availability step, Pro-only link). Reuses
+             ByzoWeeklyScheduleGrid unchanged — same row shape as an item's
+             own schedule. -->
+        <Card>
+          <CardHeader>
+            <CardTitle>Business hours</CardTitle>
+            <CardDescription>The default weekly hours a bookable item can follow instead of setting its own.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ByzoWeeklyScheduleGrid v-model="form.business_hours" />
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Booking behavior</CardTitle>
@@ -139,6 +154,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoLoading from '@/components/base/ByzoLoading.vue';
+import ByzoWeeklyScheduleGrid from '@/components/base/ByzoWeeklyScheduleGrid.vue';
 import { api } from '@/api/client';
 
 // The single ongoing home for every byzo_settings field the setup
@@ -157,6 +173,7 @@ const form = ref({
   default_start_time: '09:00',
   default_end_time: '17:00',
   tax_rate: 0,
+  business_hours: [],
   require_phone: false,
   auto_confirm: false,
   cancellation_hours: 24,

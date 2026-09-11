@@ -248,6 +248,24 @@ class BYZO_Bookable_Item {
 			$out['status'] = 'active';
 		}
 
+		// Phase 2 step 4 — linking to the shared business-hours default
+		// instead of this item's own schedule (DETAILED-SPEC.md §A2).
+		// A simple boolean capability check, not a counting query, so it
+		// lives here with every other business-rule validation rather
+		// than in the REST controller (which is where check_type_cap()'s
+		// COUNT(*) query lives instead).
+		if ( isset( $data['uses_business_hours'] ) ) {
+			$uses_business_hours = (bool) $data['uses_business_hours'];
+			if ( $uses_business_hours && ! BYZO_Capabilities::business_hours_link_enabled() ) {
+				return new WP_Error(
+					'byzo_business_hours_link_not_available',
+					__( 'Linking to business hours is not available on your current plan.', 'bookyzo' ),
+					array( 'status' => 403 )
+				);
+			}
+			$out['uses_business_hours'] = $uses_business_hours;
+		}
+
 		return $out;
 	}
 
@@ -259,6 +277,7 @@ class BYZO_Bookable_Item {
 		$row['duration_minutes'] = (int) $row['duration_minutes'];
 		$row['location_id'] = $row['location_id'] ? (int) $row['location_id'] : null;
 		$row['group_id']    = $row['group_id'] ? (int) $row['group_id'] : null;
+		$row['uses_business_hours'] = (bool) $row['uses_business_hours'];
 
 		return $row;
 	}

@@ -42,6 +42,14 @@ class BYZO_Activator {
 		// the old table/columns. `location`/`meeting_link` added 2026-09-05
 		// (Phase 1.6, DETAILED-SPEC.md §1.1) — free-text, distinct from
 		// `location_id` above (Pro's structured multi-branch FK).
+		// `uses_business_hours` added 2026-09-11 (Phase 2 step 4,
+		// BYZO_DB_VERSION 1.6->1.7) — when true, this item's own
+		// wp_byzo_schedules rows are ignored and BYZO_Slot_Generator reads
+		// byzo_settings.business_hours instead
+		// (BYZO_Capabilities::business_hours_link_enabled(), Free=false/
+		// Pro=true). Column exists in Free's own schema regardless —
+		// "don't gate the data model" — the capability check lives in
+		// BYZO_Bookable_Item::validate().
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookable_items (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			type VARCHAR(20) NOT NULL DEFAULT 'appointment',
@@ -56,6 +64,7 @@ class BYZO_Activator {
 			location VARCHAR(255) NULL,
 			meeting_link VARCHAR(500) NULL,
 			group_id BIGINT UNSIGNED NULL,
+			uses_business_hours TINYINT(1) NOT NULL DEFAULT 0,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),

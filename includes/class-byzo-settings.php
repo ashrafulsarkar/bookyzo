@@ -51,6 +51,14 @@ class BYZO_Settings {
 			// login/register UI and the widget's booking-time "Create an
 			// account" opt-in. Inert (no wp_user_id ever created) while off.
 			'customer_accounts_enabled' => false,
+			// Added 2026-09-11 (Phase 2 step 4, DETAILED-SPEC.md §A2) — the
+			// shared weekly schedule a bookable item can link to instead of
+			// keeping its own (`bookable_items.uses_business_hours`, Pro-only
+			// per BYZO_Capabilities::business_hours_link_enabled()). Same row
+			// shape as a bookable item's own schedule (weekday/start_time/
+			// end_time/shift_group) so it reuses ByzoWeeklyScheduleGrid.vue
+			// unchanged. Empty array = not configured yet.
+			'business_hours'            => array(),
 		);
 
 		return wp_parse_args( get_option( 'byzo_settings', array() ), $defaults );
@@ -138,10 +146,64 @@ class BYZO_Settings {
 			$patch['tax_rate'] = $tax_rate;
 		}
 
+		if ( isset( $data['business_hours'] ) ) {
+			$rows = self::validate_business_hours( $data['business_hours'] );
+			if ( is_wp_error( $rows ) ) {
+				return $rows;
+			}
+			$patch['business_hours'] = $rows;
+		}
+
 		$updated = array_merge( $current, $patch );
 		update_option( 'byzo_settings', $updated );
 
 		return $updated;
+	}
+
+	/**
+	 * Validates the `business_hours` row list — same weekday/start_time/
+	 * end_time/shift_group shape and start<end rule as
+	 * BYZO_Availability::set_schedules(), deliberately WITHOUT that
+	 * method's max_shifts_per_day cap: this is the business's own default,
+	 * not a per-item schedule subject to the Free/Pro shift-count limit.
+	 *
+	 * @return array|WP_Error Sanitized rows, or WP_Error.
+	 */
+	private static function validate_business_hours( $rows ) {
+		if ( ! is_array( $rows ) ) {
+			return new WP_Error( 'byzo_invalid_business_hours', __( 'business_hours must be an array of schedule rows.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$validated = array();
+
+		foreach ( $rows as $row ) {
+			if ( ! is_array( $row ) || ! isset( $row['weekday'], $row['start_time'], $row['end_time'] ) ) {
+				return new WP_Error( 'byzo_invalid_business_hours', __( 'Each business_hours row needs weekday, start_time, and end_time.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+
+			$weekday = (int) $row['weekday'];
+			if ( $weekday < 0 || $weekday > 6 ) {
+				return new WP_Error( 'byzo_invalid_weekday', __( 'weekday must be 0-6.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+
+			$start = self::sanitize_time( $row['start_time'] );
+			$end   = self::sanitize_time( $row['end_time'] );
+			if ( ! $start || ! $end ) {
+				return new WP_Error( 'byzo_invalid_time', __( 'business_hours start_time/end_time must be valid times (H:i).', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			if ( $start >= $end ) {
+				return new WP_Error( 'byzo_invalid_time_range', __( 'business_hours start_time must be before end_time.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+
+			$validated[] = array(
+				'weekday'     => $weekday,
+				'start_time'  => $start,
+				'end_time'    => $end,
+				'shift_group' => isset( $row['shift_group'] ) ? max( 0, (int) $row['shift_group'] ) : 0,
+			);
+		}
+
+		return $validated;
 	}
 
 	private static function is_valid_timezone( $timezone ) {

@@ -45,7 +45,23 @@
       </div>
 
       <template v-else>
-        <ByzoWeeklyScheduleGrid v-model="schedules" />
+        <!-- Phase 2 step 4 (DETAILED-SPEC.md §A2) — link to the shared
+             business-hours default instead of this item's own schedule.
+             Visible in Free too (the real wall is server-side, same
+             pattern as the shift-count cap) — not shown during onboarding
+             (`compact`), since business hours aren't necessarily
+             configured yet at that point in the flow. -->
+        <label v-if="!compact" class="mb-4 flex items-center gap-2 text-sm">
+          <Switch v-model="usesBusinessHours" />
+          Use business hours instead of a custom schedule
+        </label>
+
+        <div v-if="usesBusinessHours" class="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
+          This bookable item will follow your business hours and update automatically whenever they change.
+          Manage them under <strong>Settings → Business hours</strong>. Turn this off to set a custom schedule for
+          just this item instead.
+        </div>
+        <ByzoWeeklyScheduleGrid v-else v-model="schedules" />
 
         <!-- Date exceptions (a holiday, or one-off hours for a specific
              date). Optional, and hidden during onboarding (`compact`). -->
@@ -139,6 +155,8 @@ const schedules = ref(
         shift_group: 0,
       }))
 );
+
+const usesBusinessHours = ref(Boolean(props.initial?.uses_business_hours));
 
 const exceptions = ref(Array.isArray(props.initial?.exceptions) ? props.initial.exceptions.map((x) => ({ ...x })) : []);
 const exceptionDraft = ref({ date: '', is_closed: true, start_time: props.defaultStartTime, end_time: props.defaultEndTime });
@@ -256,6 +274,7 @@ function continueStep() {
   emit('next', {
     schedules: schedules.value.map((s) => ({ ...s })),
     exceptions: exceptions.value.map((x) => ({ ...x })),
+    uses_business_hours: usesBusinessHours.value,
   });
 }
 </script>

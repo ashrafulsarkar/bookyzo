@@ -154,6 +154,7 @@ function emptyData() {
     capacity: 1,
     location: '',
     meeting_link: '',
+    uses_business_hours: false,
     schedules: null,
     exceptions: null,
     occurrences: null,
@@ -287,6 +288,7 @@ async function loadItem(id) {
       capacity: item.capacity || 1,
       location: item.location || '',
       meeting_link: item.meeting_link || '',
+      uses_business_hours: Boolean(item.uses_business_hours),
       price: item.price === null || item.price === undefined ? null : String(item.price),
       schedules,
       exceptions,
@@ -338,6 +340,10 @@ function buildPayload() {
     photo_id: wizardData.photo_id || null,
     location: wizardData.location || null,
     meeting_link: wizardData.meeting_link || null,
+    // Meaningless for event items (no weekly schedule at all) — always
+    // false there since AvailabilityStep.vue never shows this toggle for
+    // that type, sent unconditionally anyway since it's harmless either way.
+    uses_business_hours: Boolean(wizardData.uses_business_hours),
   };
   // Event's duration comes from each occurrence (Dates step); the field
   // is hidden for it — don't send a value the owner never saw.
@@ -372,7 +378,14 @@ async function syncSchedule(id) {
     return;
   }
 
-  await api.put(`/bookable-items/${id}/availability`, { schedules: wizardData.schedules || [] });
+  // Linked items keep whatever custom schedule they last had dormant on
+  // the server (BYZO_Slot_Generator ignores it while linked) rather than
+  // having it silently overwritten by whatever the hidden grid still
+  // holds locally — see DETAILED-SPEC.md §A2. Exceptions still sync
+  // either way: a linked staff member can still take an individual day off.
+  if (!wizardData.uses_business_hours) {
+    await api.put(`/bookable-items/${id}/availability`, { schedules: wizardData.schedules || [] });
+  }
 
   for (const exceptionId of [...original.exceptionIds]) {
     if (!(wizardData.exceptions || []).some((x) => x.id === exceptionId)) {

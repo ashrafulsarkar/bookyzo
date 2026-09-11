@@ -44,8 +44,19 @@ class BYZO_Slot_Generator {
 		$days_ahead = max( 0, $days_ahead );
 
 		$availability = BYZO_Availability::get_for_bookable_item( $bookable_item_id );
+
+		// Phase 2 step 4 (DETAILED-SPEC.md §A2) — a business-hours-linked
+		// item ignores its own wp_byzo_schedules rows entirely (left
+		// in place, inert, in case it's ever unlinked again) and follows
+		// byzo_settings.business_hours instead. Exceptions (blackouts/
+		// one-off hours) stay per-item either way — a linked staff member
+		// can still take an individual day off.
+		$schedule_rows = ! empty( $item['uses_business_hours'] )
+			? BYZO_Settings::get()['business_hours']
+			: $availability['schedules'];
+
 		$schedules_by_weekday = array();
-		foreach ( $availability['schedules'] as $row ) {
+		foreach ( $schedule_rows as $row ) {
 			$schedules_by_weekday[ (int) $row['weekday'] ][] = $row;
 		}
 
