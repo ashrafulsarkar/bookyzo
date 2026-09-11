@@ -131,6 +131,8 @@ Initial release.
 * `byzo_max_bookable_items_per_type` — ( int $max ) Active bookable items allowed per booking type. Default `1`.
 * `byzo_max_shifts_per_day` — ( int $max ) Shifts per day in a bookable item's weekly schedule. Default `1`.
 * `byzo_business_hours_link_enabled` — ( bool $enabled ) Whether a bookable item may link its schedule to the shared business-hours default instead of keeping its own. Default `false`.
+* `byzo_bookable_items_offering_service` — ( int[] $bookable_item_ids, int $service_id ) Which bookable items offer a given service, for "any available staff" resolution. Default `array()`.
+* `byzo_service_price` — ( float|null $price, int $service_id, int $bookable_item_id ) Resolved price for a service booked with a specific staff member. Default `null` (falls back to the bookable item's own price).
 * `byzo_deposits_enabled` — ( bool $enabled ) Whether deposit/partial payments are available. Default `false`.
 * `byzo_default_settings` — ( array $defaults ) Default values seeded into the business-settings option on activation.
 * `byzo_rest_controllers` — ( array $controllers ) REST controller instances registered on `rest_api_init`.

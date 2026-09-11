@@ -124,11 +124,17 @@ class BYZO_Activator {
 		// the data model" pattern as `custom_fields` below. `attendees`
 		// added 2026-09-06 (Phase 1.7 step 1, DETAILED-SPEC.md §1.4) —
 		// reserved the same way; only consumed once Phase 2 step 20 flips
-		// the `byzo_collect_attendee_details` filter on.
+		// the `byzo_collect_attendee_details` filter on. `service_id` added
+		// 2026-09-11 (Phase 2 step 5, BYZO_DB_VERSION 1.7->1.8,
+		// DETAILED-SPEC.md §3 B7) — which Pro-owned wp_byzo_services row this
+		// booking was for (NULL for every booking made the way Free already
+		// works, direct staff pick, no service concept); drives
+		// payment_amount's price resolution when set.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
 			bookable_item_id BIGINT UNSIGNED NOT NULL,
+			service_id BIGINT UNSIGNED NULL,
 			customer_id BIGINT UNSIGNED NULL,
 			customer_name VARCHAR(255) NOT NULL,
 			customer_email VARCHAR(255) NOT NULL,

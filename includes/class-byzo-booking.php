@@ -301,14 +301,97 @@ class BYZO_Booking {
 	 * @return int|WP_Error New booking ID, or WP_Error.
 	 */
 	public static function create( $data ) {
-		global $wpdb;
-
 		$validated = self::validate_for_create( $data );
 		if ( is_wp_error( $validated ) ) {
 			return $validated;
 		}
 
+		// Phase 2 step 5 (DETAILED-SPEC.md §3 B7) — "any available staff":
+		// booking by service_id + start_datetime instead of a specific
+		// slot_id delegates to create_for_service(), which resolves WHICH
+		// staff member's slot to actually claim. A direct slot_id booking
+		// (every Free booking, and any Pro booking where the customer
+		// picked a specific staff member) is completely unchanged below.
+		if ( $validated['service_id'] ) {
+			return self::create_for_service( $validated );
+		}
+
 		$slot = BYZO_Slot::get( $validated['slot_id'] );
+		if ( ! $slot || 'open' !== $slot['status'] ) {
+			return new WP_Error( 'byzo_slot_unavailable', __( 'This time slot is no longer available.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
+
+		return self::attempt_create_on_slot( $slot, $validated, null );
+	}
+
+	/**
+	 * "Any available staff" resolution (DETAILED-SPEC.md §3 B7, Phase 2
+	 * step 5): finds every bookable item that offers $validated['service_id']
+	 * (via the byzo_bookable_items_offering_service filter — Free has no
+	 * services table of its own, Pro's BYZOP_Services hooks this), then
+	 * every one of THEIR slots open at the requested start_datetime, and
+	 * tries the same atomic capacity claim attempt_create_on_slot() uses
+	 * against each candidate in turn until one succeeds. A slot-specific
+	 * failure (raced away between the SELECT and the UPDATE) tries the
+	 * next candidate rather than failing the whole request — that's the
+	 * entire point of "any available staff." Any other kind of error
+	 * (a real DB failure) propagates immediately instead of being masked
+	 * by a misleading "nothing was available" response.
+	 *
+	 * @return int|WP_Error
+	 */
+	private static function create_for_service( $validated ) {
+		/**
+		 * Filters which bookable item IDs offer a given service. Free
+		 * always returns the untouched default (none) — this is a Pro
+		 * concept (wp_byzo_bookable_item_services); the filter point lives
+		 * in Free so /bookings doesn't need to know Pro's table shape.
+		 *
+		 * @param int[] $bookable_item_ids
+		 * @param int   $service_id
+		 */
+		$candidates = apply_filters( 'byzo_bookable_items_offering_service', array(), $validated['service_id'] );
+		$candidates = array_values( array_filter( array_map( 'absint', (array) $candidates ) ) );
+
+		if ( empty( $candidates ) ) {
+			return new WP_Error( 'byzo_service_unavailable', __( 'No staff currently offer this service.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$slots = BYZO_Slot::open_at( $candidates, $validated['start_datetime'] );
+
+		if ( empty( $slots ) ) {
+			return new WP_Error( 'byzo_slot_unavailable', __( 'This time is no longer available.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
+
+		foreach ( $slots as $slot ) {
+			$result = self::attempt_create_on_slot( $slot, $validated, $validated['service_id'] );
+
+			if ( ! is_wp_error( $result ) ) {
+				return $result;
+			}
+
+			if ( ! in_array( $result->get_error_code(), array( 'byzo_slot_full', 'byzo_slot_unavailable' ), true ) ) {
+				return $result;
+			}
+		}
+
+		return new WP_Error( 'byzo_slot_full', __( 'This time was just booked by someone else. Please pick another time.', 'bookyzo' ), array( 'status' => 409 ) );
+	}
+
+	/**
+	 * The actual atomic-claim-and-insert, shared by both the direct
+	 * slot_id path and create_for_service()'s candidate loop above — this
+	 * is exactly what create() used to do inline before Phase 2 step 5
+	 * needed the same logic reusable against more than one candidate slot.
+	 *
+	 * @param array    $slot       A BYZO_Slot::cast() row (already known open at call time — re-checked atomically below regardless).
+	 * @param array    $validated  validate_for_create()'s return value.
+	 * @param int|null $service_id Null for a direct booking; the service being booked otherwise (drives price resolution and is stored on the row).
+	 * @return int|WP_Error New booking ID, or WP_Error — byzo_slot_full/byzo_slot_unavailable specifically mean THIS slot didn't work (the caller may have another candidate to try), anything else is a real failure.
+	 */
+	private static function attempt_create_on_slot( $slot, $validated, $service_id ) {
+		global $wpdb;
+
 		if ( ! $slot || 'open' !== $slot['status'] ) {
 			return new WP_Error( 'byzo_slot_unavailable', __( 'This time slot is no longer available.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
@@ -339,15 +422,31 @@ class BYZO_Booking {
 
 		$now = current_time( 'mysql' );
 
-		// payment_amount is ALWAYS server-computed from the bookable item's
-		// own price, never taken from client input (validate_for_create()
-		// doesn't even look at a client-supplied payment_amount — see its
-		// docblock) — this is what BYZO_Stripe's payment-intent creation
-		// charges, so trusting a client-suppliable amount here would let a
-		// guest pay $0.01 for an expensive service. NULL price (a free
-		// item, DETAILED-SPEC.md §1.1) means nothing to charge.
-		$item            = BYZO_Bookable_Item::get( $slot['bookable_item_id'] );
-		$subtotal        = ( $item && null !== $item['price'] ) ? round( $item['price'] * $party_size, 2 ) : null;
+		// payment_amount is ALWAYS server-computed, never taken from client
+		// input (validate_for_create() doesn't even look at a
+		// client-supplied payment_amount — see its docblock) — this is what
+		// BYZO_Stripe's payment-intent creation charges, so trusting a
+		// client-suppliable amount here would let a guest pay $0.01 for an
+		// expensive service. NULL price (a free item, DETAILED-SPEC.md
+		// §1.1) means nothing to charge.
+		//
+		// Default source is the bookable item's own price; a service
+		// booking (Phase 2 step 5, DETAILED-SPEC.md §3 B7) overrides it via
+		// byzo_service_price — Pro resolves wp_byzo_bookable_item_services'
+		// price_override, falling back to the service's own default_price.
+		// Free never hooks this filter, so a direct (non-service) booking
+		// is byte-for-byte the same computation as before this step.
+		$item      = BYZO_Bookable_Item::get( $slot['bookable_item_id'] );
+		$unit_price = $item ? $item['price'] : null;
+
+		if ( $service_id ) {
+			$service_price = apply_filters( 'byzo_service_price', null, $service_id, $slot['bookable_item_id'] );
+			if ( null !== $service_price ) {
+				$unit_price = (float) $service_price;
+			}
+		}
+
+		$subtotal = null !== $unit_price ? round( $unit_price * $party_size, 2 ) : null;
 
 		// Flat site-wide tax rate (added 2026-09-05, Phase 1.5 step 9,
 		// DETAILED-SPEC.md §A7) — tax_amount is broken out from
@@ -376,6 +475,7 @@ class BYZO_Booking {
 		$row = array(
 			'slot_id'          => $slot['id'],
 			'bookable_item_id' => $slot['bookable_item_id'],
+			'service_id'       => $service_id ?: null,
 			'customer_id'      => $customer_id ?: null,
 			'customer_name'    => $validated['customer_name'],
 			'customer_email'   => $validated['customer_email'],
@@ -710,7 +810,24 @@ class BYZO_Booking {
 	}
 
 	private static function validate_for_create( $data ) {
-		if ( empty( $data['slot_id'] ) ) {
+		// Phase 2 step 5 (DETAILED-SPEC.md §3 B7) — "any available staff":
+		// service_id + start_datetime is an alternative to a direct
+		// slot_id, not an addition to it. Free never sends the service
+		// path (no service picker exists there); Pro's widget does when
+		// the customer books by service rather than by staff member.
+		$service_id     = ! empty( $data['service_id'] ) ? absint( $data['service_id'] ) : 0;
+		$start_datetime = null;
+
+		if ( $service_id ) {
+			if ( empty( $data['start_datetime'] ) ) {
+				return new WP_Error( 'byzo_missing_start_datetime', __( 'start_datetime is required when booking by service_id.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+
+			$start_datetime = self::sanitize_datetime( $data['start_datetime'] );
+			if ( ! $start_datetime ) {
+				return new WP_Error( 'byzo_invalid_start_datetime', __( 'start_datetime must be a valid datetime (Y-m-d H:i:s).', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+		} elseif ( empty( $data['slot_id'] ) ) {
 			return new WP_Error( 'byzo_missing_slot_id', __( 'slot_id is required.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
@@ -732,17 +849,31 @@ class BYZO_Booking {
 		$party_size = isset( $data['party_size'] ) ? max( 1, absint( $data['party_size'] ) ) : 1;
 
 		return array(
-			'slot_id'        => absint( $data['slot_id'] ),
+			'slot_id'        => $service_id ? null : absint( $data['slot_id'] ),
+			'service_id'     => $service_id ?: null,
+			'start_datetime' => $start_datetime,
 			'customer_name'  => sanitize_text_field( $data['customer_name'] ),
 			'customer_email' => sanitize_email( $data['customer_email'] ),
 			'customer_phone' => isset( $data['customer_phone'] ) ? sanitize_text_field( $data['customer_phone'] ) : null,
 			'customer_notes' => isset( $data['customer_notes'] ) ? wp_kses_post( $data['customer_notes'] ) : null,
 			'party_size'     => $party_size,
 			// No 'payment_amount' here — see create()'s comment; it's
-			// always server-computed from the bookable item's price, never
-			// accepted from client input.
+			// always server-computed, never accepted from client input.
 			'custom_fields'  => isset( $data['custom_fields'] ) && is_array( $data['custom_fields'] ) ? $data['custom_fields'] : array(),
 		);
+	}
+
+	/**
+	 * Y-m-d H:i:s only (not the looser H:i BYZO_Availability/BYZO_Slot
+	 * accept elsewhere) — this value is compared for exact equality
+	 * against wp_byzo_slots.start_datetime (BYZO_Slot::open_at()), not
+	 * used to build a range, so it must already be in the slot table's
+	 * own stored format.
+	 */
+	private static function sanitize_datetime( $value ) {
+		$value = trim( (string) $value );
+		$dt    = DateTime::createFromFormat( 'Y-m-d H:i:s', $value );
+		return ( $dt && $dt->format( 'Y-m-d H:i:s' ) === $value ) ? $value : false;
 	}
 
 	/**
@@ -790,6 +921,7 @@ class BYZO_Booking {
 		$row['id']             = (int) $row['id'];
 		$row['slot_id']        = $row['slot_id'] ? (int) $row['slot_id'] : null;
 		$row['bookable_item_id'] = (int) $row['bookable_item_id'];
+		$row['service_id']     = isset( $row['service_id'] ) && $row['service_id'] ? (int) $row['service_id'] : null;
 		$row['customer_id']    = $row['customer_id'] ? (int) $row['customer_id'] : null;
 		$row['party_size']     = (int) $row['party_size'];
 		$row['payment_amount'] = null === $row['payment_amount'] ? null : (float) $row['payment_amount'];

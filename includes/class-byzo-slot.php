@@ -93,6 +93,74 @@ class BYZO_Slot {
 		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
 	}
 
+	/**
+	 * Open slots across multiple bookable items in a date range, merged
+	 * into one chronological list — the "any available staff" browsing
+	 * query (DETAILED-SPEC.md §3 B7, Phase 2 step 5): a service's widget
+	 * picker shows one combined list of bookable times, not a per-staff
+	 * breakdown. Thin wrapper around query() (reuses its from/to
+	 * validation rather than duplicating it) — fine for the handful of
+	 * staff a single service realistically has; not meant for a
+	 * hundred-bookable-item aggregate.
+	 *
+	 * @param int[] $bookable_item_ids
+	 * @param array $args Same shape as query() minus bookable_item_id.
+	 * @return array|WP_Error
+	 */
+	public static function query_for_bookable_items( $bookable_item_ids, $args = array() ) {
+		$bookable_item_ids = array_values( array_filter( array_map( 'absint', (array) $bookable_item_ids ) ) );
+
+		if ( empty( $bookable_item_ids ) ) {
+			return array();
+		}
+
+		$merged = array();
+
+		foreach ( $bookable_item_ids as $bookable_item_id ) {
+			$slots = self::query( array_merge( $args, array( 'bookable_item_id' => $bookable_item_id ) ) );
+			if ( is_wp_error( $slots ) ) {
+				return $slots;
+			}
+			$merged = array_merge( $merged, $slots );
+		}
+
+		usort( $merged, static function ( $a, $b ) {
+			return strcmp( $a['start_datetime'], $b['start_datetime'] );
+		} );
+
+		return $merged;
+	}
+
+	/**
+	 * Every OPEN slot starting at exactly $start_datetime across the given
+	 * bookable items — the "any available staff" resolution query
+	 * (DETAILED-SPEC.md §3 B7, Phase 2 step 5).
+	 * BYZO_Booking::create_for_service() tries each returned candidate in
+	 * turn until one's atomic capacity claim succeeds, so a stable
+	 * (bookable_item_id ASC) order matters more than any particular
+	 * "fairness" ordering — it just needs to be deterministic.
+	 *
+	 * @param int[]  $bookable_item_ids
+	 * @param string $start_datetime Y-m-d H:i:s.
+	 * @return array Cast slot rows.
+	 */
+	public static function open_at( $bookable_item_ids, $start_datetime ) {
+		global $wpdb;
+
+		$bookable_item_ids = array_filter( array_map( 'absint', (array) $bookable_item_ids ) );
+		if ( empty( $bookable_item_ids ) ) {
+			return array();
+		}
+
+		$placeholders = implode( ',', array_fill( 0, count( $bookable_item_ids ), '%d' ) );
+		$sql          = 'SELECT * FROM ' . self::table() . " WHERE bookable_item_id IN ({$placeholders}) AND start_datetime = %s AND status = 'open' AND capacity_remaining > 0 ORDER BY bookable_item_id ASC"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+		$params       = array_merge( array_values( $bookable_item_ids ), array( $start_datetime ) );
+
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+
+		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
+	}
+
 	public static function get( $id ) {
 		global $wpdb;
 
