@@ -173,6 +173,59 @@ class BYZO_Slot {
 	}
 
 	/**
+	 * Occupancy rate per bookable item over [from, to) — Pro's Analytics
+	 * dashboard (DETAILED-SPEC.md §3 B8, Phase 2 step 10). Defined as the
+	 * fraction of a bookable item's OFFERED time slots that received at
+	 * least one booking, not a capacity-weighted fill rate:
+	 * capacity_remaining is mutated in place with no stored "original
+	 * capacity" column, so there's no reliable way to compute a true
+	 * capacity-weighted number for a slot generated under a
+	 * since-changed capacity setting. 'blocked' slots (blackout dates,
+	 * Pro's calendar-sync busy blocks) are excluded from the denominator
+	 * entirely — they were never actually offered, so they don't belong
+	 * in an occupancy calculation either way.
+	 *
+	 * @return array<int,array{bookable_item_id:int,total_slots:int,booked_slots:int,rate:float}>
+	 */
+	public static function get_occupancy_by_bookable_item( DateTime $from, DateTime $to ) {
+		global $wpdb;
+
+		$slots_table    = self::table();
+		$bookings_table = $wpdb->prefix . 'byzo_bookings';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT s.bookable_item_id,
+				        COUNT(DISTINCT s.id) AS total_slots,
+				        COUNT(DISTINCT CASE WHEN b.id IS NOT NULL THEN s.id END) AS booked_slots
+				 FROM {$slots_table} s
+				 LEFT JOIN {$bookings_table} b ON b.slot_id = s.id AND b.status NOT IN ('cancelled','rejected')
+				 WHERE s.status IN ('open','full') AND s.start_datetime >= %s AND s.start_datetime < %s
+				 GROUP BY s.bookable_item_id",
+				$from->format( 'Y-m-d H:i:s' ),
+				$to->format( 'Y-m-d H:i:s' )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		return array_map(
+			static function ( $row ) {
+				$total  = (int) $row['total_slots'];
+				$booked = (int) $row['booked_slots'];
+				return array(
+					'bookable_item_id' => (int) $row['bookable_item_id'],
+					'total_slots'      => $total,
+					'booked_slots'     => $booked,
+					'rate'             => $total > 0 ? $booked / $total : 0.0,
+				);
+			},
+			$rows ?: array()
+		);
+	}
+
+	/**
 	 * Flips one slot from 'open' to 'blocked' — the same status value
 	 * BYZO_Slot_Generator::block_slots_on_dates() already uses for blackout
 	 * dates (Phase 0), reused here as the generic "unbookable, not because

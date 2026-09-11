@@ -290,6 +290,248 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * Revenue summed per bookable item over [from, to) — same
+	 * SUM(payment_amount) WHERE payment_status IN (...) as get_revenue(),
+	 * grouped. Pro's Analytics dashboard (DETAILED-SPEC.md §3 B8,
+	 * Phase 2 step 10); Free itself only ever shows the one-number total.
+	 *
+	 * @return array<int,array{bookable_item_id:int,revenue:float,count:int}>
+	 */
+	public static function get_revenue_by_bookable_item( DateTime $from, DateTime $to ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT b.bookable_item_id, SUM(b.payment_amount) AS revenue, COUNT(*) AS count
+				 FROM {$bookings_table} b
+				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
+				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 AND b.payment_status IN ('paid_manual','paid_online')
+				 GROUP BY b.bookable_item_id",
+				$from->format( 'Y-m-d H:i:s' ),
+				$to->format( 'Y-m-d H:i:s' )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		return array_map(
+			static function ( $row ) {
+				return array(
+					'bookable_item_id' => (int) $row['bookable_item_id'],
+					'revenue'          => (float) $row['revenue'],
+					'count'            => (int) $row['count'],
+				);
+			},
+			$rows ?: array()
+		);
+	}
+
+	/**
+	 * Same as get_revenue_by_bookable_item(), grouped by booking type
+	 * instead (appointment/table/event/slot).
+	 *
+	 * @return array<int,array{type:string,revenue:float,count:int}>
+	 */
+	public static function get_revenue_by_type( DateTime $from, DateTime $to ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+		$items_table    = $wpdb->prefix . 'byzo_bookable_items';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT i.type, SUM(b.payment_amount) AS revenue, COUNT(*) AS count
+				 FROM {$bookings_table} b
+				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
+				 INNER JOIN {$items_table} i ON i.id = b.bookable_item_id
+				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 AND b.payment_status IN ('paid_manual','paid_online')
+				 GROUP BY i.type",
+				$from->format( 'Y-m-d H:i:s' ),
+				$to->format( 'Y-m-d H:i:s' )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		return array_map(
+			static function ( $row ) {
+				return array(
+					'type'    => $row['type'],
+					'revenue' => (float) $row['revenue'],
+					'count'   => (int) $row['count'],
+				);
+			},
+			$rows ?: array()
+		);
+	}
+
+	/**
+	 * No-show rate over [from, to) — no_show / (completed + no_show),
+	 * overall and per bookable item. Deliberately excludes
+	 * cancelled/rejected/pending from the denominator: a no-show rate is
+	 * about people who booked and didn't show up, not every possible
+	 * booking outcome.
+	 *
+	 * @return array{overall:array{no_show:int,completed:int,rate:float},by_bookable_item:array<int,array{bookable_item_id:int,no_show:int,completed:int,rate:float}>}
+	 */
+	public static function get_no_show_rate( DateTime $from, DateTime $to ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT b.bookable_item_id, b.status, COUNT(*) AS count
+				 FROM {$bookings_table} b
+				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
+				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 AND b.status IN ('completed','no_show')
+				 GROUP BY b.bookable_item_id, b.status",
+				$from->format( 'Y-m-d H:i:s' ),
+				$to->format( 'Y-m-d H:i:s' )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		$by_item       = array();
+		$overall_no_show  = 0;
+		$overall_completed = 0;
+
+		foreach ( $rows ?: array() as $row ) {
+			$id = (int) $row['bookable_item_id'];
+			if ( ! isset( $by_item[ $id ] ) ) {
+				$by_item[ $id ] = array(
+					'bookable_item_id' => $id,
+					'no_show'          => 0,
+					'completed'        => 0,
+				);
+			}
+			$by_item[ $id ][ $row['status'] ] = (int) $row['count'];
+
+			if ( 'no_show' === $row['status'] ) {
+				$overall_no_show += (int) $row['count'];
+			} else {
+				$overall_completed += (int) $row['count'];
+			}
+		}
+
+		foreach ( $by_item as &$item ) {
+			$denominator  = $item['no_show'] + $item['completed'];
+			$item['rate'] = $denominator > 0 ? $item['no_show'] / $denominator : 0.0;
+		}
+		unset( $item );
+
+		$overall_denominator = $overall_no_show + $overall_completed;
+
+		return array(
+			'overall'          => array(
+				'no_show'   => $overall_no_show,
+				'completed' => $overall_completed,
+				'rate'      => $overall_denominator > 0 ? $overall_no_show / $overall_denominator : 0.0,
+			),
+			'by_bookable_item' => array_values( $by_item ),
+		);
+	}
+
+	/**
+	 * Which bookable items got booked most over [from, to), busiest first.
+	 * Every non-cancelled/rejected booking counts (pending/confirmed/
+	 * completed/no_show all reflect real demand for that item, unlike the
+	 * no-show/revenue metrics above which specifically care about outcome).
+	 *
+	 * @return array<int,array{bookable_item_id:int,count:int}>
+	 */
+	public static function get_popular_bookable_items( DateTime $from, DateTime $to, $limit = 10 ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+		$limit          = max( 1, min( 50, (int) $limit ) );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT b.bookable_item_id, COUNT(*) AS count
+				 FROM {$bookings_table} b
+				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
+				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 AND b.status NOT IN ('cancelled','rejected')
+				 GROUP BY b.bookable_item_id
+				 ORDER BY count DESC
+				 LIMIT %d",
+				$from->format( 'Y-m-d H:i:s' ),
+				$to->format( 'Y-m-d H:i:s' ),
+				$limit
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		return array_map(
+			static function ( $row ) {
+				return array(
+					'bookable_item_id' => (int) $row['bookable_item_id'],
+					'count'            => (int) $row['count'],
+				);
+			},
+			$rows ?: array()
+		);
+	}
+
+	/**
+	 * Which hour of the day (0-23, site-local — start_datetime is already
+	 * stored site-local, DETAILED-SPEC.md §5 item 1) gets booked most over
+	 * [from, to). Same non-cancelled/rejected filter as
+	 * get_popular_bookable_items().
+	 *
+	 * @return array<int,array{hour:int,count:int}>
+	 */
+	public static function get_popular_hours( DateTime $from, DateTime $to ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT HOUR(s.start_datetime) AS hour, COUNT(*) AS count
+				 FROM {$bookings_table} b
+				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
+				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 AND b.status NOT IN ('cancelled','rejected')
+				 GROUP BY hour
+				 ORDER BY hour ASC",
+				$from->format( 'Y-m-d H:i:s' ),
+				$to->format( 'Y-m-d H:i:s' )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		return array_map(
+			static function ( $row ) {
+				return array(
+					'hour'  => (int) $row['hour'],
+					'count' => (int) $row['count'],
+				);
+			},
+			$rows ?: array()
+		);
+	}
+
+	/**
 	 * Creates a booking against a slot, atomically decrementing the
 	 * slot's capacity_remaining. Uses a single conditional UPDATE
 	 * (`WHERE capacity_remaining >= party_size`) as the concurrency guard

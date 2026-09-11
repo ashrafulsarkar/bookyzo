@@ -28,6 +28,44 @@ class BYZO_Customer {
 		return $row ? self::cast( $row ) : null;
 	}
 
+	/**
+	 * Repeat-customer stats for Pro's Analytics dashboard (DETAILED-SPEC.md
+	 * §3 B8, Phase 2 step 10). Deliberately NOT date-range-scoped like
+	 * every other analytics metric — retention is a whole-history
+	 * question ("has this customer been back at all"), not a "in the
+	 * selected window" one; scoping it to a date range would make the
+	 * number bounce around based on which range happens to be selected
+	 * rather than reflect actual repeat behavior.
+	 *
+	 * @return array{total_customers:int,repeat_customers:int,repeat_rate:float}
+	 */
+	public static function get_repeat_customer_stats() {
+		global $wpdb;
+
+		$customers_table = self::table();
+		$bookings_table  = $wpdb->prefix . 'byzo_bookings';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		$total_customers = (int) $wpdb->get_var( "SELECT COUNT(*) FROM {$customers_table}" ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+
+		$repeat_customers = (int) $wpdb->get_var(
+			"SELECT COUNT(*) FROM (
+				SELECT customer_id
+				FROM {$bookings_table}
+				WHERE customer_id IS NOT NULL AND status NOT IN ('cancelled','rejected')
+				GROUP BY customer_id
+				HAVING COUNT(*) >= 2
+			) repeat_customers" // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		return array(
+			'total_customers'  => $total_customers,
+			'repeat_customers' => $repeat_customers,
+			'repeat_rate'      => $total_customers > 0 ? $repeat_customers / $total_customers : 0.0,
+		);
+	}
+
 	public static function get_by_email( $email ) {
 		global $wpdb;
 
