@@ -100,3 +100,28 @@ router.beforeEach(async (to) => {
 
   return true;
 });
+
+/**
+ * Self-heals a fresh page load that lands directly on a route an add-on
+ * registered via registerExtension()'s router.addRoute() (DETAILED-SPEC.md
+ * §3 "Shared Vue admin app"). Module/deferred scripts run in document
+ * order, but this router resolves its very first navigation's match
+ * SYNCHRONOUSLY against whatever's already in the route table at that
+ * instant — for a direct page load (bookmark, reload, or a server-side
+ * redirect like Pro's calendar-sync OAuth callback landing back on
+ * /pro/calendar-sync) that's before the add-on's own deferred script has
+ * had a chance to run addRoute(), so the very first match comes back
+ * empty and <router-view> renders nothing. Purely SPA-internal navigation
+ * (clicking a sidebar link) was never affected — by then every deferred
+ * script has long since executed.
+ *
+ * router.isReady() resolves once the initial navigation (including its
+ * async guards, e.g. the /setup check above) has fully settled — by then
+ * every deferred/module script on the page has certainly already run, so
+ * a retry at that point is guaranteed to see every add-on's routes.
+ */
+router.isReady().then(() => {
+  if (router.currentRoute.value.matched.length === 0) {
+    router.replace(router.currentRoute.value.fullPath);
+  }
+});

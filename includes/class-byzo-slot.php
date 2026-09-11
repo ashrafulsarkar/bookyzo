@@ -173,6 +173,41 @@ class BYZO_Slot {
 	}
 
 	/**
+	 * Flips one slot from 'open' to 'blocked' — the same status value
+	 * BYZO_Slot_Generator::block_slots_on_dates() already uses for blackout
+	 * dates (Phase 0), reused here as the generic "unbookable, not because
+	 * it's full" marker. Every open-slot query and the atomic booking-claim
+	 * UPDATE in BYZO_Booking already exclude non-'open' rows, so this is the
+	 * entire mechanism — no other Free-side code needs to know why a slot
+	 * got blocked (a Pro add-on's external-calendar sync, DETAILED-SPEC.md
+	 * §3 B7, added 2026-09-12).
+	 *
+	 * @return bool True if a row was actually flipped.
+	 */
+	public static function block( $slot_id ) {
+		global $wpdb;
+
+		return (bool) $wpdb->query(
+			$wpdb->prepare( "UPDATE " . self::table() . " SET status = 'blocked' WHERE id = %d AND status = 'open'", $slot_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+		);
+	}
+
+	/**
+	 * Reverses block() — only ever flips a row this same mechanism blocked
+	 * (guarded by status = 'blocked'), so it can never reopen a slot that a
+	 * blackout exception or a booking's atomic claim independently touched.
+	 *
+	 * @return bool True if a row was actually flipped.
+	 */
+	public static function unblock( $slot_id ) {
+		global $wpdb;
+
+		return (bool) $wpdb->query(
+			$wpdb->prepare( "UPDATE " . self::table() . " SET status = 'open' WHERE id = %d AND status = 'blocked'", $slot_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+		);
+	}
+
+	/**
 	 * Creates one event occurrence directly as a slot row (DETAILED-SPEC.md
 	 * §1.3/§5 item 7) — the admin-entered equivalent of what
 	 * BYZO_Slot_Generator materializes from a weekly schedule for the other
