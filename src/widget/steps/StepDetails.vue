@@ -1,6 +1,35 @@
 <template>
   <div>
-    <h2>Your details</h2>
+    <h2>{{ copy.detailsHeading }}</h2>
+
+    <!-- What they're about to book, restated. Without it this step is a
+         bare form and the chosen slot is two steps out of sight — the
+         single most common place to lose confidence and abandon. -->
+    <div class="summary">
+      <div class="summary-row">
+        <span class="summary-label">{{ copy.subjectLabel }}</span>
+        <span class="summary-value">{{ item.name }}</span>
+      </div>
+      <div class="summary-row">
+        <span class="summary-label">When</span>
+        <span class="summary-value">{{ whenLabel }}</span>
+      </div>
+      <!-- Only when an earlier step collected it — otherwise it's an
+           editable field below, not a settled fact to restate. -->
+      <div v-if="partySize !== null" class="summary-row">
+        <span class="summary-label">{{ partySizeLabel }}</span>
+        <span class="summary-value">{{ partySize }}</span>
+      </div>
+      <!-- The price is on the picker two steps back and, when Stripe is
+           off, nowhere after it — so the button below used to read
+           "Confirm booking" with no amount anywhere on screen. Shown for
+           free items too ("Free"), since silence about the price is
+           exactly what makes people hesitate here. -->
+      <div class="summary-row summary-row-total">
+        <span class="summary-label">{{ totalLabel }}</span>
+        <span class="summary-value">{{ totalValue }}</span>
+      </div>
+    </div>
 
     <div v-if="showPartySize" class="field">
       <label for="bw-party-size">{{ partySizeLabel }}</label>
@@ -9,22 +38,22 @@
 
     <div class="field">
       <label for="bw-name">Name</label>
-      <input id="bw-name" v-model="form.name" type="text" autocomplete="name" />
+      <input id="bw-name" v-model="form.name" type="text" autocomplete="name" placeholder="Your full name" />
     </div>
 
     <div class="field">
       <label for="bw-email">Email</label>
-      <input id="bw-email" v-model="form.email" type="email" autocomplete="email" />
+      <input id="bw-email" v-model="form.email" type="email" autocomplete="email" placeholder="you@example.com" />
     </div>
 
     <div class="field">
-      <label for="bw-phone">Phone (optional)</label>
+      <label for="bw-phone">Phone <span class="optional">optional</span></label>
       <input id="bw-phone" v-model="form.phone" type="tel" autocomplete="tel" />
     </div>
 
     <div class="field">
-      <label for="bw-notes">Notes (optional)</label>
-      <textarea id="bw-notes" v-model="form.notes" rows="2" />
+      <label for="bw-notes">Notes <span class="optional">optional</span></label>
+      <textarea id="bw-notes" v-model="form.notes" rows="2" placeholder="Anything we should know?" />
     </div>
 
     <!-- Booking-time account opt-in (Phase 1.7 step 6, DETAILED-SPEC.md
@@ -63,7 +92,7 @@
     <div class="actions">
       <button type="button" class="btn btn-outline" @click="$emit('back')">Back</button>
       <button type="button" class="btn btn-primary" :disabled="!canSubmit || submitting" @click="$emit('submit', form)">
-        {{ submitting ? 'Booking…' : 'Confirm booking' }}
+        {{ submitting ? copy.submitting : copy.submit }}
       </button>
     </div>
   </div>
@@ -71,13 +100,20 @@
 
 <script setup>
 import { reactive, computed } from 'vue';
+import { copyFor } from '../copy';
+import { formatMoney } from '@/lib/money';
 
 const props = defineProps({
   item: { type: Object, required: true },
   slot: { type: Object, required: true },
+  // Non-null when an earlier step already collected it (Table asks before
+  // showing times, since capacity decides which times are bookable).
+  partySize: { type: Number, default: null },
   submitting: { type: Boolean, default: false },
   error: { type: String, default: '' },
 });
+
+const copy = computed(() => copyFor(props.item.type));
 defineEmits(['submit', 'back']);
 
 // Party size / quantity input for capacity>1 bookable items
@@ -86,13 +122,17 @@ defineEmits(['submit', 'back']);
 // regardless (BYZO_Booking::create()'s atomic capacity_remaining check),
 // this is only a UX guide against picking a number that's already known
 // to fail.
-const PARTY_SIZE_LABELS = {
-  table: 'Party size',
-  event: 'Tickets',
-  slot: 'Spots',
-};
-const showPartySize = computed(() => props.item.type !== 'appointment');
-const partySizeLabel = computed(() => PARTY_SIZE_LABELS[props.item.type] || 'Party size');
+const whenLabel = computed(() => {
+  const start = props.slot?.start_datetime;
+  if (!start) return '';
+  const date = new Date(start.replace(' ', 'T'));
+  return `${date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} at ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+});
+
+// Hidden when the type has no quantity concept (appointment, whose
+// quantityLabel is null) or when an earlier step already asked (Table).
+const showPartySize = computed(() => copy.value.quantityLabel !== null && props.partySize === null);
+const partySizeLabel = computed(() => copy.value.quantityLabel || 'Party size');
 const partySizeMax = computed(() => Math.max(1, props.slot.capacity_remaining || 1));
 
 // Phase 1.7 step 6 — window.byzoWidget.customerAccountsEnabled (added
@@ -100,7 +140,7 @@ const partySizeMax = computed(() => Math.max(1, props.slot.capacity_remaining ||
 const accountsEnabled = Boolean(window.byzoWidget && window.byzoWidget.customerAccountsEnabled);
 
 const form = reactive({
-  party_size: 1,
+  party_size: props.partySize || 1,
   name: '',
   email: '',
   phone: '',
@@ -109,6 +149,34 @@ const form = reactive({
   create_account: false,
   password: '',
 });
+
+// Mirrors BYZO_Booking::create()'s own arithmetic — price × quantity,
+// plus the flat site-wide tax rate — so the number here is the number
+// that gets charged. The server stays the only authority on the amount;
+// if the two ever disagree the server wins, which is why this is a
+// display-only computed and never travels back in the POST body.
+const quantity = computed(() => Math.max(1, Number(props.partySize ?? form.party_size) || 1));
+
+const totalAmount = computed(() => {
+  if (props.item.price === null || props.item.price === undefined) {
+    return null;
+  }
+  const subtotal = Math.round(Number(props.item.price) * quantity.value * 100) / 100;
+  const taxRate = Number((window.byzoWidget && window.byzoWidget.taxRate) || 0);
+  const tax = taxRate > 0 ? Math.round((subtotal * taxRate) / 100 * 100) / 100 : 0;
+
+  return Math.round((subtotal + tax) * 100) / 100;
+});
+
+// "Total" only once quantity or tax makes it a sum of something; for a
+// single unpriced-by-quantity booking it's just the price.
+const totalLabel = computed(() => {
+  const taxRate = Number((window.byzoWidget && window.byzoWidget.taxRate) || 0);
+
+  return quantity.value > 1 || taxRate > 0 ? 'Total' : 'Price';
+});
+
+const totalValue = computed(() => formatMoney(totalAmount.value, { emptyLabel: 'Free' }));
 
 const canSubmit = computed(
   () =>

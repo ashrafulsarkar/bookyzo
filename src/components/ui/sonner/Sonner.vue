@@ -9,6 +9,11 @@ import {
   XIcon,
 } from "lucide-vue-next";
 import { Toaster as Sonner } from "vue-sonner";
+// vue-sonner ships its positioning/animation CSS as a separate file that
+// the package does NOT pull in itself. Without it the toaster renders as
+// a plain static block in the page flow — a full-width empty bar under
+// the sidebar — instead of a fixed overlay, and toasts have no styling.
+import "vue-sonner/style.css";
 
 const props = defineProps({
   id: { type: String, required: false },

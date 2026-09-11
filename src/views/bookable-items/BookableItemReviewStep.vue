@@ -27,6 +27,7 @@
 import { computed } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { formatMoney } from '@/lib/money';
 
 // Shared by the Add wizard (BookableItemAddWizard.vue) and the Edit
 // wizard (BookableItemEditDialog.vue) — the labels default to Add's, Edit
@@ -88,7 +89,7 @@ const rows = computed(() => {
   if (d.meeting_link) {
     list.push({ label: 'Meeting link', value: d.meeting_link });
   }
-  list.push({ label: 'Price', value: d.price ? `${d.currency} ${Number(d.price).toFixed(2)}` : 'Free' });
+  list.push({ label: 'Price', value: formatMoney(d.price, { currency: d.currency, emptyLabel: 'Free' }) });
   if (d.status) {
     list.push({ label: 'Status', value: STATUS_LABELS[d.status] || d.status });
   }

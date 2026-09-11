@@ -45,6 +45,7 @@ const SLUG_FOR_ROUTE = {
   // `bookyzo-settings`, breaking both the left-nav highlight and a
   // reload/bookmark of the Settings screen.
   '/settings/general': 'bookyzo-settings',
+  '/settings/appearance': 'bookyzo-appearance',
 };
 
 /**

@@ -168,10 +168,19 @@ class BYZO_Admin_Assets {
 	 * DETAILED-SPEC.md §A8/§A10). Shared between dev and built mode so the
 	 * two don't drift; admin-post.php actions aren't part of the REST API
 	 * so they can't ride wp.apiFetch's own nonce middleware.
+	 *
+	 * `currency` rides along for the same reason the widget's bootstrap
+	 * already carries it (BYZO_Public_Widget): src/lib/money.js formats
+	 * every price in the app and needs the ISO code synchronously, at
+	 * first paint, rather than after a /settings round-trip — otherwise
+	 * list columns and the dashboard's revenue tile render bare numbers
+	 * for a frame and then reflow.
 	 */
 	private static function admin_globals_js() {
+		$currency = class_exists( 'BYZO_Settings' ) ? BYZO_Settings::get()['currency'] : 'USD';
+
 		return sprintf(
-			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s };',
+			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s };',
 			wp_json_encode( admin_url( 'admin-post.php' ) ),
 			// Nonce action string must stay in sync with
 			// BYZO_Booking_Export::NONCE — not referencing the constant
@@ -184,7 +193,8 @@ class BYZO_Admin_Assets {
 			// Which screen the app opens on, decided by the WP admin page
 			// slug — see BYZO_Plugin::routes(). The Vue Router owns every
 			// navigation after this first one.
-			wp_json_encode( self::initial_route() )
+			wp_json_encode( self::initial_route() ),
+			wp_json_encode( $currency )
 		);
 	}
 

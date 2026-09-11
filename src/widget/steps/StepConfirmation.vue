@@ -1,18 +1,28 @@
 <template>
   <div class="confirmation">
     <div class="check">✓</div>
-    <h2>Booking received</h2>
-    <p>
-      We've received your booking for <strong>{{ item?.name }}</strong>
-      <template v-if="booking?.slot_start">
-        on {{ formatDate(booking.slot_start) }} at {{ formatTime(booking.slot_start) }}
-      </template>.
-      A confirmation will be sent to {{ booking?.customer_email }} once it's approved.
-    </p>
-    <p v-if="item?.location || item?.meeting_link" class="location">
-      <template v-if="item?.location">{{ item.location }}</template>
-      <template v-if="item?.location && item?.meeting_link"> · </template>
-      <a v-if="item?.meeting_link" :href="item.meeting_link" target="_blank" rel="noopener noreferrer">Join meeting link</a>
+    <h2>{{ copy.confirmHeading }}</h2>
+    <p>A confirmation will be sent to {{ booking?.customer_email }} once it's approved.</p>
+
+    <!-- The booking restated as a scannable card rather than buried in a
+         sentence — this is the screen people screenshot or come back to. -->
+    <div class="summary summary--confirm">
+      <div class="summary-row">
+        <span class="summary-label">{{ copy.subjectLabel }}</span>
+        <span class="summary-value">{{ item?.name }}</span>
+      </div>
+      <div v-if="booking?.slot_start" class="summary-row">
+        <span class="summary-label">When</span>
+        <span class="summary-value">{{ formatDate(booking.slot_start) }} at {{ formatTime(booking.slot_start) }}</span>
+      </div>
+      <div v-if="item?.location" class="summary-row">
+        <span class="summary-label">Where</span>
+        <span class="summary-value">{{ item.location }}</span>
+      </div>
+    </div>
+
+    <p v-if="item?.meeting_link" class="location">
+      <a :href="item.meeting_link" target="_blank" rel="noopener noreferrer">Join meeting link</a>
     </p>
     <div v-if="booking?.slot_start" class="add-to-calendar">
       <a :href="googleCalendarUrl" target="_blank" rel="noopener noreferrer">Add to Google Calendar</a>
@@ -30,11 +40,14 @@
 
 <script setup>
 import { computed } from 'vue';
+import { copyFor } from '../copy';
 
 const props = defineProps({
   booking: { type: Object, default: null },
   item: { type: Object, default: null },
 });
+
+const copy = computed(() => copyFor(props.item?.type));
 
 function toLocalDate(iso) {
   return new Date(iso.replace(' ', 'T'));

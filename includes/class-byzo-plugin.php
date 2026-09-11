@@ -74,6 +74,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-guard.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-payment-gateways.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-payment-settings.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-appearance-settings.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-widget.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-account-widget.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/functions.php';
@@ -83,6 +84,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-stripe.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-payment-gateways-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-payment-settings-controller.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-appearance-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-stripe-webhook-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-reports.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-reports-controller.php';
@@ -129,6 +131,7 @@ class BYZO_Plugin {
 		$controllers[] = new BYZO_REST_Email_Templates_Controller();
 		$controllers[] = new BYZO_REST_Payment_Gateways_Controller();
 		$controllers[] = new BYZO_REST_Payment_Settings_Controller();
+		$controllers[] = new BYZO_REST_Appearance_Controller();
 		$controllers[] = new BYZO_REST_Stripe_Webhook_Controller();
 		$controllers[] = new BYZO_REST_Reports_Controller();
 
@@ -243,6 +246,11 @@ class BYZO_Plugin {
 				'route' => '/settings/payments',
 				'label' => __( 'Payments', 'bookyzo' ),
 				'title' => __( 'Bookyzo Payment Settings', 'bookyzo' ),
+			),
+			'bookyzo-appearance' => array(
+				'route' => '/settings/appearance',
+				'label' => __( 'Appearance', 'bookyzo' ),
+				'title' => __( 'Bookyzo Appearance', 'bookyzo' ),
 			),
 			'bookyzo-settings' => array(
 				'route' => '/settings/general',

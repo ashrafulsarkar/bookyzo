@@ -145,7 +145,7 @@ const createError = ref('');
 // then its availability or first occurrence); if the second one fails, a
 // retry must UPDATE this item rather than POST a second one — which, on
 // Free's 1-active-per-type cap (BYZO_Capabilities), would otherwise fail
-// with "Upgrade to add more" and strand a half-configured item behind it.
+// with the per-type limit error and strand a half-configured item behind it.
 const createdId = ref(null);
 const createdType = ref('');
 

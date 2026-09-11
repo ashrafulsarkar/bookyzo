@@ -41,10 +41,10 @@
       </Card>
 
       <Card v-else class="overflow-hidden">
-        <Table>
+        <Table class="min-w-[900px]">
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
+              <TableHead class="min-w-[170px]">Name</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Duration</TableHead>
               <TableHead>Price</TableHead>
@@ -55,26 +55,24 @@
           </TableHeader>
           <TableBody>
             <TableRow v-for="item in paginatedItems" :key="item.id">
-              <TableCell class="font-medium">{{ item.name }}</TableCell>
+              <TableCell class="min-w-[170px] font-medium">{{ item.name }}</TableCell>
               <TableCell><Badge variant="secondary">{{ TYPE_LABELS[item.type] || item.type }}</Badge></TableCell>
               <TableCell class="text-muted-foreground">{{ item.duration_minutes }} min</TableCell>
               <TableCell class="text-muted-foreground">{{ formatPrice(item.price) }}</TableCell>
               <TableCell><ByzoBadge :status="item.status">{{ item.status }}</ByzoBadge></TableCell>
               <TableCell>
                 <div class="flex items-center gap-1.5">
-                  <code class="rounded bg-muted px-1.5 py-0.5 text-xs">{{ shortcode(item) }}</code>
+                  <code class="whitespace-nowrap rounded bg-muted px-1.5 py-0.5 text-xs">{{ shortcode(item) }}</code>
                   <Button variant="ghost" size="icon" class="h-6 w-6" title="Copy shortcode" @click="copyShortcode(item)">
                     <Copy class="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </TableCell>
               <TableCell class="text-right">
-                <Button variant="ghost" size="sm" @click="openEdit(item)">
-                  Edit
-                </Button>
-                <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="askDelete(item)">
-                  Delete
-                </Button>
+                <div class="flex items-center justify-end gap-1">
+                  <Button variant="ghost" size="sm" @click="openEdit(item)">Edit</Button>
+                  <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="askDelete(item)">Delete</Button>
+                </div>
               </TableCell>
             </TableRow>
           </TableBody>
@@ -116,6 +114,7 @@ import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
+import { formatMoney } from '@/lib/money';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
 import ByzoPagination from '@/components/base/ByzoPagination.vue';
 import ByzoLoading from '@/components/base/ByzoLoading.vue';
@@ -176,7 +175,7 @@ async function load() {
 }
 
 function formatPrice(price) {
-  return price === null || price === undefined ? '—' : Number(price).toFixed(2);
+  return formatMoney(price);
 }
 
 // The `bookable_item_id` attribute already worked server-side since Phase 1

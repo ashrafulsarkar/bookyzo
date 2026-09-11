@@ -186,7 +186,7 @@ const createdItemId = ref(null);
 // the item, then its availability or first occurrence); if a later one
 // fails, a retry must UPDATE the existing item rather than POST a second
 // one — which, on Free's 1-active-per-type cap (BYZO_Capabilities), would
-// otherwise fail with "Upgrade to add more" and strand a half-configured
+// otherwise fail with the per-type limit error and strand a half-configured
 // item behind it. Same guard as BookableItemWizard.vue's submit().
 const createdId = ref(null);
 const createdType = ref('');

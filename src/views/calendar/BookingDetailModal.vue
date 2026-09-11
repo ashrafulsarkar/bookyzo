@@ -37,7 +37,7 @@
         <div v-if="booking.payment_amount !== null" class="flex items-center justify-between gap-2 rounded-lg border border-border p-3">
           <div class="flex items-center gap-2.5">
             <Wallet class="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span class="font-medium">{{ Number(booking.payment_amount).toFixed(2) }}</span>
+            <span class="font-medium">{{ formatTotal(booking.payment_amount) }}</span>
             <span
               class="text-xs font-medium capitalize"
               :style="{ color: booking.payment_status === 'unpaid' ? 'var(--byzo-warning)' : 'var(--byzo-success)' }"
@@ -136,6 +136,7 @@ import { CalendarClock, Mail, Phone, Users, StickyNote, Wallet, ChevronDown } fr
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
 import { api } from '@/api/client';
 import { formatTime } from '@/lib/date';
+import { formatTotal } from '@/lib/money';
 
 // Mirrors BYZO_Booking::TRANSITIONS server-side (includes/class-byzo-booking.php)
 // — the server is the actual source of truth/enforcement, this is just so

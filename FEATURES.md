@@ -68,10 +68,13 @@ The free version should be genuinely usable for a small single-location business
 - Gutenberg block + shortcode for the booking form
 - **Per-bookable item shortcodes (decided 2026-09-02):** every bookable item gets its own shortcode (`[bookyzo_booking bookable_item_id="X"]`, pins the widget to that bookable item and skips the picker step), displayed with a copy button in the Bookable Items list — Contact-Form-7 style. Also: `[bookyzo_booking type="table"]` (picker filtered to one type) and bare `[bookyzo_booking]` (all active bookable items). The Gutenberg block gets the same bookable item/type selection.
 - Multi-step booking flow (select bookable item/service → pick slot → enter details → confirm)
-- **Party size / quantity input** for capacity>1 bookable items (Table: "Party size", Event: "Tickets", Slot: "Spots") — capped by the slot's remaining capacity; hidden entirely for Appointment (always 1). Widget labels are type-aware.
+- **Month-calendar slot picker (added 2026-09-10):** the date step is a real calendar grid with month navigation and available days highlighted, rather than a flat list of date chips; times are grouped Morning/Afternoon/Evening, and a Continue button confirms the choice. The details and confirmation steps show a summary card of what's being booked (service, when, where) — and, since 2026-09-11, the **price or total** (price × quantity plus the flat tax rate, the same arithmetic the server charges; "Free" for zero-price items), so the confirm button is never pressed without the amount on screen. Every price in the widget, admin and account pages now renders through one currency-aware formatter (`src/lib/money.js`, e.g. `$65.00`) instead of a bare `65.00`. **Event bookings skip the calendar** — since an event is a set of specific dated occurrences, the widget lists those occurrences directly (date, time, seats remaining) instead of asking for a date and then a time.
+- **Party size / quantity input** for capacity>1 bookable items (Table: "Party size", Event: "Tickets", Slot: "Spots") — capped by the slot's remaining capacity; hidden entirely for Appointment (always 1). Widget labels are type-aware. **For Table this is asked before the times are shown** (added 2026-09-11) and filters them to slots that can actually seat the party, rather than letting someone pick a time that turns out not to fit.
+- **Type-aware widget wording (added 2026-09-11):** each booking type speaks its own language throughout the flow — a restaurant reads "Choose a table / Reserve table / Reservation received", an event reads "Choose an event / Get tickets / Tickets booked", a class reads "Choose a session / Reserve spot", and appointments keep "Choose a service / Confirm booking". Remaining-capacity wording follows too ("3 seats left" vs "3 tickets left" vs "3 spots left").
 - Guest checkout (no account required)
 - Basic custom form fields (name, email, phone, notes)
 - Mobile-responsive booking widget
+- **Widget appearance settings (added 2026-09-10):** an Appearance admin screen with preset controls for the widget's colors (accent, text, borders, background), corner rounding, maximum width, base font size, font family, and drop shadow, with a live preview. Each control maps onto a CSS custom property the widget stylesheet already declares, and only values that actually differ from the defaults are emitted — a site that never opens the screen renders identical markup to before. Free-form custom CSS and full theme authoring remain a Pro concern (B10); add-ons extend the output through the `byzo_appearance_css_vars` / `byzo_appearance_css_declarations` filters.
 - Elementor widget, in addition to the Gutenberg block — same bookable item/type selection
 - Translation-ready (WPML / Loco Translate compatible, ships with a .pot file) — this covers UI strings; translating the site owner's own service/category/bookable item *content* per visitor language is a Pro feature (B11)
 
@@ -86,7 +89,7 @@ The free version should be genuinely usable for a small single-location business
 
 ### A7. Payments
 - Manual/offline payment option (cash, bank transfer — mark as paid manually)
-- One payment gateway integration (Stripe, pick one for Free)
+- One payment gateway integration (Stripe, pick one for Free) — a paid booking is marked paid and confirmed automatically whether or not Stripe's webhook can reach the site (fixed 2026-09-11: the widget confirms with the server too, and the server re-checks the payment with Stripe before believing it), so local, staging, and firewalled installs don't leave paid bookings stuck as pending
 - No deposits/partial payments on Free (Pro feature)
 - Optional flat tax/VAT rate, applied site-wide to every booking (single percentage — per-service/per-region rules are Pro, see B6)
 - **Gateway architecture (added 2026-09-06):** Payments settings is a registry-driven list of on/off blocks, one per available gateway (a toggle per method, not a tab picker) — Free's registry only ever contains Stripe, extended by Pro (see B6) without any Free-side change.
@@ -245,7 +248,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 
 ### B10. Branding & Customization
 - White-label booking widget (remove plugin branding)
-- Custom CSS/theme options for the booking form
+- Custom CSS for the booking form, and full theme authoring beyond Free's preset appearance controls (A5) — hooks the `byzo_appearance_css_vars` / `byzo_appearance_css_declarations` filters rather than replacing that screen
 - Custom domain for standalone booking page (if a hosted booking page option exists)
 
 ### B11. Advanced Form Builder & Localization

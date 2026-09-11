@@ -11,13 +11,13 @@ defined( 'ABSPATH' ) || exit;
  * own comment on the same principle) and verifying the webhook's
  * signature before trusting anything in its payload.
  *
- * NOT independently testable against the real Stripe API in this dev
- * environment (no live/test Stripe API keys available) — the HTTP call
- * shape below is written to match Stripe's documented REST API exactly,
- * but the actual round trip needs verification with real test-mode keys
- * before this ships. Signature verification IS fully testable without
- * live keys (it's pure HMAC math against a webhook secret we control),
- * see scratchpad/smoke-payments.php.
+ * Verified end-to-end against Stripe test-mode keys on 2026-09-11 (card
+ * 4242…, full widget flow through to a confirmed booking), which settled
+ * the earlier caveat that the round trip had only ever been written to
+ * match Stripe's documented REST API, never actually exercised.
+ * Signature verification is testable without live keys either way (pure
+ * HMAC math against a webhook secret we control) — see
+ * scratchpad/smoke-payments.php.
  */
 class BYZO_Stripe {
 
@@ -78,6 +78,51 @@ class BYZO_Stripe {
 			'client_secret'     => $body['client_secret'],
 			'payment_intent_id' => $body['id'],
 		);
+	}
+
+	/**
+	 * Fetches a PaymentIntent from Stripe so the server can confirm a
+	 * payment on its own authority.
+	 *
+	 * The webhook (see BYZO_REST_Stripe_Webhook_Controller) remains the
+	 * authoritative path, but it is not always deliverable — a local or
+	 * staging site Stripe cannot reach, a firewalled host, or a webhook
+	 * endpoint that simply hasn't been configured yet. In those cases the
+	 * card is charged but the booking stays `unpaid` forever. Reading the
+	 * intent back closes that gap without trusting the browser: the
+	 * client says "this intent is done", and this asks Stripe whether
+	 * that is actually true.
+	 *
+	 * @return array|WP_Error The PaymentIntent object on success.
+	 */
+	public static function get_payment_intent( $payment_intent_id ) {
+		if ( ! BYZO_Payment_Settings::is_stripe_ready() ) {
+			return new WP_Error( 'byzo_stripe_not_configured', __( 'Online card payment is not available right now.', 'bookyzo' ), array( 'status' => 503 ) );
+		}
+
+		$stripe = BYZO_Payment_Settings::get()['gateways']['stripe'];
+
+		$response = wp_remote_get(
+			self::API_BASE . '/payment_intents/' . rawurlencode( $payment_intent_id ),
+			array(
+				'headers' => array( 'Authorization' => 'Bearer ' . $stripe['secret_key'] ),
+				'timeout' => 15,
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return new WP_Error( 'byzo_stripe_request_failed', __( 'Could not reach the payment provider. Please try again.', 'bookyzo' ), array( 'status' => 502 ) );
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( $code < 200 || $code >= 300 || empty( $body['id'] ) ) {
+			$message = $body['error']['message'] ?? __( 'The payment provider rejected this request.', 'bookyzo' );
+			return new WP_Error( 'byzo_stripe_error', $message, array( 'status' => 502 ) );
+		}
+
+		return $body;
 	}
 
 	/**

@@ -31,8 +31,8 @@
 // NOT independently verified against a live Stripe account in this
 // session (no test-mode API keys available) — see BYZO_Stripe's own
 // docblock for the same caveat on the backend half of this flow.
-import { ref, onMounted } from 'vue';
-import { createBookingPaymentIntent } from '../api';
+import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { createBookingPaymentIntent, confirmBookingPayment } from '../api';
 import WidgetLoading from '../WidgetLoading.vue';
 
 const props = defineProps({
@@ -82,9 +82,27 @@ async function pay() {
     });
     if (result.error) {
       payError.value = result.error.message;
-    } else {
-      emit('paid');
+      return;
     }
+
+    // Tell the server the charge cleared. The Stripe webhook does this
+    // too, but it can't reach every site (local/staging, firewalled
+    // hosts, webhook not configured yet) and the booking would sit
+    // `unpaid` forever. A failure here is deliberately NOT surfaced as a
+    // payment error: the money has already been taken, so blocking the
+    // confirmation screen would be worse than a booking the webhook or
+    // the site owner reconciles later.
+    try {
+      await confirmBookingPayment(
+        props.booking.id,
+        props.booking.customer_email,
+        result.paymentIntent.id
+      );
+    } catch (e) {
+      // Intentionally swallowed — see above.
+    }
+
+    emit('paid');
   } catch (e) {
     payError.value = e.message;
   } finally {
@@ -105,6 +123,19 @@ onMounted(async () => {
     stripe = Stripe(publishableKey);
     elements = stripe.elements();
     cardElement = elements.create('card');
+
+    // The mount target lives inside `v-else`, so it does not exist in the
+    // DOM while loadingStripe is true. Clear the flag and wait for the
+    // re-render BEFORE mounting — calling mount() first passes Stripe a
+    // null element and it throws "Missing argument. Make sure to call
+    // mount() with a valid DOM element or selector."
+    loadingStripe.value = false;
+    await nextTick();
+
+    if (!cardElementRef.value) {
+      throw new Error('Could not load the payment form.');
+    }
+
     cardElement.mount(cardElementRef.value);
     cardElement.on('change', (event) => {
       cardReady.value = event.complete;
@@ -112,8 +143,14 @@ onMounted(async () => {
     });
   } catch (e) {
     setupError.value = e.message;
-  } finally {
     loadingStripe.value = false;
   }
+});
+
+// Stripe mounts an iframe into our div; without this it stays registered
+// with the Elements instance after the step is left ("Pay in person
+// instead", or going back), which Stripe warns about on a re-mount.
+onBeforeUnmount(() => {
+  cardElement?.destroy();
 });
 </script>

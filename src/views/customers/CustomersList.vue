@@ -52,7 +52,7 @@
       </Card>
 
       <Card v-else class="overflow-hidden">
-        <Table>
+        <Table class="min-w-[760px]">
           <TableHeader>
             <TableRow>
               <TableHead>Name</TableHead>
@@ -71,8 +71,10 @@
               <TableCell class="text-muted-foreground">{{ customer.tags || '—' }}</TableCell>
               <TableCell><Badge variant="secondary">{{ customer.source }}</Badge></TableCell>
               <TableCell class="text-right">
-                <Button variant="ghost" size="sm" @click="openEdit(customer)">Edit</Button>
-                <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="askDelete(customer)">Delete</Button>
+                <div class="flex items-center justify-end gap-1">
+                  <Button variant="ghost" size="sm" @click="openEdit(customer)">Edit</Button>
+                  <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="askDelete(customer)">Delete</Button>
+                </div>
               </TableCell>
             </TableRow>
           </TableBody>

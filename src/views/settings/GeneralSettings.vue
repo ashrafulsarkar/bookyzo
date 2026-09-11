@@ -20,7 +20,12 @@
           <CardHeader>
             <CardTitle>Business profile</CardTitle>
           </CardHeader>
-          <CardContent class="flex flex-col gap-4">
+          <!-- Capped at a readable measure rather than the card's full
+               width: a business name or timezone stretched to ~900px on a
+               desktop, so short values sat in enormous boxes while the
+               narrow w-24 fields beside them made the column read ragged.
+               Two-up grids collapse to one column on a phone. -->
+          <CardContent class="flex max-w-2xl flex-col gap-4">
             <div class="flex flex-col gap-1.5">
               <Label for="s-business-name">Business name</Label>
               <Input id="s-business-name" v-model="form.business_name" type="text" />
@@ -30,16 +35,19 @@
               <Input id="s-timezone" v-model="form.timezone" type="text" placeholder="e.g. Asia/Dhaka" />
               <p class="text-xs text-muted-foreground">A PHP timezone identifier, e.g. Asia/Dhaka, or a UTC offset like +06:00.</p>
             </div>
-            <div class="flex flex-col gap-1.5">
-              <Label for="s-currency">Currency</Label>
-              <Input id="s-currency" v-model="form.currency" type="text" maxlength="3" class="w-24 uppercase" />
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="flex flex-col gap-1.5">
+                <Label for="s-currency">Currency</Label>
+                <Input id="s-currency" v-model="form.currency" type="text" maxlength="3" class="uppercase" />
+                <p class="text-xs text-muted-foreground">A 3-letter ISO code, e.g. USD, EUR, BDT.</p>
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <Label for="s-tax-rate">Tax rate (%)</Label>
+                <Input id="s-tax-rate" v-model.number="form.tax_rate" type="number" min="0" max="100" step="0.01" />
+                <p class="text-xs text-muted-foreground">Added to every paid booking's total. Leave at 0 if you don't charge tax.</p>
+              </div>
             </div>
-            <div class="flex flex-col gap-1.5">
-              <Label for="s-tax-rate">Tax rate (%)</Label>
-              <Input id="s-tax-rate" v-model.number="form.tax_rate" type="number" min="0" max="100" step="0.01" class="w-24" />
-              <p class="text-xs text-muted-foreground">Added to every paid booking's total. Leave at 0 if you don't charge tax.</p>
-            </div>
-            <div class="grid grid-cols-2 gap-4">
+            <div class="grid gap-4 sm:grid-cols-2">
               <div class="flex flex-col gap-1.5">
                 <Label for="s-start-time">Default opening time</Label>
                 <Input id="s-start-time" v-model="form.default_start_time" type="time" />
@@ -57,7 +65,7 @@
             <CardTitle>Booking behavior</CardTitle>
             <CardDescription>Set once during setup — change anytime here.</CardDescription>
           </CardHeader>
-          <CardContent class="flex flex-col gap-4">
+          <CardContent class="flex max-w-2xl flex-col gap-4">
             <label class="flex items-center gap-2 text-sm">
               <Switch v-model="form.require_phone" />
               Require a phone number on every booking
@@ -83,7 +91,7 @@
             <CardTitle>Customer accounts</CardTitle>
             <CardDescription>Let customers register, log in, and manage their own bookings.</CardDescription>
           </CardHeader>
-          <CardContent class="flex flex-col gap-4">
+          <CardContent class="flex max-w-2xl flex-col gap-4">
             <label class="flex items-center gap-2 text-sm">
               <Switch v-model="form.customer_accounts_enabled" />
               Enable customer accounts
@@ -102,7 +110,7 @@
           <CardHeader>
             <CardTitle>Notifications</CardTitle>
           </CardHeader>
-          <CardContent class="flex flex-col gap-4">
+          <CardContent class="flex max-w-2xl flex-col gap-4">
             <label class="flex items-center gap-2 text-sm">
               <Switch v-model="form.send_confirmation_email" />
               Send a confirmation email to the customer

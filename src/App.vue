@@ -73,6 +73,17 @@ const route = useRoute();
   align-items: stretch;
 }
 
+/*
+ * Matches ByzoSidebar.vue's own breakpoint: once the rail un-fixes and
+ * becomes a horizontal strip, the shell has to stack it above the content
+ * rather than keep them side by side in a flex row.
+ */
+@media screen and (max-width: 960px) {
+  .byzo-shell {
+    flex-direction: column;
+  }
+}
+
 @media screen and (max-width: 782px) {
   .byzo-shell {
     --byzo-shell-offset: 76px;

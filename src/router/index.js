@@ -8,6 +8,7 @@ import BookingsList from '../views/bookings/BookingsList.vue';
 import EmailTemplates from '../views/settings/EmailTemplates.vue';
 import PaymentSettings from '../views/settings/PaymentSettings.vue';
 import GeneralSettings from '../views/settings/GeneralSettings.vue';
+import AppearanceSettings from '../views/settings/AppearanceSettings.vue';
 import { api } from '../api/client';
 import { createWpAdminHistory } from './history';
 
@@ -42,6 +43,10 @@ const routes = [
   // Business profile + booking-behavior toggles (Phase 1.5 steps 1/6/7),
   // previously wizard-only — GeneralSettings.vue is their ongoing home.
   { path: '/settings/general', name: 'settings.general', component: GeneralSettings },
+  // Booking-widget visual options (FEATURES.md §A5) — writes the
+  // byzo_appearance option, which BYZO_Public_Widget turns into CSS
+  // custom property overrides on the public widget.
+  { path: '/settings/appearance', name: 'settings.appearance', component: AppearanceSettings },
 ];
 
 export const router = createRouter({

@@ -33,3 +33,12 @@ export const getSlots = (bookableItemId) => request(`/slots?bookable_item_id=${b
 export const createBooking = (payload) => request('/bookings', { method: 'POST', body: JSON.stringify(payload) });
 export const createBookingPaymentIntent = (bookingId, customerEmail) =>
   request(`/bookings/${bookingId}/payment-intent`, { method: 'POST', body: JSON.stringify({ customer_email: customerEmail }) });
+
+// Tells the server the card cleared. The server re-checks the intent with
+// Stripe rather than believing this call, so it's safe to expose to a
+// guest — see BYZO_REST_Bookings_Controller::confirm_payment().
+export const confirmBookingPayment = (bookingId, customerEmail, paymentIntentId) =>
+  request(`/bookings/${bookingId}/confirm-payment`, {
+    method: 'POST',
+    body: JSON.stringify({ customer_email: customerEmail, payment_intent_id: paymentIntentId }),
+  });

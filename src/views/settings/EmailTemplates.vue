@@ -28,7 +28,11 @@
             </div>
             <div class="flex flex-col gap-1.5">
               <Label :for="`body-${event.id}`">Body</Label>
-              <Textarea :id="`body-${event.id}`" v-model="templates[event.id].body" rows="6" class="font-mono" />
+              <!-- rows=6 cut every shipped default off mid-sentence — the
+                   longest ("Booking received") runs 12 lines before wrapping,
+                   so the box opened already hiding its own content and made
+                   the templates look truncated rather than editable. -->
+              <Textarea :id="`body-${event.id}`" v-model="templates[event.id].body" rows="14" class="resize-y font-mono" />
               <p class="text-xs text-muted-foreground">
                 Placeholders: <code>{customer_name}</code> <code>{bookable_item_name}</code> <code>{start_time}</code>
                 <code>{business_name}</code> <code>{cancel_link}</code> <code>{add_to_calendar_link}</code>

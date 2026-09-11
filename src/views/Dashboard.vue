@@ -83,6 +83,7 @@ import ByzoTrendChart from '@/components/base/ByzoTrendChart.vue';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
 import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import { api } from '../api/client';
+import { formatTotal } from '@/lib/money';
 
 const router = useRouter();
 
@@ -107,11 +108,21 @@ function statusHint(period) {
   const parts = [];
   if (period.pending) parts.push(`${period.pending} pending`);
   if (period.confirmed) parts.push(`${period.confirmed} confirmed`);
-  return parts.length ? parts.join(', ') : 'No pending or confirmed bookings';
+
+  if (parts.length) {
+    return parts.join(', ');
+  }
+
+  // The tile's big number counts bookings of EVERY status, so a period
+  // holding only completed/cancelled/no-show ones used to read
+  // "1" over "No pending or confirmed bookings" — a caption that flatly
+  // contradicts the number above it. Say what those bookings actually
+  // are instead, and keep the "nothing at all" wording for a real zero.
+  return period.total ? 'Nothing still open' : 'No bookings';
 }
 
 function formatRevenue(amount) {
-  return Number(amount || 0).toFixed(2);
+  return formatTotal(amount);
 }
 
 function itemName(id) {

@@ -1,7 +1,7 @@
 <template>
   <Badge
     variant="outline"
-    class="border-transparent font-medium"
+    class="flex-shrink-0 whitespace-nowrap border-transparent font-medium"
     :style="{ color, backgroundColor: bg }"
   >
     <slot />

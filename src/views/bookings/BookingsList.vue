@@ -93,7 +93,7 @@
       </Card>
 
       <Card v-else class="overflow-hidden">
-        <Table>
+        <Table class="min-w-[720px]">
           <TableHeader>
             <TableRow>
               <TableHead>Customer</TableHead>

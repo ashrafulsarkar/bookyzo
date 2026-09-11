@@ -1,7 +1,7 @@
 <template>
   <div class="bookyzo-widget">
     <div class="progress">
-      <span v-for="n in 4" :key="n" class="dot" :class="{ active: n <= step }" />
+      <span v-for="n in dotCount" :key="n" class="dot" :class="{ active: n <= displayStep }" />
     </div>
 
     <StepBookableItem v-if="step === 1" :config="config" @selected="onItemSelected" />
@@ -10,6 +10,7 @@
       v-else-if="step === 3"
       :item="selectedItem"
       :slot="selectedSlot"
+      :party-size="partySize"
       :submitting="submitting"
       :error="error"
       @submit="onDetailsSubmit"
@@ -19,18 +20,18 @@
          "confirmation" — only shown when Stripe is enabled AND this
          booking actually has something to charge (DETAILED-SPEC.md §A7:
          a NULL-price item has nothing to pay for at all). Using 3.5
-         (not a separate numbered step) keeps the 4-dot progress
-         indicator's `n <= step` check lighting dots 1-3 correctly during
-         this step, with dot 4 lighting only once payment is done/skipped
-         and confirmation is reached — no dedicated 5th dot needed for
-         what's an optional detour, not a required step. -->
+         (not a separate numbered step) keeps the progress indicator's
+         `n <= displayStep` check lighting the second-to-last dot correctly
+         during this step, with the final dot lighting only once payment is
+         done/skipped and confirmation is reached — no dedicated extra dot
+         needed for what's an optional detour, not a required step. -->
     <StepPayment v-else-if="step === 3.5" :booking="createdBooking" @paid="step = 4" @skip="step = 4" />
     <StepConfirmation v-else-if="step === 4" :booking="createdBooking" :item="selectedItem" />
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import StepBookableItem from './steps/StepBookableItem.vue';
 import StepSlot from './steps/StepSlot.vue';
 import StepDetails from './steps/StepDetails.vue';
@@ -49,17 +50,32 @@ const props = defineProps({
 const step = ref(1);
 const selectedItem = ref(null);
 const selectedSlot = ref(null);
+const partySize = ref(null);
 const submitting = ref(false);
 const error = ref('');
 const createdBooking = ref(null);
 
-function onItemSelected(item) {
+// Set when StepBookableItem never actually renders a picker for the user —
+// either the embed is pinned to one bookable item (config.bookableItemId)
+// or there was only one active item to begin with (see that component's
+// autoSkipping). Either way there was no step-1 choice to make, so the
+// progress indicator drops to 3 dots instead of counting a step the
+// visitor never saw.
+const itemStepSkipped = ref(false);
+const dotCount = computed(() => (itemStepSkipped.value ? 3 : 4));
+const displayStep = computed(() => (itemStepSkipped.value ? step.value - 1 : step.value));
+
+function onItemSelected(item, wasAutoSkipped) {
   selectedItem.value = item;
+  itemStepSkipped.value = !!wasAutoSkipped;
   step.value = 2;
 }
 
-function onSlotSelected(slot) {
+// partySize is only supplied by the types that ask for it before times
+// (Table); null leaves StepDetails to collect it as usual.
+function onSlotSelected(slot, chosenPartySize) {
   selectedSlot.value = slot;
+  partySize.value = chosenPartySize ?? null;
   step.value = 3;
 }
 

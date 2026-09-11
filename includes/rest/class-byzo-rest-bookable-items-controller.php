@@ -495,8 +495,13 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 			return new WP_Error(
 				'byzo_bookable_item_limit_reached',
 				sprintf(
-					/* translators: %d: maximum number of active bookable items allowed */
-					__( 'You already have %d active bookable item of this type. Upgrade to add more.', 'bookyzo' ),
+					/* translators: %d: maximum number of active bookable items allowed per type */
+					_n(
+						'You already have %d active bookable item of this type. Deactivate or archive it before adding another.',
+						'You already have %d active bookable items of this type. Deactivate or archive one before adding another.',
+						$max,
+						'bookyzo'
+					),
 					$max
 				),
 				array( 'status' => 403 )

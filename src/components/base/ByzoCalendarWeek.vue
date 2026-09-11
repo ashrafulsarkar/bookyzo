@@ -14,9 +14,9 @@
   <div class="calendar-scroll max-h-[calc(100vh-320px)] min-h-[320px] overflow-auto">
     <div class="flex">
       <!-- Hour rail: pinned to the left edge on horizontal scroll -->
-      <div class="sticky left-0 z-20 w-14 shrink-0 border-r border-border bg-card">
+      <div class="sticky left-0 z-20 w-16 shrink-0 border-r border-border bg-card">
         <div class="sticky top-0 z-30 h-10 border-b border-border bg-card"></div>
-        <div v-for="hour in hours" :key="hour" class="h-12 border-b border-border/60 px-1 text-right text-xs text-muted-foreground">
+        <div v-for="hour in hours" :key="hour" class="h-12 whitespace-nowrap border-b border-border/60 px-1.5 text-right text-xs text-muted-foreground">
           {{ formatHour(hour) }}
         </div>
       </div>
@@ -25,7 +25,7 @@
       <div
         v-for="day in dayList"
         :key="day.key"
-        class="min-w-[140px] flex-1 border-r border-border last:border-r-0"
+        class="min-w-[110px] flex-1 border-r border-border last:border-r-0"
       >
         <button
           type="button"
@@ -68,7 +68,7 @@
 
 <script setup>
 import { computed } from 'vue';
-import { addDays, toDateKey, isSameDay, formatTime } from '@/lib/date';
+import { addDays, toDateKey, isSameDay, formatTime, formatHourLabel } from '@/lib/date';
 
 const STATUS_COLORS = {
   pending: 'var(--byzo-status-pending)',
@@ -95,7 +95,7 @@ const hours = Array.from({ length: 14 }, (_, i) => i + 7);
 function formatHour(hour) {
   const d = new Date();
   d.setHours(hour, 0, 0, 0);
-  return formatTime(d);
+  return formatHourLabel(d);
 }
 
 const rangeStart = computed(() => {

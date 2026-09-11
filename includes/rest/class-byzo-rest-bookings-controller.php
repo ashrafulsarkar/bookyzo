@@ -136,6 +136,24 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 				),
 			)
 		);
+
+		// Same guest-allowed, email-guarded shape as the route above.
+		// Called by the widget once Stripe confirms the card client-side,
+		// so a booking is marked paid even where the webhook can't be
+		// delivered (local/staging sites, firewalled hosts, or a webhook
+		// endpoint not set up yet). Nothing here trusts the client's
+		// claim — see confirm_payment().
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/' . $this->get_rest_base() . '/(?P<id>\d+)/confirm-payment',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'confirm_payment' ),
+					'permission_callback' => array( $this, 'public_permissions_check' ),
+				),
+			)
+		);
 	}
 
 	public function get_items( WP_REST_Request $request ) {
@@ -441,5 +459,71 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 		}
 
 		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Marks a booking paid after the widget has confirmed the card with
+	 * Stripe client-side.
+	 *
+	 * The webhook is still the authoritative path and this is deliberately
+	 * written to be redundant with it: whichever arrives first wins, and
+	 * the second is a harmless no-op (set_payment_status writes the same
+	 * value; the `pending` guard below means the status transition only
+	 * fires once). That redundancy is the point — a card charged on a site
+	 * Stripe cannot reach by webhook would otherwise leave the booking
+	 * `unpaid` indefinitely.
+	 *
+	 * The client's claim is never trusted: it supplies only an intent id,
+	 * and the server asks Stripe directly whether that intent succeeded
+	 * AND whether it belongs to this booking (Stripe echoes back the
+	 * booking_id this plugin set in the intent's metadata at creation
+	 * time). A forged or borrowed intent id fails both checks.
+	 */
+	public function confirm_payment( WP_REST_Request $request ) {
+		$id      = (int) $request->get_param( 'id' );
+		$booking = BYZO_Booking::get( $id );
+
+		if ( ! $booking ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$body = (array) $request->get_json_params();
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			if ( empty( $body['customer_email'] ) || strtolower( trim( $body['customer_email'] ) ) !== strtolower( $booking['customer_email'] ) ) {
+				return new WP_Error( 'byzo_email_mismatch', __( 'customer_email does not match this booking.', 'bookyzo' ), array( 'status' => 403 ) );
+			}
+		}
+
+		if ( empty( $body['payment_intent_id'] ) ) {
+			return new WP_Error( 'byzo_missing_payment_intent', __( 'payment_intent_id is required.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$intent = BYZO_Stripe::get_payment_intent( sanitize_text_field( $body['payment_intent_id'] ) );
+
+		if ( is_wp_error( $intent ) ) {
+			return $intent;
+		}
+
+		// The intent must have been created for THIS booking. Without this
+		// check, knowing any succeeded intent id plus a booking's email
+		// would be enough to mark that booking paid.
+		if ( (int) ( $intent['metadata']['booking_id'] ?? 0 ) !== $booking['id'] ) {
+			return new WP_Error( 'byzo_intent_mismatch', __( 'That payment does not belong to this booking.', 'bookyzo' ), array( 'status' => 403 ) );
+		}
+
+		if ( 'succeeded' !== ( $intent['status'] ?? '' ) ) {
+			return new WP_Error( 'byzo_payment_not_succeeded', __( 'That payment has not completed.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		BYZO_Booking::set_payment_status( $booking['id'], 'paid_online' );
+
+		// Same transition guard the webhook uses — a booking already moved
+		// on (confirmed by an admin, or cancelled) is left alone.
+		if ( 'pending' === $booking['status'] ) {
+			BYZO_Booking::update_status( $booking['id'], 'confirmed' );
+		}
+
+		return rest_ensure_response( BYZO_Booking::get( $booking['id'] ) );
 	}
 }

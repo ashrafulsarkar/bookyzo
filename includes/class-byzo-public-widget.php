@@ -146,6 +146,8 @@ class BYZO_Public_Widget {
 			foreach ( $entry['css'] as $index => $css_file ) {
 				wp_enqueue_style( 'byzo-widget-' . $index, $base . $css_file, array(), BYZO_VERSION );
 			}
+
+			self::add_appearance_css( 'byzo-widget-0' );
 		}
 
 		// stripePublishableKey is safe to expose here — Stripe's
@@ -164,18 +166,52 @@ class BYZO_Public_Widget {
 		// UI: absent when off, not a disabled/greyed-out control.
 		$accounts_enabled = class_exists( 'BYZO_Settings' ) ? (bool) BYZO_Settings::get()['customer_accounts_enabled'] : false;
 
+		// taxRate lets StepDetails.vue show the same total the server will
+		// actually charge. BYZO_Booking::create() computes
+		// price × party_size + tax and is the only authority on the
+		// amount (a client-supplied one is never trusted — see its
+		// docblock); this is display-only, so the confirm step can stop
+		// asking people to commit to an unstated price.
+		$tax_rate = class_exists( 'BYZO_Settings' ) ? (float) BYZO_Settings::get()['tax_rate'] : 0.0;
+
 		wp_add_inline_script(
 			'byzo-widget',
 			sprintf(
-				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s };',
+				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s };',
 				wp_json_encode( esc_url_raw( rest_url( 'bookyzo/v1' ) ) ),
 				wp_json_encode( ! empty( $stripe['enabled'] ) && ! empty( $stripe['publishable_key'] ) ),
 				wp_json_encode( $stripe['publishable_key'] ?? '' ),
 				wp_json_encode( $currency ),
-				wp_json_encode( $accounts_enabled )
+				wp_json_encode( $accounts_enabled ),
+				wp_json_encode( $tax_rate )
 			),
 			'before'
 		);
+	}
+
+	/**
+	 * Appends the admin's Appearance overrides (BYZO_Appearance_Settings)
+	 * to the widget's own stylesheet handle, so they land after it in the
+	 * cascade with the same specificity — no `!important`, and nothing
+	 * emitted at all when every value is still the stylesheet default.
+	 *
+	 * Attached to the enqueued style rather than printed inline in the
+	 * body so it stays in <head> with the rules it overrides, and so a
+	 * page with two widget embeds still only prints it once.
+	 */
+	private static function add_appearance_css( $handle ) {
+		if ( ! class_exists( 'BYZO_Appearance_Settings' ) ) {
+			return;
+		}
+
+		$vars         = BYZO_Appearance_Settings::build_css_vars();
+		$declarations = BYZO_Appearance_Settings::build_css_declarations();
+
+		if ( '' === $vars && '' === $declarations ) {
+			return;
+		}
+
+		wp_add_inline_style( $handle, '.bookyzo-widget{' . $vars . $declarations . '}' );
 	}
 
 	/**

@@ -27,7 +27,7 @@
       </div>
       <div class="flex justify-between border-b border-border pb-2">
         <span class="text-muted-foreground">Price</span>
-        <span class="font-medium">{{ data.price ? `${data.currency} ${Number(data.price).toFixed(2)}` : 'Free' }}</span>
+        <span class="font-medium">{{ formatMoney(data.price, { currency: data.currency, emptyLabel: 'Free' }) }}</span>
       </div>
       <div v-if="data.location" class="flex justify-between gap-4 border-b border-border pb-2">
         <span class="shrink-0 text-muted-foreground">Location</span>
@@ -63,6 +63,7 @@
 import { computed } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { formatMoney } from '@/lib/money';
 
 const props = defineProps({
   data: { type: Object, required: true },

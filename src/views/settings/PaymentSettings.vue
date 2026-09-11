@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader title="Payment Methods" subtitle="Configure accepted payment methods">
+    <ByzoPageHeader title="Payments" subtitle="How customers pay you when they book.">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="1" y="4" width="22" height="16" rx="2" />

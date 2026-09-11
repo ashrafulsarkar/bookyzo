@@ -3,19 +3,24 @@
   <div v-else-if="error" class="error">{{ error }}</div>
   <div v-else-if="items.length === 0" class="empty">No bookable services are available right now.</div>
   <div v-else-if="!autoSkipping">
-    <h2>Choose a service</h2>
+    <h2>{{ copy.pickHeading }}</h2>
+    <p class="step-sub">{{ copy.pickSub }}</p>
     <div class="bookable-item-list">
       <button
         v-for="item in items"
         :key="item.id"
         type="button"
         class="option-card"
-        @click="$emit('selected', item)"
+        @click="$emit('selected', item, false)"
       >
-        <span class="name">{{ item.name }}</span>
-        <span class="meta">
-          {{ item.duration_minutes }} min<template v-if="item.price !== null"> · {{ formatPrice(item.price) }}</template>
+        <span class="option-card-body">
+          <span class="name">{{ item.name }}</span>
+          <span class="meta">
+            <span class="meta-item">{{ item.duration_minutes }} min</span>
+            <span v-if="item.price !== null" class="meta-price">{{ formatPrice(item.price) }}</span>
+          </span>
         </span>
+        <span class="option-card-go" aria-hidden="true">&#8250;</span>
       </button>
     </div>
   </div>
@@ -24,7 +29,9 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { getPublicBookableItems } from '../api';
+import { copyFor, MIXED_COPY } from '../copy';
 import WidgetLoading from '../WidgetLoading.vue';
+import { formatMoney } from '@/lib/money';
 
 // Auto-skips this whole step — straight to slot picking — whenever
 // there's only one real choice to make: either the embed is pinned to
@@ -45,8 +52,15 @@ const error = ref('');
 const autoSkipping = ref(false);
 
 function formatPrice(price) {
-  return Number(price).toFixed(2);
+  return formatMoney(price);
 }
+
+// A picker filtered to one type (or a site that only sells one) can speak
+// that type's language; a genuinely mixed list can't, so it stays neutral.
+const copy = computed(() => {
+  const types = new Set(items.value.map((i) => i.type));
+  return types.size === 1 ? copyFor(items.value[0].type) : MIXED_COPY;
+});
 
 onMounted(async () => {
   try {
@@ -61,7 +75,7 @@ onMounted(async () => {
 
     if (target) {
       autoSkipping.value = true;
-      emit('selected', target);
+      emit('selected', target, true);
     }
   } catch (e) {
     error.value = e.message;

@@ -21,20 +21,24 @@
   --byzo-text-muted: #6b7280;
   --byzo-border: #e7e8ec;
   --byzo-surface: #ffffff;
-  --byzo-radius: 14px;
-  --byzo-radius-sm: 8px;
+  --byzo-radius: 16px;
+  --byzo-radius-sm: 10px;
   --byzo-shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 2px 10px rgba(16, 24, 40, 0.06);
+  /* A very light neutral used behind grouped controls (the calendar,
+     the summary card) so they read as one block without needing a
+     border that competes with the widget's own frame. */
+  --byzo-subtle: #f6f7f9;
 
   max-width: 460px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
   color: var(--byzo-text);
   background: var(--byzo-surface);
   border: 1px solid var(--byzo-border);
   border-radius: var(--byzo-radius);
   box-shadow: var(--byzo-shadow);
-  padding: 24px;
+  padding: 28px;
 }
 
 .bookyzo-widget *,
@@ -43,10 +47,18 @@
   box-sizing: border-box;
 }
 
+/* color/font-family stated outright rather than inherited — a theme's own
+   `h2` rule outranks inheritance from `.bookyzo-widget`, so relying on it
+   left the step heading taking the theme's heading colour on some themes
+   (see the same fix on .bookyzo-account h1). */
 .bookyzo-widget h2 {
   margin: 0 0 4px;
-  font-size: 18px;
-  font-weight: 600;
+  font-size: 22px;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--byzo-text);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
 }
 
 .bookyzo-widget p {
@@ -54,24 +66,83 @@
   color: var(--byzo-text-muted);
 }
 
+.bookyzo-widget .step-sub {
+  margin: 0 0 22px;
+  font-size: 14px;
+}
+
+/* Restated booking details, shown on the form and confirmation steps. */
+.bookyzo-widget .summary {
+  background: var(--byzo-primary-light);
+  border-radius: var(--byzo-radius-sm);
+  padding: 12px 14px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.bookyzo-widget .summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+}
+
+.bookyzo-widget .summary-label {
+  color: var(--byzo-text-muted);
+  flex-shrink: 0;
+}
+
+.bookyzo-widget .summary-value {
+  font-weight: 600;
+  text-align: right;
+}
+
+/* The amount is the one row people scan for before committing, so it
+   gets a rule above it and a larger, full-strength figure rather than
+   sitting as a third identical line under Service/When. */
+.bookyzo-widget .summary-row-total {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin-top: 2px;
+  padding-top: 8px;
+  align-items: baseline;
+}
+
+.bookyzo-widget .summary-row-total .summary-value {
+  font-size: 15px;
+  color: var(--byzo-text);
+}
+
+.bookyzo-widget .summary--confirm {
+  text-align: left;
+  margin-top: 18px;
+}
+
+.bookyzo-widget .optional {
+  color: var(--byzo-text-muted);
+  font-weight: 400;
+}
+
+/* A segmented bar rather than dots — each segment is a step, so it
+   doubles as "how much is left", which loose dots never conveyed. */
 .bookyzo-widget .progress {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 20px;
+  gap: 5px;
+  margin-bottom: 24px;
 }
 
 .bookyzo-widget .progress .dot {
-  width: 8px;
-  height: 8px;
+  flex: 1;
+  height: 4px;
   border-radius: 999px;
   background: var(--byzo-border);
+  transition: background 0.2s;
 }
 
 .bookyzo-widget .progress .dot.active {
   background: var(--byzo-primary);
-  width: 20px;
-  border-radius: 999px;
 }
 
 .bookyzo-widget .field {
@@ -92,9 +163,15 @@
   color: inherit;
   border: 1px solid var(--byzo-border);
   border-radius: var(--byzo-radius-sm);
-  padding: 8px 10px;
+  padding: 10px 12px;
   width: 100%;
-  background: #fff;
+  background: var(--byzo-surface);
+}
+
+.bookyzo-widget input::placeholder,
+.bookyzo-widget textarea::placeholder {
+  color: var(--byzo-text-muted);
+  opacity: 0.7;
 }
 
 .bookyzo-widget input:focus,
@@ -130,16 +207,33 @@
 
 .bookyzo-widget .btn {
   font: inherit;
-  font-weight: 500;
+  font-size: 15px;
+  font-weight: 600;
   border-radius: var(--byzo-radius-sm);
-  padding: 9px 16px;
+  padding: 12px 22px;
   border: 1px solid transparent;
   cursor: pointer;
+  transition: opacity 0.12s, border-color 0.12s, color 0.12s;
+}
+
+.bookyzo-widget .btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.bookyzo-widget .btn-outline:hover:not(:disabled) {
+  border-color: var(--byzo-primary);
+  color: var(--byzo-primary);
 }
 
 .bookyzo-widget .btn-primary {
   background: linear-gradient(135deg, var(--byzo-primary), var(--byzo-primary-dark));
   color: #fff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+
+.bookyzo-widget .btn-primary:disabled {
+  box-shadow: none;
 }
 
 .bookyzo-widget .btn-primary:disabled {
@@ -156,31 +250,285 @@
 .bookyzo-widget .actions {
   display: flex;
   justify-content: space-between;
-  margin-top: 20px;
+  align-items: center;
+  gap: 12px;
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--byzo-border);
 }
 
-.bookyzo-widget .bookable-item-list,
-.bookyzo-widget .date-list,
-.bookyzo-widget .slot-list {
+.bookyzo-widget .bookable-item-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.bookyzo-widget .date-list,
 .bookyzo-widget .slot-list {
+  display: flex;
   flex-direction: row;
   flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Party size asked ahead of the calendar (Table) */
+.bookyzo-widget .party-size {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+}
+
+.bookyzo-widget .party-size label {
+  font-weight: 500;
+  font-size: 13px;
+}
+
+.bookyzo-widget .party-size select {
+  font: inherit;
+  color: inherit;
+  border: 1px solid var(--byzo-border);
+  border-radius: var(--byzo-radius-sm);
+  padding: 8px 10px;
+  background: var(--byzo-surface);
+  cursor: pointer;
+}
+
+/* Month calendar (StepSlot) */
+/* Calendar beside the times when the embed is wide enough for both;
+   wraps to a single column otherwise. The calendar has a fixed natural
+   width, so without this a wide embed left an empty column next to it. */
+/* `stretch` (the default) rather than flex-start, so the two columns
+   always end level — the calendar has a fixed natural height, and
+   letting the times run past it made the block look ragged. */
+.bookyzo-widget .picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 22px;
+}
+
+.bookyzo-widget .picker .cal {
+  flex: 0 0 auto;
+}
+
+/* Only takes the second column when enough room remains beside the
+   calendar; below that it wraps and spans the full width. */
+.bookyzo-widget .picker .times {
+  flex: 1 1 200px;
+  margin-top: 0;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* A day with more times than the calendar is tall scrolls inside its own
+   column instead of stretching the row — the two sides stay level and
+   the page length stops depending on how busy a given day is. */
+.bookyzo-widget .picker .times-scroll {
+  overflow-y: auto;
+  /* Tall enough that a normal working day's times fit without scrolling
+     at all; a genuinely long day still scrolls rather than stretching
+     the row. The calendar column grows to match via align-items:
+     stretch, so the two sides stay level either way. */
+  max-height: 360px;
+  padding-right: 4px;
+  /* Thin scrollbar — the platform default is heavy enough to visually
+     dominate a column this narrow. */
+  scrollbar-width: thin;
+  scrollbar-color: var(--byzo-border) transparent;
+}
+
+/* Fades the last row out at the cut line so a clipped chip reads as
+   "there is more below" rather than as a rendering fault. Applied only
+   when the times actually overflow — StepSlot sets this class, since CSS
+   alone cannot detect overflow — so a list that fits is never dimmed. */
+.bookyzo-widget .picker .times-scroll--overflowing {
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 24px), transparent);
+}
+
+/* Once the times wrap under the calendar there is no second column to
+   stay level with, so the cap and its scrollbar would only get in the
+   way. A container query, not a media query: this widget is embedded in
+   arbitrary page layouts, so what matters is the space the widget itself
+   has, not the viewport — a narrow sidebar embed on a wide screen wraps
+   too, and would otherwise keep a pointless scrollbar. */
+.bookyzo-widget .picker {
+  container-type: inline-size;
+}
+
+@container (max-width: 520px) {
+  .bookyzo-widget .picker .times-scroll {
+    overflow-y: visible;
+    max-height: none;
+    padding-right: 0;
+  }
+}
+
+/* No border — the widget already has a frame, and a second one around
+   the calendar made it read as a box inside a box. A soft fill groups
+   the grid just as clearly and sits back visually. */
+.bookyzo-widget .cal {
+  background: var(--byzo-subtle);
+  border-radius: var(--byzo-radius-sm);
+  padding: 14px 16px;
+  /* 7 × 36px cells plus gaps and padding — the grid has a natural size,
+     so the block wraps it rather than spanning a wide embed. */
+  max-width: 320px;
+}
+
+.bookyzo-widget .cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.bookyzo-widget .cal-title {
+  font-weight: 650;
+  font-size: 15px;
+  letter-spacing: -0.01em;
+}
+
+.bookyzo-widget .cal-nav {
+  width: 30px;
+  height: 30px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--byzo-surface);
+  color: var(--byzo-text);
+  font: inherit;
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+
+.bookyzo-widget .cal-nav:hover:not(:disabled) {
+  color: var(--byzo-primary);
+}
+
+.bookyzo-widget .cal-nav:disabled {
+  opacity: 0.3;
+  cursor: default;
+  box-shadow: none;
+}
+
+.bookyzo-widget .cal-grid {
+  display: grid;
+  /* Columns sized to the cell, not stretched to fill — otherwise a wide
+     embed turns each day pill into a long oval. */
+  grid-template-columns: repeat(7, 36px);
+  justify-content: space-between;
+  gap: 4px 0;
+}
+
+.bookyzo-widget .cal-dow {
+  margin-bottom: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--byzo-text-muted);
+}
+
+/* Matches .cal-cell's width so the labels sit over their columns. */
+.bookyzo-widget .cal-dow span {
+  width: 36px;
+  text-align: center;
+}
+
+/* Fixed height rather than aspect-ratio: 1 — a square cell ties the
+   calendar's height to the widget's width, so a wide embed produced a
+   needlessly tall grid. A row height is all this needs. */
+.bookyzo-widget .cal-cell {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  /* Unavailable days are context, not options — kept faint so the eye
+     goes straight to the days that can actually be booked. */
+  color: #b6bcc6;
+  font: inherit;
+  font-size: 14px;
+  cursor: default;
+}
+
+.bookyzo-widget .cal-cell--empty {
+  visibility: hidden;
+}
+
+/* Available days carry the weight: solid text on a white pill, which
+   reads as raised against the calendar's soft fill. */
+.bookyzo-widget .cal-cell--open {
+  color: var(--byzo-text);
+  font-weight: 600;
+  background: var(--byzo-surface);
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(16, 24, 40, 0.06);
+}
+
+.bookyzo-widget .cal-cell--open:hover {
+  color: var(--byzo-primary);
+  background: var(--byzo-primary-light);
+}
+
+.bookyzo-widget .cal-cell--selected,
+.bookyzo-widget .cal-cell--selected:hover {
+  background: var(--byzo-primary);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.35);
+}
+
+.bookyzo-widget .times {
+  margin-top: 24px;
+}
+
+.bookyzo-widget .times-head {
+  font-weight: 650;
+  font-size: 16px;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
+}
+
+.bookyzo-widget .time-group + .time-group {
+  margin-top: 12px;
+}
+
+.bookyzo-widget .time-group-label {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--byzo-text-muted);
+  margin-bottom: 6px;
+}
+
+/* While the column scrolls, the group heading pins to the top of the
+   viewport instead of sliding under the chips above it — otherwise
+   "AFTERNOON" ends up overlapped by a chip mid-scroll and unreadable.
+   The opaque background is what keeps the chips from showing through. */
+.bookyzo-widget .picker .times-scroll .time-group-label {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--byzo-surface);
+  padding-block: 3px;
 }
 
 .bookyzo-widget .option-card {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   width: 100%;
   text-align: left;
   border: 1px solid var(--byzo-border);
   border-radius: var(--byzo-radius-sm);
-  padding: 12px;
-  background: #fff;
+  padding: 14px;
+  background: var(--byzo-surface);
   cursor: pointer;
   font: inherit;
   color: inherit;
@@ -188,33 +536,108 @@
 
 .bookyzo-widget .option-card:hover {
   border-color: var(--byzo-primary);
+  background: var(--byzo-primary-light);
+}
+
+/* Event occurrences (StepSlot) reuse the service-card shape, but are a
+   pick-then-Continue choice rather than a navigation, so they carry a
+   selected state the service list has no need for. */
+.bookyzo-widget .occurrence-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bookyzo-widget .option-card--selected,
+.bookyzo-widget .option-card--selected:hover {
+  border-color: var(--byzo-primary);
+  background: var(--byzo-primary-light);
+  outline: 1px solid var(--byzo-primary);
+}
+
+.bookyzo-widget .option-card:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.bookyzo-widget .option-card:disabled:hover {
+  border-color: var(--byzo-border);
+  background: var(--byzo-surface);
+}
+
+.bookyzo-widget .option-card-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .bookyzo-widget .option-card .name {
   font-weight: 600;
   display: block;
+  margin-bottom: 3px;
 }
 
 .bookyzo-widget .option-card .meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--byzo-text-muted);
   font-size: 13px;
 }
 
+.bookyzo-widget .option-card .meta-price {
+  color: var(--byzo-text);
+  font-weight: 600;
+}
+
+/* Separates duration from price without a literal "·" in the markup. */
+.bookyzo-widget .option-card .meta-item + .meta-item::before,
+.bookyzo-widget .option-card .meta-price::before {
+  content: '';
+  display: inline-block;
+  width: 3px;
+  height: 3px;
+  border-radius: 999px;
+  background: var(--byzo-border);
+  vertical-align: middle;
+  margin-right: 8px;
+}
+
+.bookyzo-widget .option-card-go {
+  color: var(--byzo-text-muted);
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.bookyzo-widget .option-card:hover .option-card-go {
+  color: var(--byzo-primary);
+}
+
 .bookyzo-widget .chip {
   border: 1px solid var(--byzo-border);
-  border-radius: 999px;
-  padding: 6px 14px;
-  background: #fff;
+  border-radius: var(--byzo-radius-sm);
+  padding: 7px 12px;
+  background: var(--byzo-surface);
+  color: inherit;
   cursor: pointer;
   font: inherit;
   font-size: 13px;
+  font-weight: 600;
+  transition: border-color 0.12s, color 0.12s, background 0.12s;
 }
 
-.bookyzo-widget .chip:hover,
-.bookyzo-widget .chip.selected {
+.bookyzo-widget .chip:hover {
   border-color: var(--byzo-primary);
   color: var(--byzo-primary);
   background: var(--byzo-primary-light);
+}
+
+/* Selected is a filled chip, not just a tinted one — with a grid of
+   times the outline-only treatment was too weak to find at a glance. */
+.bookyzo-widget .chip.selected {
+  border-color: var(--byzo-primary);
+  background: var(--byzo-primary);
+  color: #fff;
 }
 
 .bookyzo-widget .error {

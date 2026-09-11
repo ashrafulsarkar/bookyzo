@@ -23,6 +23,7 @@
 import { computed } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { formatMoney } from '@/lib/money';
 
 // Review for the Add/Edit popup (BookableItemWizard.vue). The setup
 // wizard has its own ReviewStep.vue with the extra settings rows
@@ -92,7 +93,7 @@ const rows = computed(() => {
   if (d.type !== 'event' && Array.isArray(d.exceptions)) {
     list.push({ label: 'Exceptions', value: exceptionsSummary.value });
   }
-  list.push({ label: 'Price', value: d.price ? `${d.currency} ${Number(d.price).toFixed(2)}` : 'Free' });
+  list.push({ label: 'Price', value: formatMoney(d.price, { currency: d.currency, emptyLabel: 'Free' }) });
   if (d.status) {
     list.push({ label: 'Status', value: STATUS_LABELS[d.status] || d.status });
   }

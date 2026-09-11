@@ -69,3 +69,15 @@ export function formatMonthLabel(date) {
 export function formatTime(date) {
   return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 }
+
+/**
+ * An on-the-hour label for the calendar's hour rail. Drops the `:00`
+ * every row would otherwise repeat — with the minutes in, "10:00 AM"
+ * overflowed the rail's width and wrapped onto two lines while shorter
+ * labels like "7:00 AM" didn't, leaving the rail visibly ragged. Locales
+ * that don't use AM/PM get their own hour formatting from `Intl` here
+ * exactly as before.
+ */
+export function formatHourLabel(date) {
+  return date.toLocaleTimeString(undefined, { hour: 'numeric' });
+}

@@ -77,11 +77,57 @@ class BYZO_Account_Widget {
 
 		if ( ! empty( $entry['css'] ) ) {
 			foreach ( $entry['css'] as $index => $css_file ) {
-				wp_enqueue_style( 'byzo-account-' . $index, $base . $css_file, array(), BYZO_VERSION );
+				$handle = 'byzo-account-' . $index;
+				wp_enqueue_style( $handle, $base . $css_file, array(), BYZO_VERSION );
+
+				// The account pages carry the same `--byzo-*` token names
+				// as the widget (src/account/account.css declares its own
+				// copy), so the merchant's Appearance settings apply here
+				// too. Without this a site that branded its booking widget
+				// green still got Bookyzo's stock blue on the login and
+				// dashboard pages sitting next to it — two different-looking
+				// halves of one customer-facing flow.
+				self::add_appearance_css( $handle );
 			}
 		}
 
 		wp_add_inline_script( 'byzo-account', 'window.byzoAccount = ' . wp_json_encode( self::config() ) . ';', 'before' );
+	}
+
+	/**
+	 * Appends the merchant's Appearance overrides to the account bundle's
+	 * stylesheet, mirroring BYZO_Public_Widget::add_appearance_css() —
+	 * same handle-scoped, no-`!important`, nothing-emitted-when-unchanged
+	 * approach, and the same reason for attaching to the style handle
+	 * rather than printing inline in the body.
+	 *
+	 * Only the custom properties travel, not build_css_declarations():
+	 * that method's `max-width` is the widget's own 900px canvas, which
+	 * would stretch a 480px login card to more than twice its width. The
+	 * typography half of it is reproduced here without that.
+	 */
+	private static function add_appearance_css( $handle ) {
+		if ( ! class_exists( 'BYZO_Appearance_Settings' ) ) {
+			return;
+		}
+
+		$settings = BYZO_Appearance_Settings::get();
+		$defaults = BYZO_Appearance_Settings::defaults();
+		$rules    = BYZO_Appearance_Settings::build_css_vars();
+
+		if ( (int) $settings['font_size'] !== (int) $defaults['font_size'] ) {
+			$rules .= 'font-size:' . (int) $settings['font_size'] . 'px;';
+		}
+
+		if ( '' !== $settings['font_family'] ) {
+			$rules .= 'font-family:' . $settings['font_family'] . ';';
+		}
+
+		if ( '' === $rules ) {
+			return;
+		}
+
+		wp_add_inline_style( $handle, '.bookyzo-account{' . $rules . '}' );
 	}
 
 	/**

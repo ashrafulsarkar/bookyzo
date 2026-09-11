@@ -70,8 +70,11 @@
 
       <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
     </CardContent>
-    <CardFooter class="justify-between">
-      <Button variant="outline" @click="$emit('back')">Back</Button>
+    <!-- `justify-end` when there's nothing behind this step (editing an
+         existing item, where the Type step is skipped) — a Back button
+         with nowhere to go is worse than no Back button. -->
+    <CardFooter :class="hideBack ? 'justify-end' : 'justify-between'">
+      <Button v-if="!hideBack" variant="outline" @click="$emit('back')">Back</Button>
       <Button @click="continueStep">Continue</Button>
     </CardFooter>
   </Card>
@@ -100,6 +103,8 @@ const props = defineProps({
   // Onboarding keeps this to the essentials — no photo/status. Those
   // stay editable from Bookable Items afterwards.
   compact: { type: Boolean, default: false },
+  // True when this is the wizard's first step and Back has no target.
+  hideBack: { type: Boolean, default: false },
 });
 const emit = defineEmits(['next', 'back']);
 

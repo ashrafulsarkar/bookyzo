@@ -91,7 +91,12 @@ class BYZO_Availability {
 					'byzo_shift_limit_reached',
 					sprintf(
 						/* translators: %d: maximum shifts per day allowed */
-						__( 'Only %d shift(s) per day allowed. Upgrade to add more.', 'bookyzo' ),
+						_n(
+							'This schedule has more than %d shift on a single day. Merge them into one set of opening hours.',
+							'This schedule has more than %d shifts on a single day. Merge them into fewer.',
+							$max_shifts,
+							'bookyzo'
+						),
 						$max_shifts
 					),
 					array( 'status' => 403 )

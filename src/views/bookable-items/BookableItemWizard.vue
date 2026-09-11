@@ -39,6 +39,7 @@
           :class="STEP_CARD_CLASS"
           :type="wizardData.type"
           :initial="wizardData"
+          :hide-back="isEdit"
           @next="onDetailsNext"
           @back="step = 'type'"
         />
@@ -116,10 +117,25 @@ const isEdit = computed(() => props.itemId !== null && props.itemId !== undefine
 // standalone cards on a page and keep their padding.
 const STEP_CARD_CLASS = 'border-0 shadow-none [&>*]:!px-0 [&>*:first-child]:!pt-0 [&>*:last-child]:!pb-0';
 
-const STEP_ORDER = ['type', 'details', 'availability', 'pricing', 'review'];
+// The Type step is skipped entirely when editing: the type can't be
+// changed after creation (update_item() rejects it), so it rendered as a
+// step whose only control was already-selected-and-disabled and whose
+// only possible action was clicking Continue past it. The type still
+// shows on Details and Review, where it's information rather than a
+// dead choice.
+const STEP_ORDER = computed(() =>
+  isEdit.value
+    ? ['details', 'availability', 'pricing', 'review']
+    : ['type', 'details', 'availability', 'pricing', 'review']
+);
 const step = ref('type');
-const currentIndex = computed(() => STEP_ORDER.indexOf(step.value));
-const stepLabels = computed(() => ['Type', 'Details', wizardData.type === 'event' ? 'Dates' : 'Availability', 'Pricing', 'Review']);
+const currentIndex = computed(() => STEP_ORDER.value.indexOf(step.value));
+const stepLabels = computed(() => {
+  const availabilityLabel = wizardData.type === 'event' ? 'Dates' : 'Availability';
+  const labels = ['Details', availabilityLabel, 'Pricing', 'Review'];
+
+  return isEdit.value ? labels : ['Type', ...labels];
+});
 
 // Accumulated across the steps and sent to the server ONCE, from Review.
 // `schedules` / `exceptions` / `occurrences` are null (not []) until the
@@ -168,7 +184,7 @@ const original = reactive({ exceptionIds: [], occurrenceIds: [] });
 // (the item, then its availability/exceptions or its dates); if a later
 // one fails, a retry must UPDATE this item rather than POST a second one —
 // which, on Free's 1-active-per-type cap (BYZO_Capabilities), would
-// otherwise fail with "Upgrade to add more" and strand a half-configured
+// otherwise fail with the per-type limit error and strand a half-configured
 // item behind it.
 const createdId = ref(null);
 const createdType = ref('');
@@ -193,7 +209,7 @@ watch(
 );
 
 function resetWizard() {
-  step.value = 'type';
+  step.value = isEdit.value ? 'details' : 'type';
   Object.assign(wizardData, emptyData());
   original.exceptionIds = [];
   original.occurrenceIds = [];
