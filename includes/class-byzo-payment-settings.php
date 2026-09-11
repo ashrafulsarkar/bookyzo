@@ -19,21 +19,34 @@ class BYZO_Payment_Settings {
 
 	const OPTION = 'byzo_payment_settings';
 
+	/**
+	 * Phase 2 step 6 (PayPal, DETAILED-SPEC.md §A7) widened this from a
+	 * hardcoded single-gateway array to filter-driven — `stripe` stays
+	 * Free's own hardcoded default (never touched by anything else), and
+	 * `byzo_payment_gateway_defaults` is the extension point a Pro
+	 * gateway's own default settings shape gets added through, same
+	 * pattern as `byzo_payment_gateways` already registers the gateway
+	 * itself. Free never hooks this filter, so this is a no-op change in
+	 * Free alone.
+	 */
 	private static function defaults() {
 		return array(
-			'gateways' => array(
-				'stripe' => array(
-					'enabled'         => false,
-					'publishable_key' => '',
-					'secret_key'      => '',
-					// Stripe's webhook SIGNING secret (whsec_...) — a different
-					// value from the API secret key above, used only to verify
-					// that an incoming /stripe-webhook POST really came from
-					// Stripe (DETAILED-SPEC.md §4: "signature-verified, not
-					// nonce-based"). Found via Stripe's dashboard when adding
-					// the webhook endpoint, not the same secret used for API calls.
-					'webhook_secret'  => '',
-				),
+			'gateways' => apply_filters(
+				'byzo_payment_gateway_defaults',
+				array(
+					'stripe' => array(
+						'enabled'         => false,
+						'publishable_key' => '',
+						'secret_key'      => '',
+						// Stripe's webhook SIGNING secret (whsec_...) — a different
+						// value from the API secret key above, used only to verify
+						// that an incoming /stripe-webhook POST really came from
+						// Stripe (DETAILED-SPEC.md §4: "signature-verified, not
+						// nonce-based"). Found via Stripe's dashboard when adding
+						// the webhook endpoint, not the same secret used for API calls.
+						'webhook_secret'  => '',
+					),
+				)
 			),
 		);
 	}
@@ -75,6 +88,44 @@ class BYZO_Payment_Settings {
 				return $stripe;
 			}
 			$current['gateways']['stripe'] = $stripe;
+		}
+
+		// Any OTHER registered gateway (Pro's PayPal, and any future
+		// candidate) validates+merges through this filter instead of a
+		// hardcoded method here — Free has no idea what fields a Pro
+		// gateway even has. `BYZO_Payment_Gateways::exists()` guards
+		// against writing settings for an id nothing actually registered
+		// (e.g. Pro was just deactivated) — silently dropped, not an
+		// error, same "the data just doesn't apply anymore" reasoning as
+		// every other Pro-consumed-but-Free-schema field in this plugin.
+		if ( isset( $data['gateways'] ) && is_array( $data['gateways'] ) ) {
+			foreach ( $data['gateways'] as $gateway_id => $gateway_data ) {
+				if ( 'stripe' === $gateway_id || ! is_array( $gateway_data ) || ! BYZO_Payment_Gateways::exists( $gateway_id ) ) {
+					continue;
+				}
+
+				/**
+				 * Filters (validates + merges) a non-Stripe gateway's
+				 * settings patch. Must return the merged settings array for
+				 * this gateway, or a WP_Error to reject the whole save.
+				 *
+				 * @param array|WP_Error $result     Passed in as the gateway's current stored settings; a hook should merge $gateway_data into it (or return WP_Error).
+				 * @param string         $gateway_id
+				 * @param array          $gateway_data Incoming patch.
+				 */
+				$updated = apply_filters(
+					'byzo_validate_payment_gateway_settings',
+					isset( $current['gateways'][ $gateway_id ] ) ? $current['gateways'][ $gateway_id ] : array(),
+					$gateway_id,
+					$gateway_data
+				);
+
+				if ( is_wp_error( $updated ) ) {
+					return $updated;
+				}
+
+				$current['gateways'][ $gateway_id ] = $updated;
+			}
 		}
 
 		update_option( self::OPTION, $current );

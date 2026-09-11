@@ -20,7 +20,17 @@ import { router } from '../router';
  */
 export const extraNavItems = reactive([]);
 
+// Gateway id -> settings component, e.g. { paypal: PayPalGatewaySettings }.
+// PaymentSettings.vue merges this with its own hardcoded map (Stripe) so a
+// Pro-registered gateway (BYZO_Payment_Gateways::all()'s `byzo_payment_gateways`
+// filter, PHP-side) gets a real settings form instead of the "aren't
+// available in this version" fallback. Added Phase 2 step 6 (PayPal),
+// DETAILED-SPEC.md §A7 — same registerExtension() call as routes/navItems,
+// just a third recognized key.
+export const extraPaymentGatewayComponents = reactive({});
+
 export function registerExtension(extension = {}) {
   (extension.routes || []).forEach((route) => router.addRoute(route));
   extraNavItems.push(...(extension.navItems || []));
+  Object.assign(extraPaymentGatewayComponents, extension.paymentGatewayComponents || {});
 }

@@ -35,8 +35,8 @@
         v-model="form.gateways[gateway.id]"
       >
         <component
-          :is="gatewayComponents[gateway.id]"
-          v-if="gatewayComponents[gateway.id] && form.gateways[gateway.id]"
+          :is="allGatewayComponents[gateway.id]"
+          v-if="allGatewayComponents[gateway.id] && form.gateways[gateway.id]"
           v-model="form.gateways[gateway.id]"
         />
         <p v-else class="text-sm text-muted-foreground">{{ gateway.label }} settings aren't available in this version.</p>
@@ -46,24 +46,27 @@
 </template>
 
 <script setup>
-import { ref, reactive, onMounted } from 'vue';
+import { ref, reactive, computed, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import PaymentGatewayRow from './payment-gateways/PaymentGatewayRow.vue';
 import StripeGatewaySettings from './payment-gateways/StripeGatewaySettings.vue';
+import { extraPaymentGatewayComponents } from '@/lib/admin-extensions';
 import { api } from '@/api/client';
 
 // Maps a registered gateway's `id` to the component that renders its
 // settings fields (shown inside PaymentGatewayRow once expanded). A
 // gateway can be registered (appears in the list) without an entry here
 // — the fallback message above covers that rather than an empty expanded
-// panel — but in practice every gateway this plugin registers ships its
-// own entry alongside the PHP side that registers it.
+// panel. Stripe is Free's own hardcoded entry; anything else (Pro's
+// PayPal, and any future gateway) merges in via extraPaymentGatewayComponents
+// — see lib/admin-extensions.js.
 const gatewayComponents = {
   stripe: StripeGatewaySettings,
 };
+const allGatewayComponents = computed(() => ({ ...gatewayComponents, ...extraPaymentGatewayComponents }));
 
 const gateways = ref([]);
 const form = reactive({ gateways: {} });

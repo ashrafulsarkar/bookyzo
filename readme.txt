@@ -138,6 +138,8 @@ Initial release.
 * `byzo_default_settings` — ( array $defaults ) Default values seeded into the business-settings option on activation.
 * `byzo_rest_controllers` — ( array $controllers ) REST controller instances registered on `rest_api_init`.
 * `byzo_payment_gateways` — ( array $gateways ) Registered payment gateways shown on the Payments settings screen, keyed by gateway id. Default: Stripe only.
+* `byzo_payment_gateway_defaults` — ( array $defaults ) Default settings shape for each registered gateway, keyed by gateway id. Default: Stripe only.
+* `byzo_validate_payment_gateway_settings` — ( array|WP_Error $current, string $gateway_id, array $data ) Validates and merges a settings patch for a non-Stripe gateway. Only consulted for a gateway that `byzo_payment_gateways` actually registered.
 * `byzo_rest_public_permission` — ( bool $allowed, WP_REST_Request $request ) Permission check for guest-allowed REST routes.
 * `byzo_booking_rate_limit_max` / `byzo_booking_rate_limit_window` — ( int ) Per-IP guest booking rate limit (default 20 requests / 600 seconds) and its window in seconds.
 * `byzo_client_ip` — ( string $ip ) The IP address used for rate limiting.
