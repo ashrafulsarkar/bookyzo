@@ -154,3 +154,4 @@ Initial release.
 * `byzo_booking_status_changed` — ( int $booking_id, string $new_status, string $old_status ) After a booking's status changes.
 * `byzo_booking_payment_status_changed` — ( int $booking_id, string $new_status, string $old_status ) After a booking's payment status changes.
 * `byzo_notification_sent` — ( string $event, int $booking_id ) After a notification email is sent (or attempted).
+* `byzo_notification_channels` — ( string $event, array $booking, array $placeholders ) Fires after a notification email is sent, with the same placeholders — lets an add-on send the same event via another channel (e.g. SMS/WhatsApp).

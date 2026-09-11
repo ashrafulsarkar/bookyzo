@@ -930,6 +930,43 @@ class BYZO_Booking {
 		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
 	}
 
+	/**
+	 * Bookings whose slot starts within [$window_start, $window_end) —
+	 * the same shape as get_due_for_reminder() above but deliberately
+	 * WITHOUT its `reminder_sent_at IS NULL` filter (Phase 2 step 7,
+	 * DETAILED-SPEC.md §A6). That column tracks Free's own single fixed
+	 * 24h reminder; reusing it here would wrongly exclude a booking from
+	 * every one of Pro's independent, per-rule reminders the moment
+	 * Free's own reminder had fired for it once. Pro tracks its own
+	 * per-(booking, rule, channel) send state in its own table instead.
+	 *
+	 * @return array Cast booking rows (same shape as get()/query()).
+	 */
+	public static function get_bookings_in_window( DateTime $window_start, DateTime $window_end ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT b.*, s.start_datetime AS slot_start, s.end_datetime AS slot_end
+				 FROM {$bookings_table} b
+				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
+				 WHERE b.status IN ('pending','confirmed')
+				   AND s.start_datetime >= %s
+				   AND s.start_datetime < %s",
+				$window_start->format( 'Y-m-d H:i:s' ),
+				$window_end->format( 'Y-m-d H:i:s' )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
+	}
+
 	public static function mark_reminder_sent( $id ) {
 		global $wpdb;
 

@@ -97,23 +97,16 @@ class BYZO_Notifications {
 	}
 
 	/**
-	 * @param string      $event
-	 * @param int         $booking_id
-	 * @param string|null $to Defaults to the booking's own customer_email —
-	 *     pass an explicit address (e.g. get_option('admin_email')) for the
-	 *     admin-facing notification, which isn't addressed to the customer.
+	 * The `{placeholder}` substitution values for one booking — extracted
+	 * out of send() (Phase 2 step 7) and made public so
+	 * `bookyzo-pro`'s reminder cron can build SMS/WhatsApp messages using
+	 * the exact same values email uses, without going through send()
+	 * itself (which would also unconditionally fire an email — wrong for
+	 * a reminder rule whose channels don't include 'email').
+	 *
+	 * @return array<string,string>
 	 */
-	private static function send( $event, $booking_id, $to = null ) {
-		$booking = BYZO_Booking::get( $booking_id );
-		if ( ! $booking ) {
-			return;
-		}
-
-		$template = BYZO_Email_Templates::get_one( $event );
-		if ( ! $template ) {
-			return;
-		}
-
+	public static function build_placeholders( $booking ) {
 		$item     = BYZO_Bookable_Item::get( $booking['bookable_item_id'] );
 		$settings = BYZO_Settings::get();
 
@@ -127,10 +120,10 @@ class BYZO_Notifications {
 		// to be dead at send time.
 		$cancel_link = '';
 		if ( (int) $settings['cancellation_hours'] > 0 && in_array( $booking['status'], array( 'pending', 'confirmed' ), true ) ) {
-			$cancel_link = BYZO_Booking_Cancel::build_link( $booking_id, $booking['customer_email'] );
+			$cancel_link = BYZO_Booking_Cancel::build_link( $booking['id'], $booking['customer_email'] );
 		}
 
-		$placeholders = array(
+		return array(
 			'{customer_name}'        => $booking['customer_name'],
 			'{bookable_item_name}'   => $item ? $item['name'] : '',
 			'{start_time}'           => self::format_start_time( $booking['slot_start'] ),
@@ -143,6 +136,34 @@ class BYZO_Notifications {
 			'{location}'             => $item && ! empty( $item['location'] ) ? $item['location'] : '',
 			'{meeting_link}'         => $item && ! empty( $item['meeting_link'] ) ? $item['meeting_link'] : '',
 		);
+	}
+
+	/**
+	 * Public (Phase 2 step 7) so `bookyzo-pro`'s rule-based reminder cron
+	 * can send the 'email' channel of a custom-offset reminder rule
+	 * through this exact same template/placeholder/wp_mail() path — never
+	 * duplicated in Pro. Every OTHER caller is still internal to this
+	 * class; nothing about making this callable externally changes what
+	 * it does.
+	 *
+	 * @param string      $event
+	 * @param int         $booking_id
+	 * @param string|null $to Defaults to the booking's own customer_email —
+	 *     pass an explicit address (e.g. get_option('admin_email')) for the
+	 *     admin-facing notification, which isn't addressed to the customer.
+	 */
+	public static function send( $event, $booking_id, $to = null ) {
+		$booking = BYZO_Booking::get( $booking_id );
+		if ( ! $booking ) {
+			return;
+		}
+
+		$template = BYZO_Email_Templates::get_one( $event );
+		if ( ! $template ) {
+			return;
+		}
+
+		$placeholders = self::build_placeholders( $booking );
 
 		$subject = strtr( $template['subject'], $placeholders );
 		$body    = strtr( $template['body'], $placeholders );
@@ -161,6 +182,22 @@ class BYZO_Notifications {
 		 * rather than blocking the booking flow on an SMTP round trip).
 		 */
 		do_action( 'byzo_notification_sent', $event, $booking_id );
+
+		/**
+		 * Phase 2 step 7 (DETAILED-SPEC.md §A6) — lets Pro send this same
+		 * event via SMS/WhatsApp using the exact placeholders already
+		 * built for the email above, without Free knowing SMS/WhatsApp
+		 * exist. Free never hooks this itself. Deliberately fired for
+		 * every event this method handles (not just the 3 Pro actually
+		 * uses) — Pro's own listener decides which events it cares about,
+		 * same "the filter fires unconditionally, the consumer opts in"
+		 * shape as every other Free→Pro extension point in this plugin.
+		 *
+		 * @param string $event
+		 * @param array  $booking
+		 * @param array  $placeholders
+		 */
+		do_action( 'byzo_notification_channels', $event, $booking, $placeholders );
 	}
 
 	private static function format_start_time( $slot_start ) {
