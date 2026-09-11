@@ -60,7 +60,8 @@ The free version should be genuinely usable for a small single-location business
 - Manual booking creation/edit from admin (for phone/walk-in bookings)
 - Booking statuses: pending, confirmed, completed, cancelled, no-show, **rejected (added 2026-09-05, Phase 1.6)** — distinct from cancelled: a `pending` request the business explicitly declines before ever confirming it, kept separate from `cancelled` (a booking called off after being made) so reporting can tell "we said no" apart from "they backed out."
 - **Auto-confirm vs. manual approval (added 2026-09-03):** a site-wide `byzo_settings` toggle, set during onboarding (A1) or later in Settings. Manual approval (default) creates every booking as `pending`, same as today. Auto-confirm creates it straight as `confirmed`, skipping the admin-review step — for businesses with no capacity/legitimacy concerns who find manual approval pure friction. Per-bookable item override is a natural Pro extension (not built now — flag if it comes up).
-- **Basic reschedule (added 2026-09-05, Phase 1.6):** move an existing booking to a different available slot from its detail view — releases the old slot's capacity, atomically claims the new one, same underlying mechanics as a fresh booking. Distinct from B3's Pro "drag-and-drop reschedule on the calendar," which is the visual/bulk version of the same underlying action.
+- **Basic reschedule (added 2026-09-05, Phase 1.6):** move an existing booking to a different available slot from its detail view — releases the old slot's capacity, atomically claims the new one, same underlying mechanics as a fresh booking.
+- **Drag-and-drop reschedule on the calendar (reclassified from Pro's B3 2026-09-12, Phase 2 step 11):** drag a booking block on the calendar grid to a different day/time — the same unrestricted reschedule action above, just triggered by a drag gesture instead of the detail view's dropdown. Originally scoped as Pro in B3, but the underlying endpoint has been fully free since it shipped (Phase 1.6) with no capability check — gating only the drag *gesture* while the dropdown stays free would be a UI-trigger distinction with no real backend difference behind it, not a genuine limit (see `DETAILED-SPEC.md` §3 B3's note).
 - Basic booking list with filters (date, status, bookable item)
 - Single cancellation policy (fixed time-limit rule)
 
@@ -165,9 +166,9 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Group bookings (multiple attendees under one booking)
 
 ### B3. Advanced Booking Management
-- Drag-and-drop reschedule on the calendar
-- Bulk actions (bulk cancel, bulk status change)
-- Booking notes/internal tags (staff-only visibility)
+- ~~Drag-and-drop reschedule on the calendar~~ — **moved to Free's A4 2026-09-12** (Phase 2 step 11) — the underlying reschedule action has been unrestricted since Phase 1.6, so gating just the drag gesture had no real capability behind it.
+- **Bulk actions (bulk cancel, bulk status change) — DONE 2026-09-12, Phase 2 step 11:** new Pro "Bulk & Notes" screen, `POST /bookings/bulk-status`.
+- **Booking notes/internal tags (staff-only visibility) — DONE 2026-09-12, Phase 2 step 11:** same "Bulk & Notes" screen, `bookings.internal_notes`/`tags` (Free schema, Pro-only write UI).
 - Customer booking history and profile (repeat customer detection)
 - Multiple cancellation/refund policy tiers (flexible per bookable item type)
 - Timeline view — all bookable items of a type shown as rows with time across the top, for scanning multi-bookable item availability at a glance (only useful once Pro's unlimited bookable items are in play)

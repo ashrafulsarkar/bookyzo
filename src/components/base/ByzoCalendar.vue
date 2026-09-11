@@ -40,6 +40,7 @@
       :bookings="bookings"
       @select-booking="(b) => $emit('select-booking', b)"
       @select-slot="(payload) => $emit('select-slot', payload)"
+      @reschedule-booking="(payload) => $emit('reschedule-booking', payload)"
     />
   </div>
 </template>
@@ -47,11 +48,14 @@
 <script setup>
 // The single most load-bearing custom component in the admin app
 // (bookyzo-design skill) — no shadcn-vue equivalent exists (its own
-// Calendar/RangeCalendar are date-pickers, not event-grid views). Pro's
-// drag-and-drop reschedule (FEATURES.md §B3) builds directly on the
-// visual language established here, so the event-block/status-color/
-// time-grid-line conventions in ByzoCalendarWeek/Month are the ones to
-// keep consistent as the app grows, not reinvent per-screen.
+// Calendar/RangeCalendar are date-pickers, not event-grid views).
+// Drag-and-drop reschedule (DETAILED-SPEC.md §3 B3, Phase 2 step 11)
+// lives directly in ByzoCalendarWeek — reclassified from Pro to Free
+// 2026-09-12, since the underlying reschedule action was already
+// unrestricted and gating just the drag gesture had no real capability
+// behind it. Keep the event-block/status-color/time-grid-line
+// conventions in ByzoCalendarWeek/Month consistent as the app grows,
+// not reinvent per-screen.
 import { ref, computed, watch } from 'vue';
 import { Button } from '@/components/ui/button';
 import ByzoCalendarWeek from './ByzoCalendarWeek.vue';
@@ -62,7 +66,7 @@ import { startOfWeek, addDays, formatDayLabel, formatMonthLabel } from '@/lib/da
 const props = defineProps({
   bookings: { type: Array, required: true },
 });
-const emit = defineEmits(['range-change', 'select-booking', 'select-slot']);
+const emit = defineEmits(['range-change', 'select-booking', 'select-slot', 'reschedule-booking']);
 
 const viewMode = ref('week');
 const anchor = ref(new Date());

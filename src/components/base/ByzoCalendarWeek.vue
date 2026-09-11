@@ -44,18 +44,36 @@
             :key="'slot-' + hour"
             type="button"
             class="absolute w-full hover:bg-primary/5"
+            :class="{ 'bg-primary/10': dropTarget && dropTarget.dayKey === day.key && dropTarget.hour === hour }"
             :style="{ top: `${(hour - hours[0]) * 48}px`, height: '48px' }"
             @click="$emit('select-slot', { date: day.date, time: hour })"
+            @dragover.prevent="onDragOver(day, hour, $event)"
+            @dragleave="onDragLeave(day, hour)"
+            @drop.prevent="onDrop(day, hour, $event)"
           />
 
+          <!--
+            Drag-and-drop reschedule (DETAILED-SPEC.md §3 B3, Phase 2 step
+            11) — the SAME unrestricted PUT /bookings/{id}/reschedule the
+            detail modal's own slot-picker dropdown already calls
+            (BYZO_Booking::reschedule() has never had a capability check),
+            just triggered by a drag gesture instead. The parent
+            (BookingCalendar.vue) resolves the drop target against a REAL
+            generated slot before calling it — dropping on a time with no
+            actual open slot fails honestly rather than silently snapping.
+          -->
           <button
             v-for="booking in day.bookings"
             :key="booking.id"
             type="button"
+            draggable="true"
             class="absolute left-0.5 right-0.5 overflow-hidden rounded px-1.5 py-0.5 text-left text-xs leading-tight text-white shadow-sm"
+            :class="{ 'opacity-40': draggingId === booking.id }"
             :style="booking.style"
             :title="`${booking.customer_name} — ${booking.timeLabel}`"
             @click.stop="$emit('select-booking', booking)"
+            @dragstart="onDragStart(booking, $event)"
+            @dragend="onDragEnd"
           >
             <span class="block truncate font-medium">{{ booking.customer_name }}</span>
             <span v-if="booking.showTime" class="block truncate opacity-90">{{ booking.timeLabel }}</span>
@@ -67,7 +85,7 @@
 </template>
 
 <script setup>
-import { computed } from 'vue';
+import { ref, computed } from 'vue';
 import { addDays, toDateKey, isSameDay, formatTime, formatHourLabel } from '@/lib/date';
 
 const STATUS_COLORS = {
@@ -84,7 +102,56 @@ const props = defineProps({
   days: { type: Number, required: true }, // 1 for day view, 7 for week view
   bookings: { type: Array, required: true },
 });
-defineEmits(['select-booking', 'select-slot']);
+const emit = defineEmits(['select-booking', 'select-slot', 'reschedule-booking']);
+
+// Drag-and-drop reschedule (DETAILED-SPEC.md §3 B3) — only local UI state
+// (which booking is mid-drag, which cell it's hovering) lives here; the
+// parent resolves the actual target slot and makes the REST call, same
+// "dumb presentational grid, smart parent" split every other calendar
+// event already follows (select-booking/select-slot).
+const draggingId = ref(null);
+const dropTarget = ref(null);
+
+function onDragStart(booking, event) {
+  draggingId.value = booking.id;
+  event.dataTransfer.effectAllowed = 'move';
+  // Firefox requires setData to be called for a drag to actually start.
+  event.dataTransfer.setData('text/plain', String(booking.id));
+}
+
+function onDragEnd() {
+  draggingId.value = null;
+  dropTarget.value = null;
+}
+
+function onDragOver(day, hour) {
+  dropTarget.value = { dayKey: day.key, hour };
+}
+
+function onDragLeave(day, hour) {
+  if (dropTarget.value && dropTarget.value.dayKey === day.key && dropTarget.value.hour === hour) {
+    dropTarget.value = null;
+  }
+}
+
+function onDrop(day, hour, event) {
+  const booking = props.bookings.find((b) => b.id === draggingId.value);
+  draggingId.value = null;
+  dropTarget.value = null;
+  if (!booking) {
+    return;
+  }
+
+  // Snap to the half-hour within the dropped-on hour cell (48px tall,
+  // so the top 24px is :00, the bottom 24px is :30) — finer than that
+  // isn't meaningfully aimable with a mouse, and the parent still has to
+  // match against a REAL generated slot regardless of how precisely this
+  // guesses, so a coarser snap here costs nothing.
+  const offsetY = event.offsetY ?? 24;
+  const minutes = hour * 60 + (offsetY < 24 ? 0 : 30);
+
+  emit('reschedule-booking', { booking, date: day.date, minutes });
+}
 
 // 07:00–20:00 covers the vast majority of small-business hours without
 // forcing an all-day 0-23 scroll — DETAILED-SPEC.md's business-hours

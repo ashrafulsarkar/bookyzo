@@ -137,6 +137,11 @@ class BYZO_Activator {
 		// (`payment_amount - deposit_amount`) is the balance still due,
 		// collected later. Resolved via the new `byzo_deposit_amount`
 		// filter (Free never hooks it — always NULL there).
+		// `internal_notes`/`tags` added 2026-09-12 (Phase 2 step 11,
+		// BYZO_DB_VERSION 1.9->2.0, DETAILED-SPEC.md §3 B3) — staff-only,
+		// deliberately separate from the customer-submitted `customer_notes`
+		// above (different author, different audience). Free never writes
+		// either column; Pro's "Bulk & Notes" screen is the only UI that does.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
@@ -147,6 +152,8 @@ class BYZO_Activator {
 			customer_email VARCHAR(255) NOT NULL,
 			customer_phone VARCHAR(50) NULL,
 			customer_notes TEXT NULL,
+			internal_notes TEXT NULL,
+			tags VARCHAR(255) NULL,
 			party_size SMALLINT UNSIGNED NOT NULL DEFAULT 1,
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			payment_status VARCHAR(20) NOT NULL DEFAULT 'unpaid',

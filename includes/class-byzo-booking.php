@@ -1070,6 +1070,37 @@ class BYZO_Booking {
 		return true;
 	}
 
+	/**
+	 * Sets the staff-only internal_notes/tags fields (DETAILED-SPEC.md §3
+	 * B3, Phase 2 step 11) — a plain field update, not a status
+	 * transition, so it's independent of TRANSITIONS/update_status().
+	 * Free never calls this (no UI writes these columns there); Pro's
+	 * "Bulk & Notes" screen is the only caller today.
+	 *
+	 * @param string|null $notes Pass null to leave unchanged, '' to clear.
+	 * @param string|null $tags  Comma-separated, same shape as wp_byzo_customers.tags.
+	 * @return true|WP_Error
+	 */
+	public static function update_notes_tags( $id, $notes, $tags ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$data = array( 'updated_at' => current_time( 'mysql' ) );
+		if ( null !== $notes ) {
+			$data['internal_notes'] = sanitize_textarea_field( $notes );
+		}
+		if ( null !== $tags ) {
+			$data['tags'] = sanitize_text_field( $tags );
+		}
+
+		$wpdb->update( self::table(), $data, array( 'id' => $id ) );
+
+		return true;
+	}
+
 	private static function validate_for_create( $data ) {
 		// Phase 2 step 5 (DETAILED-SPEC.md §3 B7) — "any available staff":
 		// service_id + start_datetime is an alternative to a direct

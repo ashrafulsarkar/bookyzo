@@ -21,7 +21,13 @@
 
     <div class="px-6 pb-8">
       <Card class="overflow-hidden">
-        <ByzoCalendar :bookings="bookings" @range-change="onRangeChange" @select-booking="openDetail" @select-slot="onSelectSlot" />
+        <ByzoCalendar
+          :bookings="bookings"
+          @range-change="onRangeChange"
+          @select-booking="openDetail"
+          @select-slot="onSelectSlot"
+          @reschedule-booking="onRescheduleBooking"
+        />
       </Card>
       <p v-if="error" class="mt-4 text-sm text-destructive">{{ error }}</p>
     </div>
@@ -47,6 +53,7 @@ import BookingDetailModal from './BookingDetailModal.vue';
 import ManualBookingModal from './ManualBookingModal.vue';
 import { api } from '@/api/client';
 import { toDateKey } from '@/lib/date';
+import { toast } from 'vue-sonner';
 
 const items = ref([]);
 const itemFilter = ref('__all__');
@@ -105,6 +112,49 @@ function onBookingUpdated(updated) {
 function onBookingCreated() {
   showManualBooking.value = false;
   loadBookings();
+}
+
+/**
+ * Drag-and-drop reschedule (DETAILED-SPEC.md §3 B3, Phase 2 step 11) —
+ * resolves the calendar's rough drop target against a REAL generated
+ * open slot for this bookable item before calling the same unrestricted
+ * PUT /bookings/{id}/reschedule the detail modal's own dropdown already
+ * uses. Dropping on a time with no matching real slot fails honestly
+ * (a toast) rather than silently snapping to the nearest anything.
+ */
+async function onRescheduleBooking({ booking, date, minutes }) {
+  const dateKey = toDateKey(date);
+
+  let slots;
+  try {
+    const params = new URLSearchParams({
+      bookable_item_id: String(booking.bookable_item_id),
+      from: dateKey,
+      to: dateKey,
+    });
+    slots = await api.get(`/slots?${params.toString()}`);
+  } catch (e) {
+    toast.error(e.message || 'Could not check availability for that time.');
+    return;
+  }
+
+  const targetMatch = slots.find((s) => {
+    const start = new Date(s.start_datetime);
+    return start.getHours() * 60 + start.getMinutes() === minutes;
+  });
+
+  if (!targetMatch) {
+    toast.error('No available time there — drop it on an open slot.');
+    return;
+  }
+
+  try {
+    await api.put(`/bookings/${booking.id}/reschedule`, { slot_id: targetMatch.id });
+    toast.success('Booking rescheduled.');
+    loadBookings();
+  } catch (e) {
+    toast.error(e.message || 'Could not reschedule this booking.');
+  }
 }
 
 function onSelectSlot() {
