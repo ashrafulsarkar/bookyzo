@@ -30,6 +30,8 @@ Apply this from the start in Bookyzo, don't wait for a rejection to learn it aga
 
 Both Free and Pro share ONE Vue 3 admin app (per the original brief — "admin panel Vue use korbe"). Build REST endpoints and Vue routes/components in Free from day one assuming Pro will add more routes to the same app, rather than Free shipping a separate PHP-rendered admin UI that Pro later has to replace. See `DETAILED-SPEC.md` §4 for the planned REST surface (`bookyzo/v1` namespace).
 
+**The actual runtime mechanism is built (Phase 2 step 1, 2026-09-11) — read `DETAILED-SPEC.md` §3 "Shared Vue admin app" before adding any new Pro Vue screen.** Short version: Pro ships its own small `build.lib`/`iife` Vite bundle (external `vue`/`vue-router`, resolved against `window.Vue`/`window.VueRouterLib`) that calls `window.byzoAdmin.registerExtension({ routes, navItems })` to extend Free's already-running app — never a second mounted app, and never a normal ES-module Vite build on Pro's side (breaks the external→global mapping). Pro's script MUST carry `defer` (see `BYZOP_Admin_Assets::add_defer()`) or it can execute before Free's deferred module script has run.
+
 For any visual/CSS/component work on the admin app — tokens, colors, reusable Vue components, layout conventions — see the companion **`bookyzo-design`** skill (design tokens incl. brand color `#2563eb`, the `Byzo*` base component vocabulary, and the same never-show-a-locked-Pro-feature rule applied to the design layer).
 
 ## FEATURES.md discipline
