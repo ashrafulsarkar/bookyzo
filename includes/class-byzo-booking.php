@@ -458,6 +458,24 @@ class BYZO_Booking {
 		$tax_amount     = ( null !== $subtotal && $tax_rate > 0 ) ? round( $subtotal * $tax_rate / 100, 2 ) : null;
 		$payment_amount = null !== $subtotal ? round( $subtotal + (float) $tax_amount, 2 ) : null;
 
+		// Deposits/partial payments (Phase 2 step 6, DETAILED-SPEC.md §A7)
+		// — how much of payment_amount is actually due online now, vs. the
+		// remainder collected later. BYZO_Capabilities::deposits_enabled()
+		// (Free=false) is the master on/off switch — the byzo_deposit_amount
+		// filter is only even consulted once it's on, same two-filter
+		// shape (a boolean gate + a value resolver) B7's service pricing
+		// already established with business_hours_link_enabled/
+		// byzo_service_price. Clamped to [0, payment_amount] so a
+		// misconfigured Pro filter can never charge more than the booking
+		// is actually worth or go negative.
+		$deposit_amount = null;
+		if ( null !== $payment_amount && BYZO_Capabilities::deposits_enabled() ) {
+			$deposit_amount = apply_filters( 'byzo_deposit_amount', null, $payment_amount, $slot['bookable_item_id'] );
+			if ( null !== $deposit_amount ) {
+				$deposit_amount = round( max( 0, min( (float) $deposit_amount, $payment_amount ) ), 2 );
+			}
+		}
+
 		// byzo_settings.auto_confirm (DETAILED-SPEC.md §A4, added for the
 		// deepened onboarding wizard's Confirmation step) — skips the
 		// admin-review step entirely for businesses with no
@@ -485,6 +503,7 @@ class BYZO_Booking {
 			'status'           => $status,
 			'payment_status'   => 'unpaid',
 			'payment_amount'   => $payment_amount,
+			'deposit_amount'   => $deposit_amount,
 			'tax_amount'       => $tax_amount,
 			'custom_fields'    => wp_json_encode( $validated['custom_fields'] ),
 			'created_at'       => $now,
@@ -925,6 +944,7 @@ class BYZO_Booking {
 		$row['customer_id']    = $row['customer_id'] ? (int) $row['customer_id'] : null;
 		$row['party_size']     = (int) $row['party_size'];
 		$row['payment_amount'] = null === $row['payment_amount'] ? null : (float) $row['payment_amount'];
+		$row['deposit_amount'] = isset( $row['deposit_amount'] ) && null !== $row['deposit_amount'] ? (float) $row['deposit_amount'] : null;
 		$row['tax_amount']     = null === $row['tax_amount'] ? null : (float) $row['tax_amount'];
 		$row['custom_fields']  = $row['custom_fields'] ? json_decode( $row['custom_fields'], true ) : array();
 

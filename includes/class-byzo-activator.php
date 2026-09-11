@@ -129,7 +129,14 @@ class BYZO_Activator {
 		// DETAILED-SPEC.md §3 B7) — which Pro-owned wp_byzo_services row this
 		// booking was for (NULL for every booking made the way Free already
 		// works, direct staff pick, no service concept); drives
-		// payment_amount's price resolution when set.
+		// payment_amount's price resolution when set. `deposit_amount`
+		// added 2026-09-11 (Phase 2 step 6, BYZO_DB_VERSION 1.8->1.9,
+		// DETAILED-SPEC.md §A7) — how much of `payment_amount` was
+		// actually charged online at booking time (NULL = full amount
+		// required, today's exact behavior); the remainder
+		// (`payment_amount - deposit_amount`) is the balance still due,
+		// collected later. Resolved via the new `byzo_deposit_amount`
+		// filter (Free never hooks it — always NULL there).
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
@@ -144,6 +151,7 @@ class BYZO_Activator {
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			payment_status VARCHAR(20) NOT NULL DEFAULT 'unpaid',
 			payment_amount DECIMAL(10,2) NULL,
+			deposit_amount DECIMAL(10,2) NULL,
 			tax_amount DECIMAL(10,2) NULL,
 			custom_fields LONGTEXT NULL,
 			addons LONGTEXT NULL,

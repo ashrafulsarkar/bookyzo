@@ -38,12 +38,21 @@ class BYZO_Stripe {
 
 		$stripe = BYZO_Payment_Settings::get()['gateways']['stripe'];
 
-		if ( null === $booking['payment_amount'] || $booking['payment_amount'] <= 0 ) {
+		// Phase 2 step 6 (DETAILED-SPEC.md §A7) — a deposit-configured
+		// booking charges only its deposit_amount online, not the full
+		// payment_amount; the balance is collected later (in person, or
+		// marked paid manually — see BYZO_Booking's own docblock on
+		// deposit_amount). Free never sets deposit_amount (always NULL
+		// there), so this is a no-op fallback to today's exact behavior
+		// without Pro.
+		$amount_to_charge = null !== $booking['deposit_amount'] ? $booking['deposit_amount'] : $booking['payment_amount'];
+
+		if ( null === $amount_to_charge || $amount_to_charge <= 0 ) {
 			return new WP_Error( 'byzo_nothing_to_charge', __( 'This booking has nothing to charge.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
 		$currency     = strtolower( BYZO_Settings::get()['currency'] );
-		$amount_minor = self::to_minor_units( $booking['payment_amount'] );
+		$amount_minor = self::to_minor_units( $amount_to_charge );
 
 		$response = wp_remote_post(
 			self::API_BASE . '/payment_intents',

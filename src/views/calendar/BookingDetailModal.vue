@@ -56,6 +56,20 @@
           </Button>
         </div>
 
+        <!-- Deposits (Phase 2 step 6, DETAILED-SPEC.md §A7) — deposit_amount
+             is always present on the response, null for every booking made
+             the way Free itself works; this line is purely data-driven,
+             never a Pro-gated UI check. "Mark as paid" above already marks
+             the FULL booking paid regardless — there's no separate
+             collect-the-balance flow yet (deliberately deferred, same as
+             the widget's own service picker). -->
+        <p
+          v-if="booking.deposit_amount !== null && booking.deposit_amount < booking.payment_amount"
+          class="text-xs text-muted-foreground"
+        >
+          Deposit due online: {{ formatTotal(booking.deposit_amount) }} · Balance due: {{ formatTotal(booking.payment_amount - booking.deposit_amount) }}
+        </p>
+
         <!-- Basic reschedule (added 2026-09-05, Phase 1.6, DETAILED-SPEC.md
              §1.4/§A4) — only offered for a still-open booking; a
              completed/cancelled/no_show/rejected booking has nothing left

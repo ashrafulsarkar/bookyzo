@@ -1,7 +1,11 @@
 <template>
   <div>
     <h2>Payment</h2>
-    <p>{{ booking.customer_name }}, your total is {{ formattedAmount }}.</p>
+    <p v-if="isDeposit">
+      {{ booking.customer_name }}, a deposit of {{ formattedAmount }} is due now to secure your booking — the
+      remaining {{ formattedBalance }} of your {{ formattedTotal }} total is due at the appointment.
+    </p>
+    <p v-else>{{ booking.customer_name }}, your total is {{ formattedAmount }}.</p>
 
     <WidgetLoading v-if="loadingStripe" label="Loading payment form…" />
     <div v-else-if="setupError" class="error">{{ setupError }}</div>
@@ -28,9 +32,8 @@
 // manual/offline payment option DETAILED-SPEC.md §A7 already calls
 // for) — this step is never a hard gate on completing a booking.
 //
-// NOT independently verified against a live Stripe account in this
-// session (no test-mode API keys available) — see BYZO_Stripe's own
-// docblock for the same caveat on the backend half of this flow.
+// Verified end-to-end against Stripe test-mode keys 2026-09-11 (see
+// BYZO_Stripe's own docblock).
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { createBookingPaymentIntent, confirmBookingPayment } from '../api';
 import WidgetLoading from '../WidgetLoading.vue';
@@ -56,7 +59,17 @@ let elements = null;
 let cardElement = null;
 
 const currency = (window.byzoWidget && window.byzoWidget.currency) || 'USD';
-const formattedAmount = new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(props.booking.payment_amount || 0);
+const formatCurrency = (value) => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value || 0);
+
+// Phase 2 step 6 (DETAILED-SPEC.md §A7) — deposit_amount is null for
+// every booking made the way Free itself works; when Pro sets it, this
+// is what's ACTUALLY charged now (matches BYZO_Stripe::create_payment_intent()'s
+// own deposit_amount ?? payment_amount resolution exactly — the amount
+// shown here must never disagree with what the card is really charged).
+const isDeposit = props.booking.deposit_amount !== null && props.booking.deposit_amount !== undefined && props.booking.deposit_amount < props.booking.payment_amount;
+const formattedAmount = formatCurrency(isDeposit ? props.booking.deposit_amount : props.booking.payment_amount);
+const formattedTotal = formatCurrency(props.booking.payment_amount);
+const formattedBalance = formatCurrency(isDeposit ? props.booking.payment_amount - props.booking.deposit_amount : 0);
 
 function loadStripeJs() {
   return new Promise((resolve, reject) => {

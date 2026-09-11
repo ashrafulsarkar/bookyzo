@@ -134,6 +134,7 @@ Initial release.
 * `byzo_bookable_items_offering_service` — ( int[] $bookable_item_ids, int $service_id ) Which bookable items offer a given service, for "any available staff" resolution. Default `array()`.
 * `byzo_service_price` — ( float|null $price, int $service_id, int $bookable_item_id ) Resolved price for a service booked with a specific staff member. Default `null` (falls back to the bookable item's own price).
 * `byzo_deposits_enabled` — ( bool $enabled ) Whether deposit/partial payments are available. Default `false`.
+* `byzo_deposit_amount` — ( float|null $amount, float $payment_amount, int $bookable_item_id ) How much of a booking's total is due online now as a deposit. Default `null` (pay in full). Only consulted when `byzo_deposits_enabled` is true.
 * `byzo_default_settings` — ( array $defaults ) Default values seeded into the business-settings option on activation.
 * `byzo_rest_controllers` — ( array $controllers ) REST controller instances registered on `rest_api_init`.
 * `byzo_payment_gateways` — ( array $gateways ) Registered payment gateways shown on the Payments settings screen, keyed by gateway id. Default: Stripe only.
