@@ -268,11 +268,11 @@ Pro should unlock everything a growing/multi-location business actually needs �
 
 1. ✅ **Core engine only** — Bookable Item, Availability, Slot, Booking entities + REST API + Vue admin shell (no public release) — DONE 2026-09-02
 2. ✅ **Appointment built first as the reference implementation** — full vertical slice (wizard → bookable item → availability → calendar → widget → notifications → payments → reporting) proving the engine end to end — DONE 2026-09-02 (ROADMAP.md Phase 1)
-3. **Extend Free to all four types** (ROADMAP.md Phase 1.5): type-first Add New flow, per-bookable item shortcodes, capacity/party-size plumbing, Event's one-off date mode, type-aware widget/emails/copy, plus the standing Free gaps (cancellation policy, bookable item photo). This happens BEFORE submission — the WP.org listing leads with "all-in-one" from its first day.
-4. **Submit Free to WordPress.org** — readme/screenshots/plugin-check redone for the four-type positioning
-5. **Add Pro tier** — extra features only, across all types (unlimited bookable items per type, multi-shift, deposits, SMS/WhatsApp, self-service, analytics, and the B7 type-specific modules) — validate people will actually pay
-6. **WooCommerce bridge** as a separate optional add-on once core is stable
-7. **Agency/multi-site tier** last, once there's a base of paying single-site customers
+3. ✅ **Extend Free to all four types** (ROADMAP.md Phase 1.5): type-first Add New flow, per-bookable item shortcodes, capacity/party-size plumbing, Event's one-off date mode, type-aware widget/emails/copy, plus the standing Free gaps (cancellation policy, bookable item photo). This happens BEFORE submission — the WP.org listing leads with "all-in-one" from its first day. — DONE 2026-09-05, WP.org visual assets captured 2026-09-08
+4. **Submit Free to WordPress.org** — readme/screenshots/plugin-check redone for the four-type positioning. **Code/assets ready, actual submission still NOT done** — manual/external step (registrar account, review queue), never performed autonomously.
+5. ✅ **Add Pro tier** — extra features only, across all types (unlimited bookable items per type, multi-shift, deposits, SMS/WhatsApp, self-service, analytics, and the B7 type-specific modules) — validate people will actually pay — DONE 2026-09-12 (ROADMAP.md Phase 2, all 20 steps + all three B7 type-modules)
+6. **WooCommerce bridge** as a separate optional add-on once core is stable — not started, no design pass yet (ROADMAP.md Phase 5 has no detailed steps)
+7. **Agency/multi-site tier** last, once there's a base of paying single-site customers — not started, no design pass yet (ROADMAP.md Phase 6 has no detailed steps)
 
 Each numbered step is still a shippable, testable release boundary — the four types share one engine (Phase 0), so step 3 is mostly UI + one new occurrence model for Event, not four separate builds.
 
