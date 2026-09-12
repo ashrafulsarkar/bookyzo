@@ -32,6 +32,10 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 						'from'             => array( 'type' => 'string' ),
 						'to'               => array( 'type' => 'string' ),
 						'bookable_item_id' => array( 'type' => 'integer' ),
+						// Phase 2 step 13 (DETAILED-SPEC.md §3 B3 timeline
+						// view) — an alternative to bookable_item_id: every
+						// active bookable item of this type at once.
+						'type'             => array( 'type' => 'string' ),
 						'status'           => array( 'type' => 'string' ),
 						'per_page'         => array( 'type' => 'integer', 'default' => 20 ),
 						'page'             => array( 'type' => 'integer', 'default' => 1 ),
@@ -161,6 +165,7 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			'from'             => $request->get_param( 'from' ),
 			'to'               => $request->get_param( 'to' ),
 			'bookable_item_id' => $request->get_param( 'bookable_item_id' ),
+			'type'             => $request->get_param( 'type' ),
 			'status'           => $request->get_param( 'status' ),
 			'per_page'         => $request->get_param( 'per_page' ),
 			'page'             => $request->get_param( 'page' ),

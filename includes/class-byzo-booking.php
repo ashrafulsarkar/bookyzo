@@ -67,6 +67,10 @@ class BYZO_Booking {
 	 *         from/to is given, since they have no date to place on a
 	 *         calendar; they still show up in an unfiltered list.
 	 *     @type int    $bookable_item_id
+	 *     @type string $type             Phase 2 step 13 (DETAILED-SPEC.md §3 B3 timeline view) — an
+	 *                                     alternative to $bookable_item_id: every ACTIVE bookable item of
+	 *                                     this type, for "scan every staff/table/etc. of one type at once."
+	 *                                     Ignored if $bookable_item_id is also given.
 	 *     @type string $status
 	 *     @type int    $per_page
 	 *     @type int    $page
@@ -79,6 +83,7 @@ class BYZO_Booking {
 			'from'             => '',
 			'to'               => '',
 			'bookable_item_id' => 0,
+			'type'             => '',
 			'status'           => '',
 			'customer_id'      => 0,
 			'per_page'         => 20,
@@ -88,6 +93,7 @@ class BYZO_Booking {
 
 		$bookings_table = self::table();
 		$slots_table    = $wpdb->prefix . 'byzo_slots';
+		$items_table    = $wpdb->prefix . 'byzo_bookable_items';
 
 		$where  = array( '1=1' );
 		$params = array();
@@ -95,6 +101,9 @@ class BYZO_Booking {
 		if ( $args['bookable_item_id'] ) {
 			$where[]  = 'b.bookable_item_id = %d';
 			$params[] = (int) $args['bookable_item_id'];
+		} elseif ( $args['type'] && in_array( $args['type'], BYZO_Bookable_Item::VALID_TYPES, true ) ) {
+			$where[]  = "b.bookable_item_id IN (SELECT id FROM {$items_table} WHERE type = %s AND status = 'active')"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$params[] = $args['type'];
 		}
 
 		// Phase 1.7 step 5 (DETAILED-SPEC.md §A11) — the dashboard-scoping
