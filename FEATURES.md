@@ -204,17 +204,17 @@ Pro should unlock everything a growing/multi-location business actually needs �
 
 ### B7. Type-Specific Pro Modules
 
-#### Appointment Pro
-- Staff-specific service assignment and pricing
-- "Any available staff" auto-assignment
-- Staff calendar sync (Google Calendar / Outlook two-way)
-- Commission/payout tracking per staff (optional)
+#### Appointment Pro — module complete
+- **Staff-specific service assignment and pricing — DONE 2026-09-11, Phase 2 step 5:** `wp_byzo_services` + per-staff price overrides, "Services" admin screen.
+- **"Any available staff" auto-assignment — DONE 2026-09-11, Phase 2 step 5:** tries each candidate staff's slot in turn until one's atomic capacity claim succeeds. Admin+backend only — no public widget picker yet.
+- **Staff calendar sync (Google Calendar / Outlook two-way) — DONE 2026-09-12, Phase 2 step 9:** bring-your-own OAuth app, push (booking → external event) and pull (external busy time → blocked slot) both ways.
+- **Commission/payout tracking per staff (optional) — DONE 2026-09-12, Phase 2 step 12:** not restricted to Appointment-type items despite the name — any bookable item can carry a commission rate. "Payouts" admin screen.
 
-#### Table Pro
-- Visual floor plan / table layout editor (drag-drop)
-- Multiple service windows per day
-- Combine/split tables for larger parties
-- Waitlist for walk-ins during full periods
+#### Table Pro — module complete
+- **Visual floor plan / table layout editor (drag-drop) — DONE 2026-09-12, Phase 2 step 12:** native HTML5 drag-and-drop, purely visual position/size (`bookable_items.floor_x/y/width/height/shape`), no effect on booking/slot logic. New "Floor Plan" admin screen.
+- **Multiple service windows per day — already covered, confirmed 2026-09-12, Phase 2 step 12:** same capability as `byzo_max_shifts_per_day`, unlocked universally since steps 2/3 (Table included) — nothing separate to build.
+- **Combine/split tables for larger parties — DONE 2026-09-12, Phase 2 step 12:** the primary table keeps the real booking (optionally updated to the new combined party size); each additional table's overlapping slot flips to `'blocked'`, the same mechanism blackout dates/calendar-sync already use. New "Combine tables"/"Uncombine" actions on the "Bulk & Notes" screen.
+- **Waitlist for walk-ins during full periods — DONE 2026-09-12, Phase 2 step 12:** a physical right-now-arrivals queue (`wp_byzo_walkin_waitlist`) — genuinely distinct from the still-unbuilt general "notify when a slot frees up" waitlist below. New "Waitlist" admin screen.
 
 #### Event Pro
 - Multiple ticket tiers (Early Bird, Regular, VIP) with different pricing
@@ -224,9 +224,9 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Seating chart (optional, for smaller venues)
 
 #### Slot/Class Pro
-- Recurring class series (e.g. weekly yoga class with a fixed roster)
-- Class package redemption (use credits from a pre-purchased pack)
-- Instructor/bookable item rotation for recurring series
+- **Recurring class series (e.g. weekly yoga class with a fixed roster) — DONE 2026-09-12, Phase 2 step 12:** `wp_byzo_class_series` — a series is just N already-generated weekly slots claimed by the same customer, grouped afterward. New "Class Series" admin screen.
+- Class package redemption (use credits from a pre-purchased pack) — deferred, needs its own payment mode.
+- Instructor/bookable item rotation for recurring series — deferred, needs concrete demand.
 
 ### B8. Advanced Analytics & Reporting
 - Revenue dashboard (by bookable item, by booking type, by date range)

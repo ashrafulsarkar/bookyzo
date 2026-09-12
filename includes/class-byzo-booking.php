@@ -1245,6 +1245,119 @@ class BYZO_Booking {
 		return true;
 	}
 
+	/**
+	 * Combines other tables into $id's existing reservation (DETAILED-SPEC.md
+	 * §3 B7 Table, Phase 2 step 12 continued) — same no-capability-gate shape
+	 * as update_notes_tags()/update_commission(): a plain data-layer method
+	 * Free never calls (no UI writes it), only Pro's combine-tables REST
+	 * route does, so it's Pro-only in practice without needing a filter
+	 * check here. Flips each of $slot_ids to 'blocked' via BYZO_Slot::block()
+	 * — the exact mechanism blackout dates/calendar-sync already use — so a
+	 * combined-away table simply can't be double-booked with no new
+	 * capacity logic. Rolls back any slots already blocked in this same call
+	 * if a later one in the list fails (e.g. someone else claimed it a
+	 * moment ago), since this project has no wrapping DB transaction to lean
+	 * on elsewhere either.
+	 *
+	 * @param int      $id         Booking ID (its own bookable_item_id stays the "primary" table).
+	 * @param int[]    $table_ids  Bookable item IDs of the OTHER tables being combined in.
+	 * @param int[]    $slot_ids   Their open slot IDs, same count/order as $table_ids.
+	 * @param int|null $party_size Optional — the new COMBINED total party size, replacing the
+	 *                             booking's existing one (DETAILED-SPEC.md §3 B7: "the primary
+	 *                             table holds the real booking, with the combined party_size").
+	 *                             Deliberately not re-validated against any slot's
+	 *                             capacity_remaining — the whole point of combining tables is
+	 *                             fitting a party larger than one table's own capacity across
+	 *                             several tables' physical space, not a capacity-claim event.
+	 *                             Omit/null to leave party_size untouched.
+	 * @return true|WP_Error
+	 */
+	public static function combine_tables( $id, $table_ids, $slot_ids, $party_size = null ) {
+		global $wpdb;
+
+		$booking = self::get( $id );
+		if ( ! $booking ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$table_ids = array_values( array_unique( array_filter( array_map( 'absint', (array) $table_ids ) ) ) );
+		$slot_ids  = array_values( array_filter( array_map( 'absint', (array) $slot_ids ) ) );
+
+		if ( empty( $table_ids ) || count( $table_ids ) !== count( $slot_ids ) ) {
+			return new WP_Error( 'byzo_invalid_combine_tables', __( 'table_ids and slot_ids must be non-empty and the same length.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		if ( in_array( (int) $booking['bookable_item_id'], $table_ids, true ) ) {
+			return new WP_Error( 'byzo_invalid_combine_tables', __( 'A booking cannot be combined with its own table.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$blocked = array();
+		foreach ( $slot_ids as $slot_id ) {
+			if ( BYZO_Slot::block( $slot_id ) ) {
+				$blocked[] = $slot_id;
+				continue;
+			}
+
+			foreach ( $blocked as $already_blocked_id ) {
+				BYZO_Slot::unblock( $already_blocked_id );
+			}
+
+			return new WP_Error( 'byzo_slot_not_blockable', __( 'One of the selected tables is no longer available.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
+
+		$data = array(
+			'combined_table_ids' => implode( ',', $table_ids ),
+			'updated_at'         => current_time( 'mysql' ),
+		);
+		if ( null !== $party_size && (int) $party_size > 0 ) {
+			$data['party_size'] = (int) $party_size;
+		}
+
+		$wpdb->update( self::table(), $data, array( 'id' => $id ) );
+
+		return true;
+	}
+
+	/**
+	 * Reverses combine_tables() — re-derives which slots to unblock from
+	 * combined_table_ids plus the booking's own slot_start (rather than
+	 * requiring the caller to remember/re-pass slot IDs), same
+	 * re-derive-don't-trust-the-caller shape as cancel_as_customer()
+	 * re-deriving ownership from the session instead of a client-supplied
+	 * customer_id.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function uncombine_tables( $id ) {
+		global $wpdb;
+
+		$booking = self::get( $id );
+		if ( ! $booking ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		if ( empty( $booking['combined_table_ids'] ) ) {
+			return new WP_Error( 'byzo_not_combined', __( 'This booking has no combined tables.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		if ( ! empty( $booking['slot_start'] ) ) {
+			foreach ( BYZO_Slot::blocked_at( $booking['combined_table_ids'], $booking['slot_start'] ) as $slot ) {
+				BYZO_Slot::unblock( $slot['id'] );
+			}
+		}
+
+		$wpdb->update(
+			self::table(),
+			array(
+				'combined_table_ids' => null,
+				'updated_at'         => current_time( 'mysql' ),
+			),
+			array( 'id' => $id )
+		);
+
+		return true;
+	}
+
 	private static function validate_for_create( $data ) {
 		// Phase 2 step 5 (DETAILED-SPEC.md §3 B7) — "any available staff":
 		// service_id + start_datetime is an alternative to a direct
@@ -1497,6 +1610,9 @@ class BYZO_Booking {
 		$row['custom_fields']  = $row['custom_fields'] ? json_decode( $row['custom_fields'], true ) : array();
 		$row['addons']         = isset( $row['addons'] ) && $row['addons'] ? json_decode( $row['addons'], true ) : array();
 		$row['attendees']      = isset( $row['attendees'] ) && $row['attendees'] ? json_decode( $row['attendees'], true ) : array();
+		$row['combined_table_ids'] = isset( $row['combined_table_ids'] ) && $row['combined_table_ids']
+			? array_map( 'intval', explode( ',', $row['combined_table_ids'] ) )
+			: array();
 
 		// slot_start/slot_end come from the LEFT JOIN in get()/query() —
 		// always present in the shape (null when the slot was deleted,

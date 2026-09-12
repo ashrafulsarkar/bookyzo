@@ -283,6 +283,57 @@ class BYZO_Bookable_Item {
 	}
 
 	/**
+	 * Sets floor_x/floor_y/floor_width/floor_height/floor_shape
+	 * (DETAILED-SPEC.md §3 B7 Table, Phase 2 step 12 continued) — same
+	 * shape as update_tax_rate_override()/update_booking_fee(): a plain
+	 * field update with no capability gate. Purely visual floor-plan
+	 * position, zero effect on booking/slot/capacity logic, so Free's own
+	 * admin screens are free to leave this dormant (only Pro's floor-plan
+	 * editor ever writes it) without any restriction being enforced here.
+	 *
+	 * @param array $position {
+	 *     @type int|null    $x      Left position in editor units, or null to clear.
+	 *     @type int|null    $y      Top position in editor units, or null to clear.
+	 *     @type int|null    $width  Or null to clear.
+	 *     @type int|null    $height Or null to clear.
+	 *     @type string|null $shape  'square', 'round', 'rectangle', or null to clear.
+	 * }
+	 * @return true|WP_Error
+	 */
+	public static function update_floor_position( $id, $position ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$valid_shapes = array( 'square', 'round', 'rectangle' );
+		$shape        = array_key_exists( 'shape', $position ) ? $position['shape'] : null;
+		if ( null !== $shape && ! in_array( $shape, $valid_shapes, true ) ) {
+			return new WP_Error( 'byzo_invalid_floor_shape', __( 'floor_shape must be square, round, or rectangle.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$to_int_or_null = function ( $value ) {
+			return ( null === $value || '' === $value ) ? null : (int) $value;
+		};
+
+		$wpdb->update(
+			self::table(),
+			array(
+				'floor_x'      => $to_int_or_null( $position['x'] ?? null ),
+				'floor_y'      => $to_int_or_null( $position['y'] ?? null ),
+				'floor_width'  => $to_int_or_null( $position['width'] ?? null ),
+				'floor_height' => $to_int_or_null( $position['height'] ?? null ),
+				'floor_shape'  => $shape,
+				'updated_at'   => current_time( 'mysql' ),
+			),
+			array( 'id' => $id )
+		);
+
+		return true;
+	}
+
+	/**
 	 * Validates and whitelists incoming data. `$require_all` = true for
 	 * create (name/type required); false for update (partial patches OK).
 	 *
@@ -396,6 +447,11 @@ class BYZO_Bookable_Item {
 		$row['commission_rate']    = isset( $row['commission_rate'] ) && null !== $row['commission_rate'] ? (float) $row['commission_rate'] : null;
 		$row['tax_rate_override']  = isset( $row['tax_rate_override'] ) && null !== $row['tax_rate_override'] ? (float) $row['tax_rate_override'] : null;
 		$row['booking_fee']        = isset( $row['booking_fee'] ) && null !== $row['booking_fee'] ? (float) $row['booking_fee'] : null;
+		$row['floor_x']            = isset( $row['floor_x'] ) && null !== $row['floor_x'] ? (int) $row['floor_x'] : null;
+		$row['floor_y']            = isset( $row['floor_y'] ) && null !== $row['floor_y'] ? (int) $row['floor_y'] : null;
+		$row['floor_width']        = isset( $row['floor_width'] ) && null !== $row['floor_width'] ? (int) $row['floor_width'] : null;
+		$row['floor_height']       = isset( $row['floor_height'] ) && null !== $row['floor_height'] ? (int) $row['floor_height'] : null;
+		$row['floor_shape']        = isset( $row['floor_shape'] ) && null !== $row['floor_shape'] ? (string) $row['floor_shape'] : null;
 
 		return $row;
 	}

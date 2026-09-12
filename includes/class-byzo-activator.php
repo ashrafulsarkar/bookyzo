@@ -69,7 +69,12 @@ class BYZO_Activator {
 		// resolved add-ons, then taxed like every other line item. Same
 		// "purely informational until Pro writes it" shape as
 		// commission_type/tax_rate_override — no capability gate, Free's
-		// own admin screens never expose it.
+		// own admin screens never expose it. `floor_x`/`floor_y`/
+		// `floor_width`/`floor_height`/`floor_shape` added 2026-09-12
+		// (Phase 2 step 12 continued, BYZO_DB_VERSION 2.4->2.5,
+		// DETAILED-SPEC.md §3 B7 Table) — purely visual floor-plan
+		// position, zero effect on booking/slot/capacity logic, same
+		// informational-only shape as booking_fee/tax_rate_override above.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookable_items (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			type VARCHAR(20) NOT NULL DEFAULT 'appointment',
@@ -89,6 +94,11 @@ class BYZO_Activator {
 			commission_rate DECIMAL(10,2) NULL,
 			tax_rate_override DECIMAL(5,2) NULL,
 			booking_fee DECIMAL(10,2) NULL,
+			floor_x SMALLINT NULL,
+			floor_y SMALLINT NULL,
+			floor_width SMALLINT NULL,
+			floor_height SMALLINT NULL,
+			floor_shape VARCHAR(20) NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
@@ -184,6 +194,14 @@ class BYZO_Activator {
 		// as `reminder_sent_at`: one fixed follow-up per booking (not
 		// multiple configurable rules, unlike step 7's reminder system),
 		// so a single dedup column is enough. Dormant until Pro writes it.
+		// `combined_table_ids` added 2026-09-12 (Phase 2 step 12
+		// continued, BYZO_DB_VERSION 2.4->2.5, DETAILED-SPEC.md §3 B7
+		// Table) — comma-separated bookable_item_ids of the OTHER tables
+		// combined into this one reservation (this booking's own
+		// `bookable_item_id` is always the primary table); each combined
+		// table's overlapping slot is flipped to the same `'blocked'`
+		// status blackout dates/calendar-sync already use, so no new
+		// capacity logic is needed to keep them from double-booking.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
@@ -197,6 +215,7 @@ class BYZO_Activator {
 			internal_notes TEXT NULL,
 			tags VARCHAR(255) NULL,
 			cart_id VARCHAR(64) NULL,
+			combined_table_ids VARCHAR(255) NULL,
 			party_size SMALLINT UNSIGNED NOT NULL DEFAULT 1,
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			payment_status VARCHAR(20) NOT NULL DEFAULT 'unpaid',

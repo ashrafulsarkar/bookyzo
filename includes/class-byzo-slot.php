@@ -173,6 +173,33 @@ class BYZO_Slot {
 	}
 
 	/**
+	 * The 'blocked' mirror of open_at() — used by BYZO_Booking::uncombine_tables()
+	 * (DETAILED-SPEC.md §3 B7 Table, Phase 2 step 12 continued) to re-derive
+	 * which slots combine_tables() blocked, rather than requiring the caller
+	 * to re-pass slot IDs it may no longer have handy.
+	 *
+	 * @param int[]  $bookable_item_ids
+	 * @param string $start_datetime Y-m-d H:i:s.
+	 * @return array Cast slot rows.
+	 */
+	public static function blocked_at( $bookable_item_ids, $start_datetime ) {
+		global $wpdb;
+
+		$bookable_item_ids = array_filter( array_map( 'absint', (array) $bookable_item_ids ) );
+		if ( empty( $bookable_item_ids ) ) {
+			return array();
+		}
+
+		$placeholders = implode( ',', array_fill( 0, count( $bookable_item_ids ), '%d' ) );
+		$sql          = 'SELECT * FROM ' . self::table() . " WHERE bookable_item_id IN ({$placeholders}) AND start_datetime = %s AND status = 'blocked' ORDER BY bookable_item_id ASC"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+		$params       = array_merge( array_values( $bookable_item_ids ), array( $start_datetime ) );
+
+		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+
+		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
+	}
+
+	/**
 	 * Occupancy rate per bookable item over [from, to) — Pro's Analytics
 	 * dashboard (DETAILED-SPEC.md §3 B8, Phase 2 step 10). Defined as the
 	 * fraction of a bookable item's OFFERED time slots that received at
