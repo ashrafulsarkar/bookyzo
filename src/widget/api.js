@@ -34,6 +34,10 @@ export const getSlots = (bookableItemId) => request(`/slots?bookable_item_id=${b
 // Phase 2 step 16 (DETAILED-SPEC.md §3 B11) — Pro-defined custom form
 // fields for this bookable item, empty array when Pro is off/unconfigured.
 export const getCustomFields = (bookableItemId) => request(`/custom-fields/public?bookable_item_id=${bookableItemId}`);
+
+// Phase 2 step 17 (DETAILED-SPEC.md §3 B6) — Pro-defined add-ons for this
+// bookable item, empty array when Pro is off/unconfigured.
+export const getAddons = (bookableItemId) => request(`/addons/public?bookable_item_id=${bookableItemId}`);
 export const createBooking = (payload) => request('/bookings', { method: 'POST', body: JSON.stringify(payload) });
 export const createBookingPaymentIntent = (bookingId, customerEmail) =>
   request(`/bookings/${bookingId}/payment-intent`, { method: 'POST', body: JSON.stringify({ customer_email: customerEmail }) });

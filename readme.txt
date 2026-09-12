@@ -148,6 +148,8 @@ Initial release.
 * `byzo_calendar_feed_enabled` — ( bool $enabled ) Whether the subscribable per-bookable-item `.ics` calendar feed REST route is available. Default `false`.
 * `byzo_widget_after_mount` — ( string $html, array $config ) HTML appended right after the booking widget's own mount markup — lets an add-on inject unrelated page-level snippets (e.g. marketing pixel base code) without touching the widget markup itself. Default `''`.
 * `byzo_custom_fields_for_bookable_item` — ( array $fields, int $bookable_item_id ) Custom form fields to render on the booking widget for a given bookable item, each `{ id, label, field_type, options, required }`. Default `array()`.
+* `byzo_addons_for_bookable_item` — ( array $addons, int $bookable_item_id ) Add-ons to render on the booking widget for a given bookable item, each `{ id, name, price }`. Default `array()`.
+* `byzo_resolve_addons` — ( array $resolved, int[] $addon_ids, int $bookable_item_id ) Resolves client-submitted add-on ids into real, currently-active, correctly-scoped `{ id, name, price }` rows at booking-creation time — an id that doesn't resolve is silently dropped. Default `array()`.
 * `byzo_appearance_css_vars` — ( string $css, array $settings ) `--prop:value;` custom-property pairs generated from the Appearance settings. Default: the built-in property set, or `''` when nothing was customized.
 * `byzo_appearance_css_declarations` — ( string $css, array $settings ) `prop:value;` plain CSS declarations generated from the Appearance settings. Default: the built-in declaration set, or `''` when nothing was customized.
 

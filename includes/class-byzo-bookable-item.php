@@ -249,6 +249,40 @@ class BYZO_Bookable_Item {
 	}
 
 	/**
+	 * Sets booking_fee (DETAILED-SPEC.md §3 B6, Phase 2 step 17) — same
+	 * shape as update_tax_rate_override(): a plain field update with no
+	 * capability gate, Free's own admin screens never expose it.
+	 *
+	 * @param float|null $fee A flat, once-per-booking amount, or null to clear.
+	 * @return true|WP_Error
+	 */
+	public static function update_booking_fee( $id, $fee ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		if ( null !== $fee ) {
+			$fee = (float) $fee;
+			if ( $fee < 0 ) {
+				return new WP_Error( 'byzo_invalid_booking_fee', __( 'booking_fee cannot be negative.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+		}
+
+		$wpdb->update(
+			self::table(),
+			array(
+				'booking_fee' => $fee,
+				'updated_at'  => current_time( 'mysql' ),
+			),
+			array( 'id' => $id )
+		);
+
+		return true;
+	}
+
+	/**
 	 * Validates and whitelists incoming data. `$require_all` = true for
 	 * create (name/type required); false for update (partial patches OK).
 	 *
@@ -361,6 +395,7 @@ class BYZO_Bookable_Item {
 		$row['uses_business_hours'] = (bool) $row['uses_business_hours'];
 		$row['commission_rate']    = isset( $row['commission_rate'] ) && null !== $row['commission_rate'] ? (float) $row['commission_rate'] : null;
 		$row['tax_rate_override']  = isset( $row['tax_rate_override'] ) && null !== $row['tax_rate_override'] ? (float) $row['tax_rate_override'] : null;
+		$row['booking_fee']        = isset( $row['booking_fee'] ) && null !== $row['booking_fee'] ? (float) $row['booking_fee'] : null;
 
 		return $row;
 	}

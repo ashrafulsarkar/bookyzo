@@ -36,6 +36,22 @@
       <input id="bw-party-size" v-model.number="form.party_size" type="number" min="1" :max="partySizeMax" />
     </div>
 
+    <!-- Add-ons (Phase 2 step 17, DETAILED-SPEC.md §3 B6) — Pro-defined,
+         fetched by bookable item; entirely absent when Pro is off or
+         nothing's configured (addons is then just []). The server is the
+         sole authority on the actual charge either way — this list is
+         only a UX preview so the total shown doesn't undersell it. -->
+    <div v-if="addons.length" class="field">
+      <label>Add-ons <span class="optional">optional</span></label>
+      <label v-for="addon in addons" :key="addon.id" class="checkbox-label addon-row">
+        <span>
+          <input v-model="form.addon_ids" type="checkbox" :value="addon.id" />
+          {{ addon.name }}
+        </span>
+        <span>{{ formatMoney(addon.price) }}</span>
+      </label>
+    </div>
+
     <div class="field">
       <label for="bw-name">Name</label>
       <input id="bw-name" v-model="form.name" type="text" autocomplete="name" placeholder="Your full name" />
@@ -127,7 +143,7 @@
 import { reactive, computed, ref, onMounted } from 'vue';
 import { copyFor } from '../copy';
 import { formatMoney } from '@/lib/money';
-import { getCustomFields } from '../api';
+import { getCustomFields, getAddons } from '../api';
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -175,12 +191,17 @@ const form = reactive({
   create_account: false,
   password: '',
   custom_fields: {},
+  addon_ids: [],
 });
 
 // Phase 2 step 16 (DETAILED-SPEC.md §3 B11) — Pro-defined custom form
 // fields for this bookable item. Empty when Pro is off/unconfigured, in
 // which case this whole section of the form is simply absent.
 const customFields = ref([]);
+
+// Phase 2 step 17 (DETAILED-SPEC.md §3 B6) — Pro-defined add-ons for this
+// bookable item. Same "empty means absent" shape as customFields above.
+const addons = ref([]);
 
 onMounted(async () => {
   try {
@@ -195,6 +216,12 @@ onMounted(async () => {
     // additive, so fail silently and simply show none.
     customFields.value = [];
   }
+
+  try {
+    addons.value = await getAddons(props.item.id);
+  } catch {
+    addons.value = [];
+  }
 });
 
 // Mirrors BYZO_Booking::create()'s own arithmetic — price × quantity,
@@ -204,11 +231,25 @@ onMounted(async () => {
 // display-only computed and never travels back in the POST body.
 const quantity = computed(() => Math.max(1, Number(props.partySize ?? form.party_size) || 1));
 
+// Selected add-ons' prices (Phase 2 step 17) — the one part of the price
+// preview that CAN be exact, since the widget already fetched real prices
+// for these ids; a booking_fee/tax_rate_override live only in Pro's own
+// tables and aren't fetched here, so they're deliberately not previewed
+// (they still apply correctly server-side, just first visible on the
+// confirmation step/email once the real booking record exists).
+const addonsTotal = computed(() =>
+  form.addon_ids.reduce((sum, id) => {
+    const addon = addons.value.find((a) => a.id === id);
+    return sum + (addon ? Number(addon.price) : 0);
+  }, 0)
+);
+
 const totalAmount = computed(() => {
-  if (props.item.price === null || props.item.price === undefined) {
+  const hasBasePrice = props.item.price !== null && props.item.price !== undefined;
+  if (!hasBasePrice && addonsTotal.value === 0) {
     return null;
   }
-  const subtotal = Math.round(Number(props.item.price) * quantity.value * 100) / 100;
+  const subtotal = Math.round(((hasBasePrice ? Number(props.item.price) * quantity.value : 0) + addonsTotal.value) * 100) / 100;
   const taxRate = Number((window.byzoWidget && window.byzoWidget.taxRate) || 0);
   const tax = taxRate > 0 ? Math.round((subtotal * taxRate) / 100 * 100) / 100 : 0;
 

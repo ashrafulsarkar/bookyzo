@@ -62,7 +62,14 @@ class BYZO_Activator {
 		// REPLACES (not adds to) `byzo_settings.tax_rate` for this item's
 		// own bookings; NULL (the only value Free itself ever writes,
 		// which is to say Free never writes it at all) means "use the
-		// site-wide rate," today's exact behavior.
+		// site-wide rate," today's exact behavior. `booking_fee` added
+		// 2026-09-12 (Phase 2 step 17, BYZO_DB_VERSION 2.2->2.3,
+		// DETAILED-SPEC.md §3 B6) — a flat, once-per-booking charge (not
+		// multiplied by party_size) added to payment_amount alongside any
+		// resolved add-ons, then taxed like every other line item. Same
+		// "purely informational until Pro writes it" shape as
+		// commission_type/tax_rate_override — no capability gate, Free's
+		// own admin screens never expose it.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookable_items (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			type VARCHAR(20) NOT NULL DEFAULT 'appointment',
@@ -81,6 +88,7 @@ class BYZO_Activator {
 			commission_type VARCHAR(20) NULL,
 			commission_rate DECIMAL(10,2) NULL,
 			tax_rate_override DECIMAL(5,2) NULL,
+			booking_fee DECIMAL(10,2) NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
@@ -165,6 +173,12 @@ class BYZO_Activator {
 		// with that `cart_id` to paid together, not just one by
 		// metadata.booking_id. NULL for every booking made the way Free
 		// already works (one booking, one payment, today's exact behavior).
+		// `booking_fee_amount` added 2026-09-12 (Phase 2 step 17,
+		// BYZO_DB_VERSION 2.2->2.3, DETAILED-SPEC.md §3 B6) — a frozen
+		// snapshot of `bookable_items.booking_fee` as actually charged at
+		// booking time, same reasoning `tax_amount`/`deposit_amount`
+		// already established: reading the live item column later would
+		// show the WRONG number the moment an admin edits the fee.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
@@ -184,6 +198,7 @@ class BYZO_Activator {
 			payment_amount DECIMAL(10,2) NULL,
 			deposit_amount DECIMAL(10,2) NULL,
 			tax_amount DECIMAL(10,2) NULL,
+			booking_fee_amount DECIMAL(10,2) NULL,
 			custom_fields LONGTEXT NULL,
 			addons LONGTEXT NULL,
 			attendees LONGTEXT NULL,

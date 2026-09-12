@@ -804,6 +804,26 @@ class BYZO_Booking {
 
 		$subtotal = null !== $unit_price ? round( $unit_price * $party_size, 2 ) : null;
 
+		// Add-ons (Phase 2 step 17, DETAILED-SPEC.md §3 B6) — the client
+		// submits only `addon_ids`; the price NEVER comes from the client
+		// (same rule payment_amount as a whole already follows). Pro
+		// resolves its own wp_byzo_addons table via this filter, silently
+		// dropping any id that isn't active or doesn't actually apply to
+		// this bookable item rather than erroring — same "the real wall
+		// answers honestly" shape as an unavailable slot. Free never hooks
+		// this, so a request with no addon_ids computes exactly as before.
+		$resolved_addons = ! empty( $validated['addon_ids'] )
+			? (array) apply_filters( 'byzo_resolve_addons', array(), $validated['addon_ids'], $item['id'] )
+			: array();
+		$addons_total    = array_sum( array_column( $resolved_addons, 'price' ) );
+
+		// Flat booking fee (Phase 2 step 17) — once per booking, not
+		// multiplied by party_size, unlike unit_price above.
+		$booking_fee_amount = ( null !== $item && null !== $item['booking_fee'] ) ? (float) $item['booking_fee'] : null;
+
+		$has_charge    = null !== $subtotal || $addons_total > 0 || null !== $booking_fee_amount;
+		$taxable_total = ( null !== $subtotal ? $subtotal : 0 ) + $addons_total + (float) $booking_fee_amount;
+
 		// Flat site-wide tax rate (added 2026-09-05, Phase 1.5 step 9,
 		// DETAILED-SPEC.md §A7) — tax_amount is broken out from
 		// payment_amount for invoice display; both NULL when there's
@@ -813,10 +833,12 @@ class BYZO_Booking {
 		// one set, it replaces the site-wide rate outright for THIS
 		// booking (not added to it); Free itself never writes the column,
 		// so an install with no Pro (or Pro's override cleared) computes
-		// byte-for-byte the same as before this step.
+		// byte-for-byte the same as before this step. Tax applies to the
+		// WHOLE taxable total (base + add-ons + booking fee), matching how
+		// a real invoice taxes every line item, not just the base price.
 		$tax_rate       = null !== $item && null !== $item['tax_rate_override'] ? (float) $item['tax_rate_override'] : (float) BYZO_Settings::get()['tax_rate'];
-		$tax_amount     = ( null !== $subtotal && $tax_rate > 0 ) ? round( $subtotal * $tax_rate / 100, 2 ) : null;
-		$payment_amount = null !== $subtotal ? round( $subtotal + (float) $tax_amount, 2 ) : null;
+		$tax_amount     = ( $has_charge && $tax_rate > 0 ) ? round( $taxable_total * $tax_rate / 100, 2 ) : null;
+		$payment_amount = $has_charge ? round( $taxable_total + (float) $tax_amount, 2 ) : null;
 
 		// Deposits/partial payments (Phase 2 step 6, DETAILED-SPEC.md §A7)
 		// — how much of payment_amount is actually due online now, vs. the
@@ -865,7 +887,9 @@ class BYZO_Booking {
 			'payment_amount'   => $payment_amount,
 			'deposit_amount'   => $deposit_amount,
 			'tax_amount'       => $tax_amount,
+			'booking_fee_amount' => $booking_fee_amount,
 			'custom_fields'    => wp_json_encode( $validated['custom_fields'] ),
+			'addons'           => wp_json_encode( $resolved_addons ),
 			'cart_id'          => $validated['cart_id'],
 			'created_at'       => $now,
 			'updated_at'       => $now,
@@ -1271,6 +1295,10 @@ class BYZO_Booking {
 			// No 'payment_amount' here — see create()'s comment; it's
 			// always server-computed, never accepted from client input.
 			'custom_fields'  => isset( $data['custom_fields'] ) && is_array( $data['custom_fields'] ) ? $data['custom_fields'] : array(),
+			// addon_ids (Phase 2 step 17, DETAILED-SPEC.md §3 B6) — just
+			// ids, never prices; attempt_create_on_slot() resolves the
+			// real price server-side via byzo_resolve_addons.
+			'addon_ids'      => isset( $data['addon_ids'] ) && is_array( $data['addon_ids'] ) ? array_values( array_filter( array_map( 'absint', $data['addon_ids'] ) ) ) : array(),
 			// cart_id (Phase 2 step 14, DETAILED-SPEC.md §3 B6) — an opaque
 			// grouping token Pro's own cart-checkout flow generates
 			// client-side (a random string, not sequential, so it never
@@ -1382,7 +1410,9 @@ class BYZO_Booking {
 		$row['payment_amount'] = null === $row['payment_amount'] ? null : (float) $row['payment_amount'];
 		$row['deposit_amount'] = isset( $row['deposit_amount'] ) && null !== $row['deposit_amount'] ? (float) $row['deposit_amount'] : null;
 		$row['tax_amount']     = null === $row['tax_amount'] ? null : (float) $row['tax_amount'];
+		$row['booking_fee_amount'] = isset( $row['booking_fee_amount'] ) && null !== $row['booking_fee_amount'] ? (float) $row['booking_fee_amount'] : null;
 		$row['custom_fields']  = $row['custom_fields'] ? json_decode( $row['custom_fields'], true ) : array();
+		$row['addons']         = isset( $row['addons'] ) && $row['addons'] ? json_decode( $row['addons'], true ) : array();
 
 		// slot_start/slot_end come from the LEFT JOIN in get()/query() —
 		// always present in the shape (null when the slot was deleted,

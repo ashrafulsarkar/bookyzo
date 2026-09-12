@@ -93,6 +93,10 @@ async function onDetailsSubmit(form) {
       // Phase 2 step 16 (DETAILED-SPEC.md §3 B11) — Pro-defined custom
       // form field values, keyed by field id; {} when none are configured.
       custom_fields: form.custom_fields,
+      // Phase 2 step 17 (DETAILED-SPEC.md §3 B6) — selected add-on ids
+      // only; the server resolves the real price, never trusts a client
+      // one. [] when none are configured or none were selected.
+      addon_ids: form.addon_ids,
       // Honeypot — see BYZO_Public_Guard. Always empty for a real
       // visitor (the field is visually hidden in StepDetails.vue).
       website: form.website,

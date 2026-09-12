@@ -73,6 +73,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-calendar-feed-token.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-calendar-feed-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-custom-fields-controller.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-addons-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-cancel.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-guard.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-payment-gateways.php';
@@ -139,6 +140,7 @@ class BYZO_Plugin {
 		$controllers[] = new BYZO_REST_Reports_Controller();
 		$controllers[] = new BYZO_REST_Calendar_Feed_Controller();
 		$controllers[] = new BYZO_REST_Custom_Fields_Controller();
+		$controllers[] = new BYZO_REST_Addons_Controller();
 
 		return $controllers;
 	}

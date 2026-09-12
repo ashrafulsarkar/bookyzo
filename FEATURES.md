@@ -199,8 +199,8 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Seasonal/dynamic pricing — different price by date range, day of week, or booking lead time (early-bird and last-minute rate adjustments)
 - Cart checkout — book multiple bookable items, services, or event tickets in one transaction and pay once
 - Per-service or per-region tax/VAT rules, with the rate broken out on the invoice (Free covers one flat site-wide rate, see A7)
-- **Add-ons / extra services (added 2026-09-05):** optional priced extras a customer attaches to a booking (e.g. "+30 minutes," "gift wrap," "extra guest"), each with its own price, added to `payment_amount` alongside the base price — `wp_byzo_addons` (Pro-only table), `bookings.addons` JSON column already reserved on Free's own schema (`DETAILED-SPEC.md` §1.4/§1.6)
-- **Flat booking/service fee (added 2026-09-05):** an additional fixed charge on top of price, separate from tax, broken out as its own invoice line
+- **Add-ons / extra services — DONE 2026-09-12, Phase 2 step 17:** optional priced extras a customer attaches to a booking (e.g. "+30 minutes," "gift wrap," "extra guest"), each with its own price, added to `payment_amount` (and taxed) alongside the base price — `wp_byzo_addons`, new "Add-ons & Fees" admin screen, selectable checkboxes on the booking widget with a live-updating total.
+- **Flat booking/service fee — DONE 2026-09-12, Phase 2 step 17:** an additional fixed charge on top of price, separate from tax, broken out as its own invoice line — a per-bookable-item flat amount, once per booking (not multiplied by party size), same "Add-ons & Fees" screen.
 
 ### B7. Type-Specific Pro Modules
 

@@ -197,6 +197,18 @@
   margin: 0;
 }
 
+/* Add-ons (Phase 2 step 17) — name+checkbox on the left, price on the
+   right, one row per add-on. */
+.bookyzo-widget .addon-row {
+  justify-content: space-between;
+}
+
+.bookyzo-widget .addon-row span:first-child {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .bookyzo-widget .honeypot {
   position: absolute;
   left: -9999px;
