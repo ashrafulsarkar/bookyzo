@@ -4,7 +4,7 @@
       <div v-if="errorMessage" class="bookyzo-account__error">{{ errorMessage }}</div>
 
       <DisabledView v-if="state === 'disabled'" />
-      <DashboardView v-else-if="state === 'dashboard'" :logout-url="logoutUrl" :display-name="displayName" :pdf-invoice-enabled="pdfInvoiceEnabled" />
+      <DashboardView v-else-if="state === 'dashboard'" :logout-url="logoutUrl" :display-name="displayName" :pdf-invoice-enabled="pdfInvoiceEnabled" :qr-ticket-enabled="qrTicketEnabled" />
       <RegisterView v-else-if="mode === 'register'" :register-url="registerUrl" @switch="mode = 'login'" />
       <LoginView v-else :login-url="loginUrl" :lost-password-url="lostPasswordUrl" @switch="mode = 'register'" />
     </div>
@@ -36,6 +36,7 @@ const loginUrl     = cfg.loginUrl || '';
 const logoutUrl    = cfg.logoutUrl || '';
 const lostPasswordUrl = cfg.lostPasswordUrl || '';
 const pdfInvoiceEnabled = !!cfg.pdfInvoiceEnabled;
+const qrTicketEnabled = !!cfg.qrTicketEnabled;
 
 // Client-side login/register toggle only matters when state is neither
 // 'dashboard' nor 'disabled' — mirrors the old template's $_GET['mode']

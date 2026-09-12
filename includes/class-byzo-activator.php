@@ -202,11 +202,22 @@ class BYZO_Activator {
 		// table's overlapping slot is flipped to the same `'blocked'`
 		// status blackout dates/calendar-sync already use, so no new
 		// capacity logic is needed to keep them from double-booking.
+		// `ticket_tier_id`/`checked_in_at` added 2026-09-12 (Phase 2 step
+		// 12 continued, BYZO_DB_VERSION 2.5->2.6, DETAILED-SPEC.md §3 B7
+		// Event) — same "don't gate the data model" pattern: Free's own
+		// widget never renders a tier picker and Free's own admin never
+		// writes a check-in timestamp, so both columns stay permanently
+		// NULL on an unlicensed install. `ticket_tier_id` has no FK
+		// constraint (this project never uses real FKs, see the rest of
+		// this table) and is resolved via `BYZO_Booking::get()`'s own
+		// pattern if a future screen needs the tier's name/price
+		// alongside a booking row.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
 			bookable_item_id BIGINT UNSIGNED NOT NULL,
 			service_id BIGINT UNSIGNED NULL,
+			ticket_tier_id BIGINT UNSIGNED NULL,
 			customer_id BIGINT UNSIGNED NULL,
 			customer_name VARCHAR(255) NOT NULL,
 			customer_email VARCHAR(255) NOT NULL,
@@ -233,6 +244,7 @@ class BYZO_Activator {
 			rescheduled_at DATETIME NULL,
 			reminder_sent_at DATETIME NULL,
 			followup_sent_at DATETIME NULL,
+			checked_in_at DATETIME NULL,
 			PRIMARY KEY  (id),
 			KEY slot_id (slot_id),
 			KEY bookable_item_id (bookable_item_id),

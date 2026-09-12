@@ -100,6 +100,11 @@ async function onDetailsSubmit(form) {
       // Phase 2 step 20 (DETAILED-SPEC.md §3 B4) — per-ticket attendee
       // names/emails; [] when the feature is off or party_size is 1.
       attendees: form.attendees,
+      // Phase 2 step 12 continued (DETAILED-SPEC.md §3 B7 Event) —
+      // selected ticket tier id only; the server resolves the real price
+      // and atomically claims the tier's own capacity, never trusts a
+      // client-supplied price. null when no tiers are configured.
+      ticket_tier_id: form.ticket_tier_id,
       // Honeypot — see BYZO_Public_Guard. Always empty for a real
       // visitor (the field is visually hidden in StepDetails.vue).
       website: form.website,

@@ -58,3 +58,9 @@ export const cancelMyBooking = (bookingId) => request(`/bookings/${bookingId}/ca
 // feed). The downloaded filename's own ".pdf" extension comes from the
 // Content-Disposition header the route sends instead.
 export const getInvoiceUrl = (bookingId) => `${BASE}/bookings/${bookingId}/invoice?_wpnonce=${encodeURIComponent(NONCE)}`;
+
+// Phase 2 step 12 continued (DETAILED-SPEC.md §3 B7 Event) — same plain
+// browser-navigable-link shape as getInvoiceUrl() above, only rendered
+// when window.byzoAccount.qrTicketEnabled is true. No literal ".png" in
+// the route path, same unescaped-dot-is-a-regex-wildcard reasoning.
+export const getTicketQrUrl = (bookingId) => `${BASE}/bookings/${bookingId}/ticket-qr?_wpnonce=${encodeURIComponent(NONCE)}`;

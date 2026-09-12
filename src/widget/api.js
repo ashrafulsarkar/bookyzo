@@ -38,6 +38,11 @@ export const getCustomFields = (bookableItemId) => request(`/custom-fields/publi
 // Phase 2 step 17 (DETAILED-SPEC.md §3 B6) — Pro-defined add-ons for this
 // bookable item, empty array when Pro is off/unconfigured.
 export const getAddons = (bookableItemId) => request(`/addons/public?bookable_item_id=${bookableItemId}`);
+
+// Phase 2 step 12 continued (DETAILED-SPEC.md §3 B7 Event) — Pro-defined
+// ticket tiers for this bookable item, empty array when Pro is off/
+// unconfigured.
+export const getTicketTiers = (bookableItemId) => request(`/ticket-tiers/public?bookable_item_id=${bookableItemId}`);
 export const createBooking = (payload) => request('/bookings', { method: 'POST', body: JSON.stringify(payload) });
 export const createBookingPaymentIntent = (bookingId, customerEmail) =>
   request(`/bookings/${bookingId}/payment-intent`, { method: 'POST', body: JSON.stringify({ customer_email: customerEmail }) });

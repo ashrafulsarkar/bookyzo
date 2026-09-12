@@ -53,6 +53,22 @@
       </div>
     </div>
 
+    <!-- Ticket tiers (Phase 2 step 12 continued, DETAILED-SPEC.md §3 B7
+         Event) — Pro-defined, fetched by bookable item; entirely absent
+         when Pro is off or no tiers are configured for this event (a
+         plain flat-price booking then, unchanged). Radio, not checkbox —
+         exactly one tier per booking, unlike add-ons below. -->
+    <div v-if="ticketTiers.length" class="field">
+      <label>Ticket type</label>
+      <label v-for="tier in ticketTiers" :key="tier.id" class="checkbox-label addon-row">
+        <span>
+          <input v-model.number="form.ticket_tier_id" type="radio" :value="tier.id" />
+          {{ tier.name }}
+        </span>
+        <span>{{ formatMoney(tier.price) }}</span>
+      </label>
+    </div>
+
     <!-- Add-ons (Phase 2 step 17, DETAILED-SPEC.md §3 B6) — Pro-defined,
          fetched by bookable item; entirely absent when Pro is off or
          nothing's configured (addons is then just []). The server is the
@@ -160,7 +176,7 @@
 import { reactive, computed, ref, onMounted, watch } from 'vue';
 import { copyFor } from '../copy';
 import { formatMoney } from '@/lib/money';
-import { getCustomFields, getAddons } from '../api';
+import { getCustomFields, getAddons, getTicketTiers } from '../api';
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -210,6 +226,7 @@ const form = reactive({
   custom_fields: {},
   addon_ids: [],
   attendees: [],
+  ticket_tier_id: null,
 });
 
 // Phase 2 step 16 (DETAILED-SPEC.md §3 B11) — Pro-defined custom form
@@ -220,6 +237,10 @@ const customFields = ref([]);
 // Phase 2 step 17 (DETAILED-SPEC.md §3 B6) — Pro-defined add-ons for this
 // bookable item. Same "empty means absent" shape as customFields above.
 const addons = ref([]);
+
+// Phase 2 step 12 continued (DETAILED-SPEC.md §3 B7 Event) — Pro-defined
+// ticket tiers for this bookable item. Same "empty means absent" shape.
+const ticketTiers = ref([]);
 
 onMounted(async () => {
   try {
@@ -239,6 +260,14 @@ onMounted(async () => {
     addons.value = await getAddons(props.item.id);
   } catch {
     addons.value = [];
+  }
+
+  if ('event' === props.item.type) {
+    try {
+      ticketTiers.value = await getTicketTiers(props.item.id);
+    } catch {
+      ticketTiers.value = [];
+    }
   }
 });
 
@@ -286,12 +315,22 @@ const addonsTotal = computed(() =>
   }, 0)
 );
 
+// Selected tier's price overrides the bookable item's own flat price,
+// mirroring attempt_create_on_slot()'s own precedence server-side — a
+// display-only preview, same "server stays the sole authority" caveat
+// addonsTotal's own comment already makes.
+const selectedTierPrice = computed(() => {
+  const tier = ticketTiers.value.find((t) => t.id === form.ticket_tier_id);
+  return tier ? Number(tier.price) : null;
+});
+
 const totalAmount = computed(() => {
-  const hasBasePrice = props.item.price !== null && props.item.price !== undefined;
+  const unitPrice = selectedTierPrice.value !== null ? selectedTierPrice.value : props.item.price;
+  const hasBasePrice = unitPrice !== null && unitPrice !== undefined;
   if (!hasBasePrice && addonsTotal.value === 0) {
     return null;
   }
-  const subtotal = Math.round(((hasBasePrice ? Number(props.item.price) * quantity.value : 0) + addonsTotal.value) * 100) / 100;
+  const subtotal = Math.round(((hasBasePrice ? Number(unitPrice) * quantity.value : 0) + addonsTotal.value) * 100) / 100;
   const taxRate = Number((window.byzoWidget && window.byzoWidget.taxRate) || 0);
   const tax = taxRate > 0 ? Math.round((subtotal * taxRate) / 100 * 100) / 100 : 0;
 
@@ -323,6 +362,10 @@ const attendeeDetailsFilled = computed(
   () => !showAttendeeDetails.value || form.attendees.every((attendee) => attendee.name.trim() !== '')
 );
 
+// A ticket-tiered event REQUIRES picking one — there's no sensible
+// "default" tier to fall back to silently once tiers exist at all.
+const ticketTierFilled = computed(() => ticketTiers.value.length === 0 || form.ticket_tier_id !== null);
+
 const canSubmit = computed(
   () =>
     form.name.trim() !== '' &&
@@ -331,6 +374,7 @@ const canSubmit = computed(
     form.party_size <= partySizeMax.value &&
     (!form.create_account || form.password.length >= 8) &&
     requiredCustomFieldsFilled.value &&
-    attendeeDetailsFilled.value
+    attendeeDetailsFilled.value &&
+    ticketTierFilled.value
 );
 </script>

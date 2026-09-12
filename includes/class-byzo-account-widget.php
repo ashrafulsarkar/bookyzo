@@ -173,6 +173,10 @@ class BYZO_Account_Widget {
 			// "Download invoice" link that 404s: the dashboard only shows
 			// it once a real Pro-provided PDF renderer is actually active.
 			'pdfInvoiceEnabled' => BYZO_Capabilities::pdf_invoice_enabled(),
+			// Phase 2 step 12 continued (DETAILED-SPEC.md §3 B7 Event) —
+			// same "never render a link that 404s" reasoning as the PDF
+			// invoice link above.
+			'qrTicketEnabled'   => BYZO_Capabilities::qr_ticket_enabled(),
 		);
 	}
 

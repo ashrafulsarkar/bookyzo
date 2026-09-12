@@ -764,6 +764,26 @@ class BYZO_Booking {
 			)
 		);
 
+		// Ticket tiers (Phase 2 step 12 continued, DETAILED-SPEC.md §3 B7
+		// Event) — when a specific tier was requested, ALSO atomically
+		// claim capacity on that tier, mirroring the slot's own atomic
+		// claim just above. A sold-out tier must roll back the slot claim
+		// already taken (the exact same release-back-into-the-pool UPDATE
+		// the insert-failure path below already uses) rather than leaving
+		// a phantom hold on the slot for a booking that never completes.
+		// Free never hooks byzo_claim_ticket_tier (returns null = "no
+		// tier system installed, nothing to claim"), so a direct
+		// (non-tiered) booking is completely unaffected.
+		$ticket_tier_id = ! empty( $validated['ticket_tier_id'] ) ? (int) $validated['ticket_tier_id'] : null;
+		if ( $ticket_tier_id ) {
+			$tier_claimed = apply_filters( 'byzo_claim_ticket_tier', null, $ticket_tier_id, $party_size );
+			if ( false === $tier_claimed ) {
+				$wpdb->query( $wpdb->prepare( "UPDATE {$slots_table} SET capacity_remaining = capacity_remaining + %d, status = 'open' WHERE id = %d", $party_size, $slot['id'] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+				return new WP_Error( 'byzo_tier_sold_out', __( 'This ticket type just sold out. Please pick another.', 'bookyzo' ), array( 'status' => 409 ) );
+			}
+		}
+
 		$now = current_time( 'mysql' );
 
 		// payment_amount is ALWAYS server-computed, never taken from client
@@ -782,6 +802,18 @@ class BYZO_Booking {
 		// is byte-for-byte the same computation as before this step.
 		$item      = BYZO_Bookable_Item::get( $slot['bookable_item_id'] );
 		$unit_price = $item ? $item['price'] : null;
+
+		// Ticket tier pricing (Phase 2 step 12 continued) — same
+		// precedence shape as service pricing below (checked before the
+		// bookable item's own flat price), but mutually exclusive with it
+		// in practice (a ticket_tier_id only ever accompanies an Event
+		// booking, a service_id only an Appointment one).
+		if ( $ticket_tier_id ) {
+			$tier_price = apply_filters( 'byzo_ticket_tier_price', null, $ticket_tier_id );
+			if ( null !== $tier_price ) {
+				$unit_price = (float) $tier_price;
+			}
+		}
 
 		if ( $service_id ) {
 			$service_price = apply_filters( 'byzo_service_price', null, $service_id, $slot['bookable_item_id'] );
@@ -876,6 +908,7 @@ class BYZO_Booking {
 			'slot_id'          => $slot['id'],
 			'bookable_item_id' => $slot['bookable_item_id'],
 			'service_id'       => $service_id ?: null,
+			'ticket_tier_id'   => $ticket_tier_id,
 			'customer_id'      => $customer_id ?: null,
 			'customer_name'    => $validated['customer_name'],
 			'customer_email'   => $validated['customer_email'],
@@ -991,6 +1024,16 @@ class BYZO_Booking {
 				)
 			);
 			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+			// Ticket tiers (Phase 2 step 12 continued) — the symmetric
+			// release for byzo_claim_ticket_tier's atomic claim at create
+			// time; without this a tier's capacity_remaining would never
+			// recover after a cancellation, permanently under-selling it.
+			// Free never hooks this (no tier system exists there), so a
+			// direct booking triggers a no-op action.
+			if ( $booking['ticket_tier_id'] ) {
+				do_action( 'byzo_release_ticket_tier', $booking['ticket_tier_id'], $booking['party_size'] );
+			}
 		}
 
 		do_action( 'byzo_booking_status_changed', $id, $new_status, $booking['status'] );
@@ -1358,6 +1401,56 @@ class BYZO_Booking {
 		return true;
 	}
 
+	/**
+	 * Stamps checked_in_at for the web check-in scanner (Phase 2 step 12
+	 * continued, DETAILED-SPEC.md §3 B7 Event) — same no-capability-gate
+	 * shape as combine_tables()/update_notes_tags(): a plain data-layer
+	 * method Free never calls, only Pro's `POST /bookings/check-in` route
+	 * does (after verifying the scanned BYZO_Ticket_Token itself), so
+	 * it's Pro-only in practice without needing a filter check here.
+	 * Refuses a SECOND check-in with a specific error carrying the
+	 * original timestamp — a double-scan at a busy door must never look
+	 * like a fresh success, same "the real wall answers honestly"
+	 * principle as an unavailable slot.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function check_in( $id ) {
+		global $wpdb;
+
+		$booking = self::get( $id );
+		if ( ! $booking ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		if ( in_array( $booking['status'], array( 'cancelled', 'rejected' ), true ) ) {
+			return new WP_Error( 'byzo_invalid_transition', __( 'This booking was cancelled and cannot be checked in.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		if ( ! empty( $booking['checked_in_at'] ) ) {
+			return new WP_Error(
+				'byzo_already_checked_in',
+				sprintf(
+					/* translators: %s: the original check-in date/time. */
+					__( 'Already checked in at %s.', 'bookyzo' ),
+					$booking['checked_in_at']
+				),
+				array( 'status' => 409 )
+			);
+		}
+
+		$wpdb->update(
+			self::table(),
+			array(
+				'checked_in_at' => current_time( 'mysql' ),
+				'updated_at'    => current_time( 'mysql' ),
+			),
+			array( 'id' => $id )
+		);
+
+		return true;
+	}
+
 	private static function validate_for_create( $data ) {
 		// Phase 2 step 5 (DETAILED-SPEC.md §3 B7) — "any available staff":
 		// service_id + start_datetime is an alternative to a direct
@@ -1426,6 +1519,13 @@ class BYZO_Booking {
 			// booking is unaffected. Not validated for shape here — it's
 			// just an opaque label the Stripe webhook later groups by.
 			'cart_id'        => isset( $data['cart_id'] ) ? sanitize_text_field( $data['cart_id'] ) : null,
+			// ticket_tier_id (Phase 2 step 12 continued, DETAILED-SPEC.md
+			// §3 B7 Event) - just an id, never a price; attempt_create_on_slot()
+			// resolves the real price server-side via byzo_ticket_tier_price
+			// and atomically claims the tier's own capacity via
+			// byzo_claim_ticket_tier, same "id in, server resolves the rest"
+			// shape as addon_ids above.
+			'ticket_tier_id' => ! empty( $data['ticket_tier_id'] ) ? absint( $data['ticket_tier_id'] ) : null,
 		);
 	}
 
@@ -1601,6 +1701,8 @@ class BYZO_Booking {
 		$row['slot_id']        = $row['slot_id'] ? (int) $row['slot_id'] : null;
 		$row['bookable_item_id'] = (int) $row['bookable_item_id'];
 		$row['service_id']     = isset( $row['service_id'] ) && $row['service_id'] ? (int) $row['service_id'] : null;
+		$row['ticket_tier_id'] = isset( $row['ticket_tier_id'] ) && $row['ticket_tier_id'] ? (int) $row['ticket_tier_id'] : null;
+		$row['checked_in_at']  = isset( $row['checked_in_at'] ) ? $row['checked_in_at'] : null;
 		$row['customer_id']    = $row['customer_id'] ? (int) $row['customer_id'] : null;
 		$row['party_size']     = (int) $row['party_size'];
 		$row['payment_amount'] = null === $row['payment_amount'] ? null : (float) $row['payment_amount'];

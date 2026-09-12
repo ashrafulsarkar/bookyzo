@@ -154,6 +154,10 @@ Initial release.
 * `byzo_resolve_addons` — ( array $resolved, int[] $addon_ids, int $bookable_item_id ) Resolves client-submitted add-on ids into real, currently-active, correctly-scoped `{ id, name, price }` rows at booking-creation time — an id that doesn't resolve is silently dropped. Default `array()`.
 * `byzo_appearance_css_vars` — ( string $css, array $settings ) `--prop:value;` custom-property pairs generated from the Appearance settings. Default: the built-in property set, or `''` when nothing was customized.
 * `byzo_appearance_css_declarations` — ( string $css, array $settings ) `prop:value;` plain CSS declarations generated from the Appearance settings. Default: the built-in declaration set, or `''` when nothing was customized.
+* `byzo_ticket_tiers_for_bookable_item` — ( array $tiers, int $bookable_item_id ) Ticket tiers to render on the booking widget for a given Event bookable item, each `{ id, name, price, capacity_remaining }`. Default `array()`.
+* `byzo_ticket_tier_price` — ( float|null $price, int $ticket_tier_id ) Resolved price for a specific ticket tier. Default `null` (falls back to the bookable item's own price).
+* `byzo_claim_ticket_tier` — ( bool|null $claimed, int $ticket_tier_id, int $party_size ) Atomically claims capacity on a ticket tier at booking-creation time; `false` means sold out (rolls back the slot's own capacity claim). Default `null` (no tier system installed, nothing to claim).
+* `byzo_qr_ticket_enabled` — ( bool $enabled ) Whether a downloadable QR e-ticket is available from the customer dashboard. Default `false`.
 
 = Actions =
 
@@ -166,3 +170,4 @@ Initial release.
 * `byzo_notification_sent` — ( string $event, int $booking_id ) After a notification email is sent (or attempted).
 * `byzo_notification_channels` — ( string $event, array $booking, array $placeholders ) Fires after a notification email is sent, with the same placeholders — lets an add-on send the same event via another channel (e.g. SMS/WhatsApp).
 * `byzo_booking_rescheduled` — ( int $booking_id, int $new_slot_id, int $old_slot_id ) After a booking is moved to a different slot (status itself is untouched, so this is separate from `byzo_booking_status_changed`).
+* `byzo_release_ticket_tier` — ( int $ticket_tier_id, int $party_size ) Fires when a ticket-tiered booking is cancelled/rejected/marked no-show, so its tier's claimed capacity can be released back.

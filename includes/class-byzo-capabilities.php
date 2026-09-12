@@ -88,4 +88,14 @@ class BYZO_Capabilities {
 	public static function collect_attendee_details_enabled() {
 		return (bool) apply_filters( 'byzo_collect_attendee_details', false );
 	}
+
+	/**
+	 * Whether a downloadable QR e-ticket is available from the customer
+	 * dashboard (Phase 2 step 12 continued, `FEATURES.md` B7 Event) —
+	 * same shape as pdf_invoice_enabled() above: the dashboard link is
+	 * simply absent while false, never a dead/disabled link. Free = false.
+	 */
+	public static function qr_ticket_enabled() {
+		return (bool) apply_filters( 'byzo_qr_ticket_enabled', false );
+	}
 }

@@ -26,6 +26,14 @@
       <a v-if="pdfInvoiceEnabled" :href="getInvoiceUrl(booking.id)" class="bookyzo-account__btn bookyzo-account__btn--link">
         Download invoice
       </a>
+      <!-- Deliberately not restricted to Event-type bookings — same
+           no-real-backend-reason-to-restrict call already made for
+           commission tracking (DETAILED-SPEC.md §3 B7 Appointment,
+           step 12): a QR check-in ticket is equally meaningful for a
+           table or appointment arrival, not just an event ticket. -->
+      <a v-if="qrTicketEnabled" :href="getTicketQrUrl(booking.id)" class="bookyzo-account__btn bookyzo-account__btn--link">
+        View ticket
+      </a>
     </li>
   </ul>
 
@@ -36,7 +44,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { getMyBookings, cancelMyBooking, getInvoiceUrl } from '../api';
+import { getMyBookings, cancelMyBooking, getInvoiceUrl, getTicketQrUrl } from '../api';
 
 // Reschedule is deliberately not wired up here yet — it needs a slot
 // picker (which type, which date, which time), a real UI surface of its
@@ -48,6 +56,7 @@ defineProps({
   logoutUrl: { type: String, required: true },
   displayName: { type: String, default: '' },
   pdfInvoiceEnabled: { type: Boolean, default: false },
+  qrTicketEnabled: { type: Boolean, default: false },
 });
 
 const bookings     = ref([]);

@@ -216,12 +216,12 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - **Combine/split tables for larger parties — DONE 2026-09-12, Phase 2 step 12:** the primary table keeps the real booking (optionally updated to the new combined party size); each additional table's overlapping slot flips to `'blocked'`, the same mechanism blackout dates/calendar-sync already use. New "Combine tables"/"Uncombine" actions on the "Bulk & Notes" screen.
 - **Waitlist for walk-ins during full periods — DONE 2026-09-12, Phase 2 step 12:** a physical right-now-arrivals queue (`wp_byzo_walkin_waitlist`) — genuinely distinct from the still-unbuilt general "notify when a slot frees up" waitlist below. New "Waitlist" admin screen.
 
-#### Event Pro
-- Multiple ticket tiers (Early Bird, Regular, VIP) with different pricing
-- QR-code e-tickets
-- Mobile check-in scanner (web-based, no app needed)
-- Attendee list export, capacity tracking per tier
-- Seating chart (optional, for smaller venues)
+#### Event Pro — module complete
+- **Multiple ticket tiers (Early Bird, Regular, VIP) with different pricing — DONE 2026-09-12, Phase 2 step 12:** `wp_byzo_ticket_tiers`, capacity enforced per-tier AND at the event's own level simultaneously. New "Ticket Tiers" admin screen; a tier picker on the public widget when tiers exist.
+- **QR-code e-tickets — DONE 2026-09-12, Phase 2 step 12:** one ticket per booking (not per attendee), a scannable PNG QR on the customer dashboard once downloaded/shown at the door.
+- **Mobile check-in scanner (web-based, no app needed) — DONE 2026-09-12, Phase 2 step 12:** new "Check-in" admin screen, camera-based QR scanning (client-side decode, no app) plus a manual booking-ID fallback.
+- **Attendee list export, capacity tracking per tier — DONE 2026-09-12, Phase 2 step 12:** CSV export expanding per-ticket attendee details (B4) with a purchaser fallback; capacity tracked per tier via `capacity_remaining`.
+- Seating chart (optional, for smaller venues) — deferred, reuses Table Pro's floor-plan mechanism once there's concrete demand.
 
 #### Slot/Class Pro
 - **Recurring class series (e.g. weekly yoga class with a fixed roster) — DONE 2026-09-12, Phase 2 step 12:** `wp_byzo_class_series` — a series is just N already-generated weekly slots claimed by the same customer, grouped afterward. New "Class Series" admin screen.
