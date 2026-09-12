@@ -253,7 +253,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Custom domain for standalone booking page (if a hosted booking page option exists)
 
 ### B11. Advanced Form Builder & Localization
-- Custom form field builder — add arbitrary fields (dropdown, checkbox, file upload, number, date, address with a Google Maps link) beyond Free's fixed name/email/phone/notes set; fields can be scoped per-service and shown conditionally
+- **Custom form field builder — DONE 2026-09-12, Phase 2 step 16:** add arbitrary fields (dropdown, checkbox, number, date, address) beyond Free's fixed name/email/phone/notes set, global or scoped to one bookable item — new "Form Fields" admin screen, `wp_byzo_custom_fields`, rendered live on Free's public widget via a new `byzo_custom_fields_for_bookable_item` filter. **File upload fields deliberately deferred** (needs a real upload endpoint/storage/security scanning, a separate feature); the address type ships as plain text for v1, Google-Maps-autocomplete linking left for real demand.
 - Multilingual booking-facing content — translate service, category, bookable item, and event names per visitor language (this is translating the site owner's own content; UI-string translation via WPML/Loco Translate already works in Free, see A5)
 
 ### B12. Multi-Site / Agency Features (higher tier)

@@ -147,6 +147,7 @@ Initial release.
 * `byzo_unit_price` — ( float $price, int $bookable_item_id, array $slot ) Per-booking unit price adjustment applied right after service-price resolution and before tax. Default: unmodified `$price`.
 * `byzo_calendar_feed_enabled` — ( bool $enabled ) Whether the subscribable per-bookable-item `.ics` calendar feed REST route is available. Default `false`.
 * `byzo_widget_after_mount` — ( string $html, array $config ) HTML appended right after the booking widget's own mount markup — lets an add-on inject unrelated page-level snippets (e.g. marketing pixel base code) without touching the widget markup itself. Default `''`.
+* `byzo_custom_fields_for_bookable_item` — ( array $fields, int $bookable_item_id ) Custom form fields to render on the booking widget for a given bookable item, each `{ id, label, field_type, options, required }`. Default `array()`.
 * `byzo_appearance_css_vars` — ( string $css, array $settings ) `--prop:value;` custom-property pairs generated from the Appearance settings. Default: the built-in property set, or `''` when nothing was customized.
 * `byzo_appearance_css_declarations` — ( string $css, array $settings ) `prop:value;` plain CSS declarations generated from the Appearance settings. Default: the built-in declaration set, or `''` when nothing was customized.
 

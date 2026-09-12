@@ -78,6 +78,31 @@
       />
     </div>
 
+    <!-- Custom form fields (Phase 2 step 16, DETAILED-SPEC.md §3 B11) —
+         Pro-defined, fetched by bookable item; entirely absent when Pro is
+         off or nothing's configured (customFields is then just []). -->
+    <div v-for="field in customFields" :key="field.id" class="field">
+      <label v-if="field.field_type === 'checkbox'" class="checkbox-label">
+        <input v-model="form.custom_fields[field.id]" type="checkbox" />
+        {{ field.label }} <span v-if="!field.required" class="optional">optional</span>
+      </label>
+      <template v-else>
+        <label :for="`bw-cf-${field.id}`">
+          {{ field.label }} <span v-if="!field.required" class="optional">optional</span>
+        </label>
+        <select v-if="field.field_type === 'dropdown'" :id="`bw-cf-${field.id}`" v-model="form.custom_fields[field.id]">
+          <option value="" disabled>Select…</option>
+          <option v-for="choice in field.options?.choices || []" :key="choice" :value="choice">{{ choice }}</option>
+        </select>
+        <input
+          v-else
+          :id="`bw-cf-${field.id}`"
+          v-model="form.custom_fields[field.id]"
+          :type="{ date: 'date', number: 'number', address: 'text' }[field.field_type] || 'text'"
+        />
+      </template>
+    </div>
+
     <!-- Honeypot (BYZO_Public_Guard) — visually hidden, never seen or
          filled by a real visitor, tabindex/autocomplete off so
          keyboard/autofill users can't stumble into it either. Bots that
@@ -99,9 +124,10 @@
 </template>
 
 <script setup>
-import { reactive, computed } from 'vue';
+import { reactive, computed, ref, onMounted } from 'vue';
 import { copyFor } from '../copy';
 import { formatMoney } from '@/lib/money';
+import { getCustomFields } from '../api';
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -148,6 +174,27 @@ const form = reactive({
   website: '',
   create_account: false,
   password: '',
+  custom_fields: {},
+});
+
+// Phase 2 step 16 (DETAILED-SPEC.md §3 B11) — Pro-defined custom form
+// fields for this bookable item. Empty when Pro is off/unconfigured, in
+// which case this whole section of the form is simply absent.
+const customFields = ref([]);
+
+onMounted(async () => {
+  try {
+    const fields = await getCustomFields(props.item.id);
+    customFields.value = fields;
+    for (const field of fields) {
+      form.custom_fields[field.id] = field.field_type === 'checkbox' ? false : '';
+    }
+  } catch {
+    // A failed fetch here shouldn't block booking at all — the fixed
+    // fields above are all a booking strictly needs; custom fields are
+    // additive, so fail silently and simply show none.
+    customFields.value = [];
+  }
 });
 
 // Mirrors BYZO_Booking::create()'s own arithmetic — price × quantity,
@@ -178,12 +225,21 @@ const totalLabel = computed(() => {
 
 const totalValue = computed(() => formatMoney(totalAmount.value, { emptyLabel: 'Free' }));
 
+const requiredCustomFieldsFilled = computed(() =>
+  customFields.value.every((field) => {
+    if (!field.required) return true;
+    const value = form.custom_fields[field.id];
+    return field.field_type === 'checkbox' ? value === true : String(value ?? '').trim() !== '';
+  })
+);
+
 const canSubmit = computed(
   () =>
     form.name.trim() !== '' &&
     /\S+@\S+\.\S+/.test(form.email) &&
     form.party_size >= 1 &&
     form.party_size <= partySizeMax.value &&
-    (!form.create_account || form.password.length >= 8)
+    (!form.create_account || form.password.length >= 8) &&
+    requiredCustomFieldsFilled.value
 );
 </script>
