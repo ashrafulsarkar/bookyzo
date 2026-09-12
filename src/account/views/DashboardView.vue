@@ -19,6 +19,13 @@
       >
         {{ cancellingId === booking.id ? 'Cancelling…' : 'Cancel booking' }}
       </button>
+      <!-- Plain browser-navigable link, not a fetch() call — see
+           api.js's getInvoiceUrl() docblock for why. Only ever rendered
+           when Pro's PDF renderer is actually active (never a dead link,
+           per this project's standing Guideline-5 rule). -->
+      <a v-if="pdfInvoiceEnabled" :href="getInvoiceUrl(booking.id)" class="bookyzo-account__btn bookyzo-account__btn--link">
+        Download invoice
+      </a>
     </li>
   </ul>
 
@@ -29,7 +36,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue';
-import { getMyBookings, cancelMyBooking } from '../api';
+import { getMyBookings, cancelMyBooking, getInvoiceUrl } from '../api';
 
 // Reschedule is deliberately not wired up here yet — it needs a slot
 // picker (which type, which date, which time), a real UI surface of its
@@ -40,6 +47,7 @@ import { getMyBookings, cancelMyBooking } from '../api';
 defineProps({
   logoutUrl: { type: String, required: true },
   displayName: { type: String, default: '' },
+  pdfInvoiceEnabled: { type: Boolean, default: false },
 });
 
 const bookings     = ref([]);

@@ -44,3 +44,17 @@ export const getMyBookings = () => request('/bookings');
 // onto the exact cancellation_hours policy the guest token link already
 // enforces, not a separate/looser rule for logged-in customers.
 export const cancelMyBooking = (bookingId) => request(`/bookings/${bookingId}/cancel-as-customer`, { method: 'PUT' });
+
+// Phase 2 step 18 (DETAILED-SPEC.md §3 B4) — a plain, browser-navigable
+// download link, not a fetch() call: WordPress's REST cookie-auth accepts
+// the nonce via a `_wpnonce` query param for exactly this case, so a
+// normal `<a href>` works without any JS fetch/blob dance. Only ever
+// rendered when window.byzoAccount.pdfInvoiceEnabled is true (Pro-only,
+// gated server-side by the route itself either way).
+// No literal ".pdf" in the route path — an unescaped "." in a REST route
+// is a regex wildcard, not a literal dot (see
+// BYZOP_REST_Invoice_Controller::register_routes()'s own note, same
+// lesson DETAILED-SPEC.md §3 B9 already documents for the calendar
+// feed). The downloaded filename's own ".pdf" extension comes from the
+// Content-Disposition header the route sends instead.
+export const getInvoiceUrl = (bookingId) => `${BASE}/bookings/${bookingId}/invoice?_wpnonce=${encodeURIComponent(NONCE)}`;

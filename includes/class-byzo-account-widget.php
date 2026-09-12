@@ -169,6 +169,10 @@ class BYZO_Account_Widget {
 				admin_url( 'admin-post.php' )
 			),
 			'lostPasswordUrl' => wp_lostpassword_url( $page_url ),
+			// Phase 2 step 18 (DETAILED-SPEC.md §3 B4) — never render a
+			// "Download invoice" link that 404s: the dashboard only shows
+			// it once a real Pro-provided PDF renderer is actually active.
+			'pdfInvoiceEnabled' => BYZO_Capabilities::pdf_invoice_enabled(),
 		);
 	}
 

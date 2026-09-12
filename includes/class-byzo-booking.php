@@ -1400,6 +1400,51 @@ class BYZO_Booking {
 		$wpdb->update( self::table(), array( 'reminder_sent_at' => current_time( 'mysql' ) ), array( 'id' => $id ) );
 	}
 
+	/**
+	 * Completed bookings whose completed_at falls within
+	 * [$window_start, $window_end) and haven't had their post-visit
+	 * follow-up sent yet (Phase 2 step 18, DETAILED-SPEC.md §3 B5) — one
+	 * fixed follow-up per booking, same shape as get_due_for_reminder()
+	 * but keyed off completion time instead of a future slot start, and
+	 * gated on completed_at actually being set (a booking marked
+	 * completed without ever going through a real slot has nothing to
+	 * measure "hours after" from).
+	 *
+	 * @return array Cast booking rows (same shape as get()/query()).
+	 */
+	public static function get_due_for_followup( DateTime $window_start, DateTime $window_end ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT b.*, s.start_datetime AS slot_start, s.end_datetime AS slot_end
+				 FROM {$bookings_table} b
+				 LEFT JOIN {$slots_table} s ON s.id = b.slot_id
+				 WHERE b.status = 'completed'
+				   AND b.followup_sent_at IS NULL
+				   AND b.completed_at IS NOT NULL
+				   AND b.completed_at >= %s
+				   AND b.completed_at < %s",
+				$window_start->format( 'Y-m-d H:i:s' ),
+				$window_end->format( 'Y-m-d H:i:s' )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
+	}
+
+	public static function mark_followup_sent( $id ) {
+		global $wpdb;
+
+		$wpdb->update( self::table(), array( 'followup_sent_at' => current_time( 'mysql' ) ), array( 'id' => $id ) );
+	}
+
 	private static function cast( $row ) {
 		$row['id']             = (int) $row['id'];
 		$row['slot_id']        = $row['slot_id'] ? (int) $row['slot_id'] : null;

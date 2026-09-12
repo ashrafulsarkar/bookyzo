@@ -65,4 +65,16 @@ class BYZO_Capabilities {
 	public static function calendar_feed_enabled() {
 		return (bool) apply_filters( 'byzo_calendar_feed_enabled', false );
 	}
+
+	/**
+	 * Whether a downloadable PDF invoice is available from the customer
+	 * dashboard (Phase 2 step 18, `FEATURES.md` B4) — genuinely Pro-
+	 * exclusive infrastructure (a PDF-rendering library only Pro ships),
+	 * not a re-skin of a Free feature, so a real gate is correct here,
+	 * same class of decision as `calendar_feed_enabled()` above. Free =
+	 * false; the dashboard link is simply absent, never shown disabled.
+	 */
+	public static function pdf_invoice_enabled() {
+		return (bool) apply_filters( 'byzo_pdf_invoice_enabled', false );
+	}
 }

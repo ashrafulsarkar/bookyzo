@@ -27,6 +27,39 @@ class BYZO_REST_Calendar_Feed_Controller extends BYZO_REST_Controller {
 				'permission_callback' => '__return_true',
 			)
 		);
+
+		// A real fix, not cosmetic: WP_REST_Server::serve_request() ALWAYS
+		// wp_json_encode()'s the response body before echoing it, no matter
+		// what Content-Type header a controller sets — setting
+		// 'text/calendar' only changes the declared MIME type, the body
+		// still comes out as a JSON-quoted string (literal `\r\n` escapes,
+		// wrapping quotes), which no real calendar app can parse as .ics.
+		// The one documented way to serve raw non-JSON output from the
+		// REST API is the `rest_pre_serve_request` filter — return true
+		// (and echo the body yourself) to skip WP's own JSON encoding
+		// entirely. Missing this was a real bug in the original
+		// implementation, caught only by testing over a REAL HTTP request
+		// (curl) rather than PHP-internal `rest_do_request()`, which never
+		// exercises this serialization layer at all.
+		add_filter( 'rest_pre_serve_request', array( $this, 'maybe_serve_raw_ics' ), 10, 3 );
+	}
+
+	public function maybe_serve_raw_ics( $served, $result, $request ) {
+		if ( ! $result instanceof WP_REST_Response ) {
+			return $served;
+		}
+
+		$content_type = $result->get_headers()['Content-Type'] ?? '';
+		if ( false === strpos( $content_type, 'text/calendar' ) ) {
+			return $served;
+		}
+
+		// WP_REST_Server::serve_request() already sent $result's headers
+		// and status code (via send_headers()/set_status()) before this
+		// filter ever runs — only the body needs to bypass wp_json_encode().
+		echo $result->get_data(); // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- raw ICS text, not HTML.
+
+		return true;
 	}
 
 	public function get_feed( WP_REST_Request $request ) {

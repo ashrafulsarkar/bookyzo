@@ -174,11 +174,11 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Timeline view — all bookable items of a type shown as rows with time across the top, for scanning multi-bookable item availability at a glance (only useful once Pro's unlimited bookable items are in play)
 - Availability search — customers filter bookable items by date, capacity, or tags once more than one bookable item of a type exists (the per-item tag field itself ships with this — it was dropped from Free on 2026-09-06, since with Free's four-item cap nothing read it; see `DETAILED-SPEC.md` §1.1)
 - Export the customer list to CSV, including each customer's booking and payment history
-- **Duplicate booking (added 2026-09-05):** clone an existing booking's bookable item/customer/details as the starting point for a new one — walk-in regulars, recurring phone bookings that don't need a full series
+- **Duplicate booking — DONE 2026-09-12, Phase 2 step 18:** clone an existing booking's bookable item/customer/details as the starting point for a new one — walk-in regulars, recurring phone bookings that don't need a full series. New "Duplicate" action on the "Bulk & Notes" screen; calls the same unrestricted `POST /bookings` every other booking path already uses, no new backend surface.
 
 ### B4. Advanced Ticketing (renamed from "Customer Account & Self-Service" 2026-09-06 — the account/dashboard half of this section moved to Free, see A11)
 - **Per-ticket attendee details (added 2026-09-06):** an Event booking with quantity/party size > 1 collects each ticket's own name (and optionally email) instead of one contact name for the whole purchase — e.g. buying 10 conference tickets prompts for all 10 attendees before checkout completes. Feeds B7 Event Pro's attendee list export and QR e-tickets with real per-person data instead of one name repeated N times. Distinct from B11's custom form field builder, which adds arbitrary new fields to a booking as a whole — this repeats one small fixed field set once per ticket.
-- **Downloadable PDF invoice/receipt (added 2026-09-05):** branded, itemized (price, add-ons, tax) — available from the now-Free dashboard (A11), but the formatted/downloadable file itself stays Pro; Free's confirmation email and dashboard already show a plain amount breakdown (A6/A7), this is the branded/downloadable version, same "Free shows the number, Pro brands the document" line B10 already draws elsewhere. Needs a PDF-generation approach decided first, see `DETAILED-SPEC.md` §5 item 10.
+- **Downloadable PDF invoice/receipt — DONE 2026-09-12, Phase 2 step 18:** branded, itemized (price, add-ons, booking fee, tax, deposit paid) — a "Download invoice" link on the now-Free dashboard (A11), only shown once Pro's PDF renderer is actually active; the formatted/downloadable file itself stays Pro, same "Free shows the number, Pro brands the document" line B10 already draws elsewhere. Built with dompdf (`DETAILED-SPEC.md` §5 item 10 resolved this step).
 
 ### B5. Notifications & Communication
 - SMS notifications (via a chosen SMS gateway)
@@ -187,7 +187,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Visual email template builder (branding, logo, colors)
 - Admin real-time alerts (new booking, cancellation, no-show)
 - **Bulk/marketing campaigns — DONE 2026-09-12, Phase 2 step 15:** send a one-off email or SMS blast to a filtered customer segment (tag, last-booking-before date, minimum no-show count) — new "Campaigns" admin screen, `BYZOP_Campaigns`, no send-history table for v1.
-- **Automated post-visit follow-up / thank-you email (added 2026-09-05):** e.g. a review-request link, sent a configurable number of hours after a booking is marked `completed` — distinct from the bulk/marketing campaigns above (a one-off segment blast); this fires automatically per booking, keyed off the new `bookings.completed_at` column (`DETAILED-SPEC.md` §1.4)
+- **Automated post-visit follow-up / thank-you email — DONE 2026-09-12, Phase 2 step 18:** e.g. a review-request link, sent a configurable number of hours after a booking is marked `completed` — distinct from the bulk/marketing campaigns above (a one-off segment blast); this fires automatically per booking, keyed off `bookings.completed_at` (`DETAILED-SPEC.md` §1.4). New "Post-visit follow-up" section on the renamed "Automated Messages" screen.
 
 ### B6. Payments
 - Deposit / partial payment support

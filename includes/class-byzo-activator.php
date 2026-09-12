@@ -179,6 +179,11 @@ class BYZO_Activator {
 		// booking time, same reasoning `tax_amount`/`deposit_amount`
 		// already established: reading the live item column later would
 		// show the WRONG number the moment an admin edits the fee.
+		// `followup_sent_at` added 2026-09-12 (Phase 2 step 18,
+		// BYZO_DB_VERSION 2.3->2.4, DETAILED-SPEC.md §3 B5) — same shape
+		// as `reminder_sent_at`: one fixed follow-up per booking (not
+		// multiple configurable rules, unlike step 7's reminder system),
+		// so a single dedup column is enough. Dormant until Pro writes it.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
@@ -208,6 +213,7 @@ class BYZO_Activator {
 			completed_at DATETIME NULL,
 			rescheduled_at DATETIME NULL,
 			reminder_sent_at DATETIME NULL,
+			followup_sent_at DATETIME NULL,
 			PRIMARY KEY  (id),
 			KEY slot_id (slot_id),
 			KEY bookable_item_id (bookable_item_id),

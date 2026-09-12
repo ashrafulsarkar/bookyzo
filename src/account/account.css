@@ -109,6 +109,23 @@
   cursor: default;
 }
 
+/* Download invoice link (Phase 2 step 18) — a plain <a>, not a <button>,
+   styled as a lighter secondary action so it doesn't visually compete
+   with the primary Cancel booking button right next to it. */
+.bookyzo-account__btn--link {
+  background: transparent;
+  color: var(--byzo-primary);
+  border: 1px solid var(--byzo-border);
+  text-align: center;
+  text-decoration: none;
+  box-sizing: border-box;
+  margin-top: 8px;
+}
+
+.bookyzo-account__btn--link:hover {
+  background: var(--byzo-primary-light);
+}
+
 .bookyzo-account__switch {
   text-align: center;
   font-size: 13px;
