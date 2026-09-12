@@ -234,8 +234,8 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - No-show rate tracking and trends
 - Customer retention/repeat-booking metrics
 - Exportable reports (CSV, scheduled email reports)
-- **Popular bookable items / time slots / staff (added 2026-09-05):** which bookable items and time-of-day get booked most, for staffing and pricing decisions — a straightforward aggregate query against existing tables
-- **Booking trend charts (added 2026-09-05):** daily/weekly/monthly, on top of the existing count/revenue numbers
+- **Popular bookable items / time slots / staff — DONE 2026-09-12, Phase 2 step 10 (confirmed/closed step 19):** which bookable items and time-of-day get booked most, for staffing and pricing decisions — Appointment-type bookable items are staff in this project's model, so no separate "staff" query was needed.
+- **Booking trend charts — DONE 2026-09-12, Phase 2 step 10 (confirmed/closed step 19):** daily/weekly/monthly, on top of the existing count/revenue numbers — rendered on the Analytics screen as plain CSS bars.
 - **Conversion rate (added 2026-09-05):** widget views vs. completed bookings — needs a view-tracking mechanism that doesn't exist today, see `DETAILED-SPEC.md` §5 item 11 before building
 
 ### B9. Integrations
