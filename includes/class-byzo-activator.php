@@ -57,6 +57,12 @@ class BYZO_Activator {
 		// capability gate at all: Free's own admin screens never expose
 		// them, only Pro's REST route
 		// (BYZO_Bookable_Item::update_commission()) ever writes them.
+		// `tax_rate_override` added 2026-09-12 (Phase 2 step 14,
+		// BYZO_DB_VERSION 2.1->2.2, DETAILED-SPEC.md §1.1/§A7) — when set,
+		// REPLACES (not adds to) `byzo_settings.tax_rate` for this item's
+		// own bookings; NULL (the only value Free itself ever writes,
+		// which is to say Free never writes it at all) means "use the
+		// site-wide rate," today's exact behavior.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookable_items (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			type VARCHAR(20) NOT NULL DEFAULT 'appointment',
@@ -74,6 +80,7 @@ class BYZO_Activator {
 			uses_business_hours TINYINT(1) NOT NULL DEFAULT 0,
 			commission_type VARCHAR(20) NULL,
 			commission_rate DECIMAL(10,2) NULL,
+			tax_rate_override DECIMAL(5,2) NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
@@ -151,6 +158,13 @@ class BYZO_Activator {
 		// deliberately separate from the customer-submitted `customer_notes`
 		// above (different author, different audience). Free never writes
 		// either column; Pro's "Bulk & Notes" screen is the only UI that does.
+		// `cart_id` added 2026-09-12 (Phase 2 step 14, BYZO_DB_VERSION
+		// 2.1->2.2, DETAILED-SPEC.md §3 B6) — bookings sharing the same
+		// `cart_id` were created together in one Pro cart checkout and
+		// share one Stripe PaymentIntent; the webhook flips every booking
+		// with that `cart_id` to paid together, not just one by
+		// metadata.booking_id. NULL for every booking made the way Free
+		// already works (one booking, one payment, today's exact behavior).
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
@@ -163,6 +177,7 @@ class BYZO_Activator {
 			customer_notes TEXT NULL,
 			internal_notes TEXT NULL,
 			tags VARCHAR(255) NULL,
+			cart_id VARCHAR(64) NULL,
 			party_size SMALLINT UNSIGNED NOT NULL DEFAULT 1,
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			payment_status VARCHAR(20) NOT NULL DEFAULT 'unpaid',
@@ -183,7 +198,8 @@ class BYZO_Activator {
 			KEY bookable_item_id (bookable_item_id),
 			KEY status (status),
 			KEY customer_email (customer_email),
-			KEY customer_id (customer_id)
+			KEY customer_id (customer_id),
+			KEY cart_id (cart_id)
 		) {$charset_collate};";
 
 		// wp_byzo_customers (added 2026-09-05, Phase 1.5 step 9,

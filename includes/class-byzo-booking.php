@@ -57,6 +57,30 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * Every booking sharing one cart_id (Phase 2 step 14, DETAILED-SPEC.md
+	 * §3 B6) — the Stripe webhook's own cart-payment branch groups by
+	 * this to mark every booking in a cart paid together.
+	 *
+	 * @return array<int,array>
+	 */
+	public static function get_by_cart_id( $cart_id ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT b.*, s.start_datetime AS slot_start, s.end_datetime AS slot_end FROM {$bookings_table} b LEFT JOIN {$slots_table} s ON s.id = b.slot_id WHERE b.cart_id = %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$cart_id
+			),
+			ARRAY_A
+		);
+
+		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
+	}
+
+	/**
 	 * @param array $args {
 	 *     @type string $from, $to  Y-m-d, filters by the booking's SLOT time
 	 *         (when the appointment happens), not when the booking record
@@ -766,15 +790,31 @@ class BYZO_Booking {
 			}
 		}
 
+		// Seasonal/dynamic pricing (Phase 2 step 14, DETAILED-SPEC.md §3
+		// B6) — applied BEFORE tax, same "adjust the base first, tax the
+		// adjusted total" order §A7's own tax step already established.
+		// Free never hooks this (no pricing-rules UI exists there); Pro
+		// resolves its own wp_byzo_pricing_rules against the slot's own
+		// start_datetime for season/weekday rules or against (start_datetime
+		// - now) for lead-time rules. A null $unit_price (free item) is
+		// passed through unadjusted — nothing to adjust a percentage of.
+		if ( null !== $unit_price ) {
+			$unit_price = (float) apply_filters( 'byzo_unit_price', $unit_price, $item['id'], $slot );
+		}
+
 		$subtotal = null !== $unit_price ? round( $unit_price * $party_size, 2 ) : null;
 
 		// Flat site-wide tax rate (added 2026-09-05, Phase 1.5 step 9,
 		// DETAILED-SPEC.md §A7) — tax_amount is broken out from
 		// payment_amount for invoice display; both NULL when there's
-		// nothing to charge in the first place. Per-bookable item
-		// overrides (tax_rate_override) are a Pro-only column not part of
-		// this schema touch, so Free always uses the one site-wide rate.
-		$tax_rate       = (float) BYZO_Settings::get()['tax_rate'];
+		// nothing to charge in the first place. `tax_rate_override`
+		// (added 2026-09-12, Phase 2 step 14, DETAILED-SPEC.md §1.1) is a
+		// Pro-only-WRITTEN Free-schema column — when a bookable item has
+		// one set, it replaces the site-wide rate outright for THIS
+		// booking (not added to it); Free itself never writes the column,
+		// so an install with no Pro (or Pro's override cleared) computes
+		// byte-for-byte the same as before this step.
+		$tax_rate       = null !== $item && null !== $item['tax_rate_override'] ? (float) $item['tax_rate_override'] : (float) BYZO_Settings::get()['tax_rate'];
 		$tax_amount     = ( null !== $subtotal && $tax_rate > 0 ) ? round( $subtotal * $tax_rate / 100, 2 ) : null;
 		$payment_amount = null !== $subtotal ? round( $subtotal + (float) $tax_amount, 2 ) : null;
 
@@ -826,6 +866,7 @@ class BYZO_Booking {
 			'deposit_amount'   => $deposit_amount,
 			'tax_amount'       => $tax_amount,
 			'custom_fields'    => wp_json_encode( $validated['custom_fields'] ),
+			'cart_id'          => $validated['cart_id'],
 			'created_at'       => $now,
 			'updated_at'       => $now,
 		);
@@ -1230,6 +1271,13 @@ class BYZO_Booking {
 			// No 'payment_amount' here — see create()'s comment; it's
 			// always server-computed, never accepted from client input.
 			'custom_fields'  => isset( $data['custom_fields'] ) && is_array( $data['custom_fields'] ) ? $data['custom_fields'] : array(),
+			// cart_id (Phase 2 step 14, DETAILED-SPEC.md §3 B6) — an opaque
+			// grouping token Pro's own cart-checkout flow generates
+			// client-side (a random string, not sequential, so it never
+			// leaks cart volume); Free itself never sends one, so a direct
+			// booking is unaffected. Not validated for shape here — it's
+			// just an opaque label the Stripe webhook later groups by.
+			'cart_id'        => isset( $data['cart_id'] ) ? sanitize_text_field( $data['cart_id'] ) : null,
 		);
 	}
 

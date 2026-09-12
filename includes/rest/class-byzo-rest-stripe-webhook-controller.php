@@ -57,7 +57,23 @@ class BYZO_REST_Stripe_Webhook_Controller extends BYZO_REST_Controller {
 	}
 
 	private function handle_payment_succeeded( $event ) {
-		$booking_id = $event['data']['object']['metadata']['booking_id'] ?? null;
+		$metadata = $event['data']['object']['metadata'] ?? array();
+
+		// Phase 2 step 14 (DETAILED-SPEC.md §3 B6, cart checkout) — a
+		// PaymentIntent Pro created for a cart carries `cart_id` instead
+		// of a single `booking_id`; every booking sharing that cart_id
+		// gets marked paid together, same as the one-booking path below
+		// just looped. Free itself never creates a cart_id PaymentIntent
+		// (no cart UI exists there), so this branch is simply unreachable
+		// without Pro.
+		if ( ! empty( $metadata['cart_id'] ) ) {
+			foreach ( BYZO_Booking::get_by_cart_id( $metadata['cart_id'] ) as $booking ) {
+				$this->mark_booking_paid( $booking );
+			}
+			return;
+		}
+
+		$booking_id = $metadata['booking_id'] ?? null;
 		if ( ! $booking_id ) {
 			return;
 		}
@@ -67,6 +83,10 @@ class BYZO_REST_Stripe_Webhook_Controller extends BYZO_REST_Controller {
 			return;
 		}
 
+		$this->mark_booking_paid( $booking );
+	}
+
+	private function mark_booking_paid( $booking ) {
 		BYZO_Booking::set_payment_status( $booking['id'], 'paid_online' );
 
 		// Reuses update_status()'s own transition guard rather than a

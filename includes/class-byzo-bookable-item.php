@@ -214,6 +214,41 @@ class BYZO_Bookable_Item {
 	}
 
 	/**
+	 * Sets tax_rate_override (DETAILED-SPEC.md §1.1/§A7, Phase 2 step 14)
+	 * — same shape as update_commission(): a plain field update with no
+	 * capability gate, since Free's own admin screens never expose this
+	 * field at all (only Pro's REST route ever writes it).
+	 *
+	 * @param float|null $rate 0-100, or null to clear (falls back to the site-wide rate).
+	 * @return true|WP_Error
+	 */
+	public static function update_tax_rate_override( $id, $rate ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		if ( null !== $rate ) {
+			$rate = (float) $rate;
+			if ( $rate < 0 || $rate > 100 ) {
+				return new WP_Error( 'byzo_invalid_tax_rate_override', __( 'tax_rate_override must be between 0 and 100.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+		}
+
+		$wpdb->update(
+			self::table(),
+			array(
+				'tax_rate_override' => $rate,
+				'updated_at'        => current_time( 'mysql' ),
+			),
+			array( 'id' => $id )
+		);
+
+		return true;
+	}
+
+	/**
 	 * Validates and whitelists incoming data. `$require_all` = true for
 	 * create (name/type required); false for update (partial patches OK).
 	 *
@@ -325,6 +360,7 @@ class BYZO_Bookable_Item {
 		$row['group_id']    = $row['group_id'] ? (int) $row['group_id'] : null;
 		$row['uses_business_hours'] = (bool) $row['uses_business_hours'];
 		$row['commission_rate']    = isset( $row['commission_rate'] ) && null !== $row['commission_rate'] ? (float) $row['commission_rate'] : null;
+		$row['tax_rate_override']  = isset( $row['tax_rate_override'] ) && null !== $row['tax_rate_override'] ? (float) $row['tax_rate_override'] : null;
 
 		return $row;
 	}
