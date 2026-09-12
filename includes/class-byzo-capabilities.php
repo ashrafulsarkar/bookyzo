@@ -49,4 +49,20 @@ class BYZO_Capabilities {
 	public static function business_hours_link_enabled() {
 		return (bool) apply_filters( 'byzo_business_hours_link_enabled', false );
 	}
+
+	/**
+	 * Whether the subscribable per-bookable-item `.ics` calendar feed
+	 * (Phase 2 step 15, `FEATURES.md` B9) is reachable at all — a genuine
+	 * capability gate (unlike e.g. `internal_notes`/commission tracking,
+	 * which have no Free/Pro behavioral difference to gate): this is a
+	 * business-scale "subscribe your whole bookable item's schedule into
+	 * an external tool" integration, not a single customer's own
+	 * "add this one booking to my calendar" convenience (that one's
+	 * already Free, see A6). Free = false. `BYZO_REST_Calendar_Feed_Controller`
+	 * checks this on every request, not just at token-generation time, so
+	 * a lapsed license immediately 403s even a previously-valid feed URL.
+	 */
+	public static function calendar_feed_enabled() {
+		return (bool) apply_filters( 'byzo_calendar_feed_enabled', false );
+	}
 }

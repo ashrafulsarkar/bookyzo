@@ -144,6 +144,11 @@ Initial release.
 * `byzo_booking_rate_limit_max` / `byzo_booking_rate_limit_window` — ( int ) Per-IP guest booking rate limit (default 20 requests / 600 seconds) and its window in seconds.
 * `byzo_client_ip` — ( string $ip ) The IP address used for rate limiting.
 * `byzo_dev_server_url` — ( string $url ) Vite dev server URL used only in local development.
+* `byzo_unit_price` — ( float $price, int $bookable_item_id, array $slot ) Per-booking unit price adjustment applied right after service-price resolution and before tax. Default: unmodified `$price`.
+* `byzo_calendar_feed_enabled` — ( bool $enabled ) Whether the subscribable per-bookable-item `.ics` calendar feed REST route is available. Default `false`.
+* `byzo_widget_after_mount` — ( string $html, array $config ) HTML appended right after the booking widget's own mount markup — lets an add-on inject unrelated page-level snippets (e.g. marketing pixel base code) without touching the widget markup itself. Default `''`.
+* `byzo_appearance_css_vars` — ( string $css, array $settings ) `--prop:value;` custom-property pairs generated from the Appearance settings. Default: the built-in property set, or `''` when nothing was customized.
+* `byzo_appearance_css_declarations` — ( string $css, array $settings ) `prop:value;` plain CSS declarations generated from the Appearance settings. Default: the built-in declaration set, or `''` when nothing was customized.
 
 = Actions =
 
@@ -155,3 +160,4 @@ Initial release.
 * `byzo_booking_payment_status_changed` — ( int $booking_id, string $new_status, string $old_status ) After a booking's payment status changes.
 * `byzo_notification_sent` — ( string $event, int $booking_id ) After a notification email is sent (or attempted).
 * `byzo_notification_channels` — ( string $event, array $booking, array $placeholders ) Fires after a notification email is sent, with the same placeholders — lets an add-on send the same event via another channel (e.g. SMS/WhatsApp).
+* `byzo_booking_rescheduled` — ( int $booking_id, int $new_slot_id, int $old_slot_id ) After a booking is moved to a different slot (status itself is untouched, so this is separate from `byzo_booking_status_changed`).

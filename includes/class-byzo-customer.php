@@ -66,6 +66,77 @@ class BYZO_Customer {
 		);
 	}
 
+	/**
+	 * A segmented customer list for Pro's bulk/marketing campaigns
+	 * (DETAILED-SPEC.md §3 B5, Phase 2 step 15) — deliberately a separate
+	 * method from query() rather than more filter params bolted onto it:
+	 * this one aggregates across bookings (last-booking date, no-show
+	 * count), query()'s own name/email/phone search doesn't touch
+	 * bookings at all.
+	 *
+	 * @param array $args {
+	 *     @type string $tag                  Matches within the comma-separated tags column.
+	 *     @type string $last_booking_before  Y-m-d — only customers whose MOST RECENT
+	 *                                         non-cancelled/rejected booking's slot_start
+	 *                                         is before this date (including customers
+	 *                                         with no bookings at all).
+	 *     @type int    $min_no_show_count    Only customers with at least this many
+	 *                                         'no_show' bookings.
+	 * }
+	 * @return array<int,array> Customer rows (id/name/email/phone/tags).
+	 */
+	public static function query_for_campaign( $args = array() ) {
+		global $wpdb;
+
+		$defaults = array(
+			'tag'                 => '',
+			'last_booking_before' => '',
+			'min_no_show_count'   => 0,
+		);
+		$args = wp_parse_args( $args, $defaults );
+
+		$customers_table = self::table();
+		$bookings_table  = $wpdb->prefix . 'byzo_bookings';
+		$slots_table     = $wpdb->prefix . 'byzo_slots';
+
+		$where  = array( '1=1' );
+		$params = array();
+
+		if ( $args['tag'] ) {
+			$where[]  = 'c.tags LIKE %s';
+			$params[] = '%' . $wpdb->esc_like( $args['tag'] ) . '%';
+		}
+
+		if ( $args['last_booking_before'] ) {
+			$where[]  = "c.id NOT IN (
+				SELECT b.customer_id FROM {$bookings_table} b
+				INNER JOIN {$slots_table} s ON s.id = b.slot_id
+				WHERE b.customer_id IS NOT NULL AND b.status NOT IN ('cancelled','rejected')
+				AND s.start_datetime >= %s
+			)"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$params[] = $args['last_booking_before'] . ' 00:00:00';
+		}
+
+		if ( $args['min_no_show_count'] > 0 ) {
+			$where[]  = "c.id IN (
+				SELECT customer_id FROM {$bookings_table}
+				WHERE customer_id IS NOT NULL AND status = 'no_show'
+				GROUP BY customer_id
+				HAVING COUNT(*) >= %d
+			)"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$params[] = (int) $args['min_no_show_count'];
+		}
+
+		$where_sql = implode( ' AND ', $where );
+		$sql       = "SELECT c.* FROM {$customers_table} c WHERE {$where_sql} ORDER BY c.name ASC"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		$rows = $params
+			? $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+			: $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
+
+		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
+	}
+
 	public static function get_by_email( $email ) {
 		global $wpdb;
 

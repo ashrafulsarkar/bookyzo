@@ -186,7 +186,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Multiple, customizable reminder timings (e.g. 48h + 2h before)
 - Visual email template builder (branding, logo, colors)
 - Admin real-time alerts (new booking, cancellation, no-show)
-- Bulk/marketing campaigns — send a one-off email or SMS blast to a filtered customer segment (e.g. no-shows in the last 90 days)
+- **Bulk/marketing campaigns — DONE 2026-09-12, Phase 2 step 15:** send a one-off email or SMS blast to a filtered customer segment (tag, last-booking-before date, minimum no-show count) — new "Campaigns" admin screen, `BYZOP_Campaigns`, no send-history table for v1.
 - **Automated post-visit follow-up / thank-you email (added 2026-09-05):** e.g. a review-request link, sent a configurable number of hours after a booking is marked `completed` — distinct from the bulk/marketing campaigns above (a one-off segment blast); this fires automatically per booking, keyed off the new `bookings.completed_at` column (`DETAILED-SPEC.md` §1.4)
 
 ### B6. Payments
@@ -243,9 +243,9 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Zapier/Make integration
 - REST API access for custom integrations
 - Google Calendar / Outlook two-way sync
-- Webhooks — fire an HTTP callback on booking created/updated/cancelled/completed for custom integrations
-- Marketing pixel integration (Facebook Pixel, Google Analytics, Google Tag Manager) on the booking widget
-- Subscribable calendar feed — one .ics URL covering all of a bookable item's (or the whole business's) bookings, for feeding into Airbnb/Booking.com-style external calendars
+- **Webhooks — DONE 2026-09-12, Phase 2 step 15:** fire an HMAC-signed HTTP callback on `booking_created`/`booking_status_changed` for custom integrations — new "Integrations" admin screen, `wp_byzo_webhooks`.
+- **Marketing pixel integration (Facebook Pixel, Google Analytics, Google Tag Manager) — DONE 2026-09-12, Phase 2 step 15:** base tracking snippets only, injected on the booking widget via a new Free-side `byzo_widget_after_mount` filter; deeper conversion-event tracking flagged as a future piece.
+- **Subscribable calendar feed — DONE 2026-09-12, Phase 2 step 15:** one token-gated `.ics` URL per bookable item, for feeding into Airbnb/Booking.com-style external calendars — new "Integrations" screen shows a copyable link per item.
 
 ### B10. Branding & Customization
 - White-label booking widget (remove plugin branding)
