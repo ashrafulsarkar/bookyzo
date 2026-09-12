@@ -77,4 +77,15 @@ class BYZO_Capabilities {
 	public static function pdf_invoice_enabled() {
 		return (bool) apply_filters( 'byzo_pdf_invoice_enabled', false );
 	}
+
+	/**
+	 * Whether an Event booking with party_size > 1 collects each ticket's
+	 * own name/email instead of one contact name for the whole purchase
+	 * (Phase 2 step 20, `FEATURES.md` B4). Free's widget code path for
+	 * this already exists (conditionally rendered) regardless of this
+	 * flag; it's just never shown while it's `false`. Free = false.
+	 */
+	public static function collect_attendee_details_enabled() {
+		return (bool) apply_filters( 'byzo_collect_attendee_details', false );
+	}
 }

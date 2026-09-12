@@ -36,6 +36,23 @@
       <input id="bw-party-size" v-model.number="form.party_size" type="number" min="1" :max="partySizeMax" />
     </div>
 
+    <!-- Per-ticket attendee details (Phase 2 step 20, DETAILED-SPEC.md §3
+         B4) — an Event booking with more than one ticket collects each
+         attendee's own name (required) and email (optional), instead of
+         one contact name for the whole purchase. Gated on a Pro
+         capability AND event type AND quantity > 1 — absent otherwise,
+         same "absent, not disabled" rule every capability toggle here
+         follows. The main Name/Email fields below still collect the
+         PURCHASER's own contact info regardless — this is additive. -->
+    <div v-if="showAttendeeDetails" class="field">
+      <label>Attendee details</label>
+      <div v-for="(attendee, index) in form.attendees" :key="index" class="attendee-row">
+        <span class="attendee-index">#{{ index + 1 }}</span>
+        <input v-model="attendee.name" type="text" :placeholder="`Attendee ${index + 1} name`" />
+        <input v-model="attendee.email" type="email" placeholder="Email (optional)" />
+      </div>
+    </div>
+
     <!-- Add-ons (Phase 2 step 17, DETAILED-SPEC.md §3 B6) — Pro-defined,
          fetched by bookable item; entirely absent when Pro is off or
          nothing's configured (addons is then just []). The server is the
@@ -140,7 +157,7 @@
 </template>
 
 <script setup>
-import { reactive, computed, ref, onMounted } from 'vue';
+import { reactive, computed, ref, onMounted, watch } from 'vue';
 import { copyFor } from '../copy';
 import { formatMoney } from '@/lib/money';
 import { getCustomFields, getAddons } from '../api';
@@ -192,6 +209,7 @@ const form = reactive({
   password: '',
   custom_fields: {},
   addon_ids: [],
+  attendees: [],
 });
 
 // Phase 2 step 16 (DETAILED-SPEC.md §3 B11) — Pro-defined custom form
@@ -230,6 +248,30 @@ onMounted(async () => {
 // if the two ever disagree the server wins, which is why this is a
 // display-only computed and never travels back in the POST body.
 const quantity = computed(() => Math.max(1, Number(props.partySize ?? form.party_size) || 1));
+
+// Phase 2 step 20 (DETAILED-SPEC.md §3 B4) — window.byzoWidget.collectAttendeeDetailsEnabled
+// (added alongside restUrl/stripeEnabled/etc. by BYZO_Public_Widget::enqueue_assets()).
+const collectAttendeeDetailsEnabled = Boolean(window.byzoWidget && window.byzoWidget.collectAttendeeDetailsEnabled);
+const showAttendeeDetails = computed(() => collectAttendeeDetailsEnabled && 'event' === props.item.type && quantity.value > 1);
+
+// Keeps form.attendees sized to the current quantity — growing/shrinking
+// party size adds/removes attendee rows rather than leaving stale extra
+// entries or forcing a fixed count chosen too early.
+watch(
+  quantity,
+  (newQuantity) => {
+    if (!showAttendeeDetails.value) {
+      form.attendees = [];
+      return;
+    }
+    const next = form.attendees.slice(0, newQuantity);
+    while (next.length < newQuantity) {
+      next.push({ name: '', email: '' });
+    }
+    form.attendees = next;
+  },
+  { immediate: true }
+);
 
 // Selected add-ons' prices (Phase 2 step 17) — the one part of the price
 // preview that CAN be exact, since the widget already fetched real prices
@@ -274,6 +316,13 @@ const requiredCustomFieldsFilled = computed(() =>
   })
 );
 
+// Each attendee's name is required (email stays optional) whenever the
+// section is shown at all — an event ticket with no name defeats the
+// whole point of collecting them per-ticket.
+const attendeeDetailsFilled = computed(
+  () => !showAttendeeDetails.value || form.attendees.every((attendee) => attendee.name.trim() !== '')
+);
+
 const canSubmit = computed(
   () =>
     form.name.trim() !== '' &&
@@ -281,6 +330,7 @@ const canSubmit = computed(
     form.party_size >= 1 &&
     form.party_size <= partySizeMax.value &&
     (!form.create_account || form.password.length >= 8) &&
-    requiredCustomFieldsFilled.value
+    requiredCustomFieldsFilled.value &&
+    attendeeDetailsFilled.value
 );
 </script>

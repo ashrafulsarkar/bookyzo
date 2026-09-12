@@ -97,6 +97,9 @@ async function onDetailsSubmit(form) {
       // only; the server resolves the real price, never trusts a client
       // one. [] when none are configured or none were selected.
       addon_ids: form.addon_ids,
+      // Phase 2 step 20 (DETAILED-SPEC.md §3 B4) — per-ticket attendee
+      // names/emails; [] when the feature is off or party_size is 1.
+      attendees: form.attendees,
       // Honeypot — see BYZO_Public_Guard. Always empty for a real
       // visitor (the field is visually hidden in StepDetails.vue).
       website: form.website,

@@ -890,6 +890,7 @@ class BYZO_Booking {
 			'booking_fee_amount' => $booking_fee_amount,
 			'custom_fields'    => wp_json_encode( $validated['custom_fields'] ),
 			'addons'           => wp_json_encode( $resolved_addons ),
+			'attendees'        => wp_json_encode( $validated['attendees'] ),
 			'cart_id'          => $validated['cart_id'],
 			'created_at'       => $now,
 			'updated_at'       => $now,
@@ -1299,6 +1300,12 @@ class BYZO_Booking {
 			// ids, never prices; attempt_create_on_slot() resolves the
 			// real price server-side via byzo_resolve_addons.
 			'addon_ids'      => isset( $data['addon_ids'] ) && is_array( $data['addon_ids'] ) ? array_values( array_filter( array_map( 'absint', $data['addon_ids'] ) ) ) : array(),
+			// attendees (Phase 2 step 20, DETAILED-SPEC.md §3 B4) — per-
+			// ticket name (required)/email (optional) pairs; an entry with
+			// no name is dropped rather than stored blank. No capability
+			// gate here — same "Free stores the shape, Pro's widget UI is
+			// the only thing that ever populates it" split as custom_fields.
+			'attendees'      => self::sanitize_attendees( $data['attendees'] ?? array() ),
 			// cart_id (Phase 2 step 14, DETAILED-SPEC.md §3 B6) — an opaque
 			// grouping token Pro's own cart-checkout flow generates
 			// client-side (a random string, not sequential, so it never
@@ -1307,6 +1314,37 @@ class BYZO_Booking {
 			// just an opaque label the Stripe webhook later groups by.
 			'cart_id'        => isset( $data['cart_id'] ) ? sanitize_text_field( $data['cart_id'] ) : null,
 		);
+	}
+
+	/**
+	 * @param mixed $attendees Client-submitted array of { name, email? }.
+	 * @return array Sanitized entries; any entry with no non-empty name is dropped.
+	 */
+	private static function sanitize_attendees( $attendees ) {
+		if ( ! is_array( $attendees ) ) {
+			return array();
+		}
+
+		$out = array();
+		foreach ( $attendees as $attendee ) {
+			if ( ! is_array( $attendee ) || empty( $attendee['name'] ) ) {
+				continue;
+			}
+
+			$name = sanitize_text_field( $attendee['name'] );
+			if ( '' === $name ) {
+				continue;
+			}
+
+			$email = ! empty( $attendee['email'] ) ? sanitize_email( $attendee['email'] ) : '';
+
+			$out[] = array(
+				'name'  => $name,
+				'email' => $email,
+			);
+		}
+
+		return $out;
 	}
 
 	/**
@@ -1458,6 +1496,7 @@ class BYZO_Booking {
 		$row['booking_fee_amount'] = isset( $row['booking_fee_amount'] ) && null !== $row['booking_fee_amount'] ? (float) $row['booking_fee_amount'] : null;
 		$row['custom_fields']  = $row['custom_fields'] ? json_decode( $row['custom_fields'], true ) : array();
 		$row['addons']         = isset( $row['addons'] ) && $row['addons'] ? json_decode( $row['addons'], true ) : array();
+		$row['attendees']      = isset( $row['attendees'] ) && $row['attendees'] ? json_decode( $row['attendees'], true ) : array();
 
 		// slot_start/slot_end come from the LEFT JOIN in get()/query() —
 		// always present in the shape (null when the slot was deleted,

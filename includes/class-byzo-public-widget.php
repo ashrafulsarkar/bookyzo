@@ -181,16 +181,24 @@ class BYZO_Public_Widget {
 		// asking people to commit to an unstated price.
 		$tax_rate = class_exists( 'BYZO_Settings' ) ? (float) BYZO_Settings::get()['tax_rate'] : 0.0;
 
+		// Phase 2 step 20 (DETAILED-SPEC.md §3 B4) — whether an Event
+		// booking with party_size > 1 collects each ticket's own
+		// name/email instead of one contact name for the whole purchase.
+		// Site-wide, so it's exposed here once rather than a per-request
+		// fetch, same shape as customerAccountsEnabled above.
+		$collect_attendee_details = (bool) BYZO_Capabilities::collect_attendee_details_enabled();
+
 		wp_add_inline_script(
 			'byzo-widget',
 			sprintf(
-				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s };',
+				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s, collectAttendeeDetailsEnabled: %s };',
 				wp_json_encode( esc_url_raw( rest_url( 'bookyzo/v1' ) ) ),
 				wp_json_encode( ! empty( $stripe['enabled'] ) && ! empty( $stripe['publishable_key'] ) ),
 				wp_json_encode( $stripe['publishable_key'] ?? '' ),
 				wp_json_encode( $currency ),
 				wp_json_encode( $accounts_enabled ),
-				wp_json_encode( $tax_rate )
+				wp_json_encode( $tax_rate ),
+				wp_json_encode( $collect_attendee_details )
 			),
 			'before'
 		);

@@ -209,6 +209,31 @@
   gap: 8px;
 }
 
+/* Per-ticket attendee details (Phase 2 step 20) — one row per attendee:
+   a fixed index badge, then name + optional email. */
+.bookyzo-widget .attendee-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.bookyzo-widget .attendee-row:first-of-type {
+  margin-top: 4px;
+}
+
+.bookyzo-widget .attendee-index {
+  flex-shrink: 0;
+  width: 24px;
+  font-size: 13px;
+  color: var(--byzo-text-muted);
+}
+
+.bookyzo-widget .attendee-row input {
+  flex: 1;
+  min-width: 0;
+}
+
 .bookyzo-widget .honeypot {
   position: absolute;
   left: -9999px;
