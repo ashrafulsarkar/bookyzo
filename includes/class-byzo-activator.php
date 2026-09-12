@@ -49,7 +49,14 @@ class BYZO_Activator {
 		// (BYZO_Capabilities::business_hours_link_enabled(), Free=false/
 		// Pro=true). Column exists in Free's own schema regardless —
 		// "don't gate the data model" — the capability check lives in
-		// BYZO_Bookable_Item::validate().
+		// BYZO_Bookable_Item::validate(). `commission_type`/`commission_rate`
+		// added 2026-09-12 (Phase 2 step 12 continued, BYZO_DB_VERSION
+		// 2.0->2.1, DETAILED-SPEC.md §3 B7 Appointment) — purely
+		// informational config feeding a Pro report, no booking/slot
+		// behavior changes, so unlike uses_business_hours these have no
+		// capability gate at all: Free's own admin screens never expose
+		// them, only Pro's REST route
+		// (BYZO_Bookable_Item::update_commission()) ever writes them.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookable_items (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			type VARCHAR(20) NOT NULL DEFAULT 'appointment',
@@ -65,6 +72,8 @@ class BYZO_Activator {
 			meeting_link VARCHAR(500) NULL,
 			group_id BIGINT UNSIGNED NULL,
 			uses_business_hours TINYINT(1) NOT NULL DEFAULT 0,
+			commission_type VARCHAR(20) NULL,
+			commission_rate DECIMAL(10,2) NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),

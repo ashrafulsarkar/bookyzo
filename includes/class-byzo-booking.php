@@ -332,6 +332,75 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * Commission owed per bookable item over [from, to) — Pro's Payouts
+	 * screen (DETAILED-SPEC.md §3 B7 Appointment, Phase 2 step 12
+	 * continued). Only items with a configured commission_type are
+	 * included at all; commission_owed is computed in PHP after the
+	 * aggregate since the arithmetic (percentage-of-revenue vs.
+	 * fixed-per-booking) depends on each item's own type, not something
+	 * SQL should carry.
+	 *
+	 * @return array<int,array{bookable_item_id:int,commission_type:string,commission_rate:float,revenue:float,count:int,commission_owed:float}>
+	 */
+	public static function get_commission_by_bookable_item( DateTime $from, DateTime $to ) {
+		global $wpdb;
+
+		$bookings_table = self::table();
+		$slots_table    = $wpdb->prefix . 'byzo_slots';
+		$items_table    = $wpdb->prefix . 'byzo_bookable_items';
+
+		// A plain double-LEFT-JOIN (items -> bookings -> slots) doesn't work
+		// here: putting the date-range/payment-status filter on the SLOTS
+		// join only nulls out the slot columns for a disqualified booking,
+		// not the booking row itself, so an unpaid or out-of-range booking
+		// still contributed its payment_amount to the SUM. Pre-filtering
+		// to exactly the qualifying bookings in a derived table, THEN
+		// LEFT JOINing that onto items, is what actually excludes them
+		// while still keeping a configured item with zero qualifying
+		// bookings in the result (revenue/count = 0, not missing entirely).
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		$rows = $wpdb->get_results(
+			$wpdb->prepare(
+				"SELECT i.id AS bookable_item_id, i.commission_type, i.commission_rate,
+				        COALESCE(SUM(qualified.payment_amount), 0) AS revenue, COUNT(qualified.id) AS count
+				 FROM {$items_table} i
+				 LEFT JOIN (
+				     SELECT b.id, b.bookable_item_id, b.payment_amount
+				     FROM {$bookings_table} b
+				     INNER JOIN {$slots_table} s ON s.id = b.slot_id
+				     WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				     AND b.payment_status IN ('paid_manual','paid_online')
+				 ) qualified ON qualified.bookable_item_id = i.id
+				 WHERE i.commission_type IS NOT NULL
+				 GROUP BY i.id",
+				$from->format( 'Y-m-d H:i:s' ),
+				$to->format( 'Y-m-d H:i:s' )
+			),
+			ARRAY_A
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		return array_map(
+			static function ( $row ) {
+				$revenue = (float) $row['revenue'];
+				$count   = (int) $row['count'];
+				$rate    = (float) $row['commission_rate'];
+				$owed    = 'percentage' === $row['commission_type'] ? $revenue * ( $rate / 100 ) : $count * $rate;
+
+				return array(
+					'bookable_item_id' => (int) $row['bookable_item_id'],
+					'commission_type'  => $row['commission_type'],
+					'commission_rate'  => $rate,
+					'revenue'          => $revenue,
+					'count'            => $count,
+					'commission_owed'  => round( $owed, 2 ),
+				);
+			},
+			$rows ?: array()
+		);
+	}
+
+	/**
 	 * Same as get_revenue_by_bookable_item(), grouped by booking type
 	 * instead (appointment/table/event/slot).
 	 *

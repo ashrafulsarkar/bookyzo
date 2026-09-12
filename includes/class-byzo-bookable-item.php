@@ -168,6 +168,52 @@ class BYZO_Bookable_Item {
 	}
 
 	/**
+	 * Sets commission_type/commission_rate (DETAILED-SPEC.md §3 B7
+	 * Appointment, Phase 2 step 12 continued) — a plain field update, not
+	 * folded into validate()/update() since this changes no booking/slot
+	 * behavior at all (unlike e.g. uses_business_hours) and so needs no
+	 * capability gate; Free's own admin screens never write it, only
+	 * Pro's REST route does.
+	 *
+	 * @param string|null $type 'percentage', 'fixed', or null to clear.
+	 * @param float|null  $rate Null to clear.
+	 * @return true|WP_Error
+	 */
+	public static function update_commission( $id, $type, $rate ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		if ( null !== $type && ! in_array( $type, array( 'percentage', 'fixed' ), true ) ) {
+			return new WP_Error( 'byzo_invalid_commission_type', __( 'commission_type must be percentage or fixed.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		if ( null !== $rate ) {
+			$rate = (float) $rate;
+			if ( $rate < 0 ) {
+				return new WP_Error( 'byzo_invalid_commission_rate', __( 'commission_rate cannot be negative.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			if ( 'percentage' === $type && $rate > 100 ) {
+				return new WP_Error( 'byzo_invalid_commission_rate', __( 'A percentage commission_rate cannot exceed 100.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+		}
+
+		$wpdb->update(
+			self::table(),
+			array(
+				'commission_type' => $type,
+				'commission_rate' => $rate,
+				'updated_at'      => current_time( 'mysql' ),
+			),
+			array( 'id' => $id )
+		);
+
+		return true;
+	}
+
+	/**
 	 * Validates and whitelists incoming data. `$require_all` = true for
 	 * create (name/type required); false for update (partial patches OK).
 	 *
@@ -278,6 +324,7 @@ class BYZO_Bookable_Item {
 		$row['location_id'] = $row['location_id'] ? (int) $row['location_id'] : null;
 		$row['group_id']    = $row['group_id'] ? (int) $row['group_id'] : null;
 		$row['uses_business_hours'] = (bool) $row['uses_business_hours'];
+		$row['commission_rate']    = isset( $row['commission_rate'] ) && null !== $row['commission_rate'] ? (float) $row['commission_rate'] : null;
 
 		return $row;
 	}
