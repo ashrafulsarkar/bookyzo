@@ -272,7 +272,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 4. **Submit Free to WordPress.org** — readme/screenshots/plugin-check redone for the four-type positioning. **Code/assets ready, actual submission still NOT done** — manual/external step (registrar account, review queue), never performed autonomously.
 5. ✅ **Add Pro tier** — extra features only, across all types (unlimited bookable items per type, multi-shift, deposits, SMS/WhatsApp, self-service, analytics, and the B7 type-specific modules) — validate people will actually pay — DONE 2026-09-12 (ROADMAP.md Phase 2, all 20 steps + all three B7 type-modules)
 6. ✅ **WooCommerce bridge** — DONE 2026-09-13 (ROADMAP.md Phase 5, all 5 steps). "Optional add-on" means an optional Pro feature (opt in per bookable item, WooCommerce-conditional) — it ships inside `bookyzo-pro` itself, not as a separate plugin (an earlier same-day pass built it as one and that was corrected; see DETAILED-SPEC.md §3 B9's "Positioning" note).
-7. **Agency/multi-site tier** last, once there's a base of paying single-site customers — not started, no design pass yet (ROADMAP.md Phase 6 has no detailed steps)
+7. **Agency/multi-site tier** — SKIPPED 2026-09-13 (user decision). Removed from ROADMAP.md; not part of the plan.
 
 Each numbered step is still a shippable, testable release boundary — the four types share one engine (Phase 0), so step 3 is mostly UI + one new occurrence model for Event, not four separate builds.
 

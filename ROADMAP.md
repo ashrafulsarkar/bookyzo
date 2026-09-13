@@ -199,10 +199,6 @@ Design done 2026-09-13 — full technical breakdown in `DETAILED-SPEC.md` §3 "B
 4. ✅ **Checkout flow** — DONE 2026-09-13. Widget's final-step swap (new `StepWooCommerceCheckout.vue`, step 3.6, takes priority over Stripe's 3.5 when the selected item's `wc_checkout_enabled` is true) → `BYZOP_WC_Checkout::start_checkout()` (email-ownership-gated, adds the already-created pending booking to the WC cart, cart item price overridden to the booking's real computed `payment_amount`/`deposit_amount` via `woocommerce_before_calculate_totals`) → `BYZOP_WC_Checkout::on_order_status_changed()` (order → processing/completed confirms + stamps `wc_order_id`; → cancelled/failed/refunded releases capacity through the existing cancel path; static `$hooked` guard against double-registration, same fix shape as Event Pro's ticket-tier bug).
 5. ✅ **Smoke tests, full regression, docs** — DONE 2026-09-13. 33-check `smoke-phase5-wc-bridge.php` (bookyzo-pro) all green; full Free + Pro regression clean aside from pre-existing/environmental failures unrelated to this change (see [[unified-booking-plugin]] memory for the full list). **PHASE 5 IS COMPLETE.**
 
-## Phase 6 — Agency / Multi-Site Tier
-
-Not detailed yet — per `FEATURES.md` Part C step 7. Last, once there's a base of paying single-site Pro customers.
-
 ---
 
 ## Free → Pro Conversion Strategy
