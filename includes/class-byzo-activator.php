@@ -75,6 +75,12 @@ class BYZO_Activator {
 		// DETAILED-SPEC.md §3 B7 Table) — purely visual floor-plan
 		// position, zero effect on booking/slot/capacity logic, same
 		// informational-only shape as booking_fee/tax_rate_override above.
+		// `wc_product_id` added 2026-09-13 (Phase 5 step 1, BYZO_DB_VERSION
+		// 2.6->2.7, DETAILED-SPEC.md §3 B9) — the hidden/virtual WC product
+		// BYZOWC_Product_Sync mirrors this item into once the WooCommerce
+		// bridge plugin is active and enabled for it; NULL on every Free
+		// (and unbridged Pro) install, same "don't gate the data model"
+		// pattern as every other Pro-consumed column above.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookable_items (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			type VARCHAR(20) NOT NULL DEFAULT 'appointment',
@@ -99,6 +105,7 @@ class BYZO_Activator {
 			floor_width SMALLINT NULL,
 			floor_height SMALLINT NULL,
 			floor_shape VARCHAR(20) NULL,
+			wc_product_id BIGINT UNSIGNED NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
@@ -211,7 +218,15 @@ class BYZO_Activator {
 		// constraint (this project never uses real FKs, see the rest of
 		// this table) and is resolved via `BYZO_Booking::get()`'s own
 		// pattern if a future screen needs the tier's name/price
-		// alongside a booking row.
+		// alongside a booking row. `wc_order_id` added 2026-09-13 (Phase 5
+		// step 1, BYZO_DB_VERSION 2.6->2.7, DETAILED-SPEC.md §3 B9) — the
+		// WooCommerce order this booking's payment went through, once the
+		// bridge plugin is active for its bookable item; stamped by
+		// BYZOWC_Order_Sync on woocommerce_order_status_changed, NULL for
+		// every booking made through Bookyzo's own direct Stripe/PayPal/
+		// manual flow (i.e. every booking on an install without the
+		// bridge). One booking, one order — see §3 B9 for why this is a
+		// plain column, not a join table.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
@@ -227,6 +242,7 @@ class BYZO_Activator {
 			tags VARCHAR(255) NULL,
 			cart_id VARCHAR(64) NULL,
 			combined_table_ids VARCHAR(255) NULL,
+			wc_order_id BIGINT UNSIGNED NULL,
 			party_size SMALLINT UNSIGNED NOT NULL DEFAULT 1,
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			payment_status VARCHAR(20) NOT NULL DEFAULT 'unpaid',
@@ -351,13 +367,23 @@ class BYZO_Activator {
 	 * is reserved now so activation only ever has one place that touches
 	 * wp_schedule_event).
 	 */
-	private static function schedule_cron_events() {
+	public static function schedule_cron_events() {
 		if ( ! wp_next_scheduled( 'byzo_generate_slots' ) ) {
 			wp_schedule_event( time(), 'daily', 'byzo_generate_slots' );
 		}
 
 		if ( ! wp_next_scheduled( 'byzo_send_reminders' ) ) {
 			wp_schedule_event( time(), 'hourly', 'byzo_send_reminders' );
+		}
+
+		// Added 2026-09-13 (Phase 5 step 1, DETAILED-SPEC.md §3 B9) — no
+		// pending booking has ever expired anywhere in Bookyzo before this;
+		// the WooCommerce bridge's own multi-step checkout is what surfaced
+		// the gap, but the gap itself is a genuine Free-side one (a direct
+		// Stripe booking that's never paid already holds its slot's
+		// capacity forever today).
+		if ( ! wp_next_scheduled( 'byzo_release_stale_pending_bookings' ) ) {
+			wp_schedule_event( time(), 'hourly', 'byzo_release_stale_pending_bookings' );
 		}
 	}
 

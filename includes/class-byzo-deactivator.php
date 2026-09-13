@@ -19,6 +19,11 @@ class BYZO_Deactivator {
 			wp_unschedule_event( $reminder_timestamp, 'byzo_send_reminders' );
 		}
 
+		$stale_pending_timestamp = wp_next_scheduled( 'byzo_release_stale_pending_bookings' );
+		if ( $stale_pending_timestamp ) {
+			wp_unschedule_event( $stale_pending_timestamp, 'byzo_release_stale_pending_bookings' );
+		}
+
 		flush_rewrite_rules();
 	}
 }

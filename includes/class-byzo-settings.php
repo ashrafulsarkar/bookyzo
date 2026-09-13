@@ -59,6 +59,13 @@ class BYZO_Settings {
 			// end_time/shift_group) so it reuses ByzoWeeklyScheduleGrid.vue
 			// unchanged. Empty array = not configured yet.
 			'business_hours'            => array(),
+			// Added 2026-09-13 (Phase 5 step 1, DETAILED-SPEC.md §3 B9) — how
+			// long an unpaid `pending` booking holds its slot's capacity
+			// before `byzo_release_stale_pending_bookings` auto-cancels it.
+			// 0 disables the cleanup entirely (a pending booking holds its
+			// slot forever, today's exact behavior on every existing install
+			// until this setting is touched).
+			'pending_booking_hold_hours' => 24,
 		);
 
 		return wp_parse_args( get_option( 'byzo_settings', array() ), $defaults );
@@ -144,6 +151,10 @@ class BYZO_Settings {
 				return new WP_Error( 'byzo_invalid_tax_rate', __( 'tax_rate must be between 0 and 100.', 'bookyzo' ), array( 'status' => 400 ) );
 			}
 			$patch['tax_rate'] = $tax_rate;
+		}
+
+		if ( isset( $data['pending_booking_hold_hours'] ) ) {
+			$patch['pending_booking_hold_hours'] = max( 0, absint( $data['pending_booking_hold_hours'] ) );
 		}
 
 		if ( isset( $data['business_hours'] ) ) {

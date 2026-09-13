@@ -191,7 +191,13 @@ Folded into **Phase 1.5** — the all-in-one angle is the WordPress.org listing'
 
 ## Phase 5 — WooCommerce Bridge
 
-Not detailed yet — per `FEATURES.md` Part C step 6. Schema boundary question (own mapping table vs. `wc_order_id` column on `wp_byzo_bookings`) deferred to this phase, see `DETAILED-SPEC.md` §5 item 4.
+Design done 2026-09-13 — full technical breakdown in `DETAILED-SPEC.md` §3 "B9. WooCommerce Bridge". A third, separate plugin (`bookyzo-woocommerce`), Pro-license-gated, not bundled into `bookyzo-pro`. Ordered build steps:
+
+1. **Free-side schema + stale-booking cleanup** — `bookings.wc_order_id` + `bookable_items.wc_product_id` columns (`BYZO_DB_VERSION` bump), new `byzo_release_stale_pending_bookings` hourly cron + `pending_booking_hold_hours` setting. Ships in `bookyzo` itself, ahead of the bridge plugin existing.
+2. **`bookyzo-woocommerce` plugin scaffold** — bootstrap, dependency checks (bookyzo + bookyzo-pro active+licensed + WooCommerce active, graceful no-op otherwise), "WooCommerce" admin screen listing bookable items with a per-item enable toggle.
+3. **`BYZOWC_Product_Sync`** — hidden/virtual WC product create+update mirroring an enabled bookable item's name/price, bidirectional `wc_product_id`/`_byzo_bookable_item_id` linkage.
+4. **Checkout flow** — widget's final-step swap (add-to-cart instead of inline Stripe/PayPal) + `BYZOWC_Order_Sync` (order status → booking status/`wc_order_id`).
+5. Smoke tests, full regression, docs, commit+push both `bookyzo` and `bookyzo-woocommerce`.
 
 ## Phase 6 — Agency / Multi-Site Tier
 

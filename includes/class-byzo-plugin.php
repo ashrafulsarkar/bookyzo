@@ -45,6 +45,16 @@ class BYZO_Plugin {
 		// ensures an install merely updated (not reactivated) still gets
 		// the byzo_customer role from Phase 1.7 step 1.
 		BYZO_Activator::maybe_register_customer_role();
+
+		// Added 2026-09-13 (Phase 5 step 1) — found while testing the new
+		// byzo_release_stale_pending_bookings cron: schedule_cron_events()
+		// was activation-only, so any install that only ever UPDATES (never
+		// reactivates) would never pick up a cron job added in a later
+		// version. Each individual schedule call is itself
+		// wp_next_scheduled()-guarded, so calling this every plugins_loaded
+		// is safe and cheap, same reasoning as maybe_register_customer_role()
+		// right above.
+		BYZO_Activator::schedule_cron_events();
 	}
 
 	private function load_includes() {
@@ -94,6 +104,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-stripe-webhook-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-reports.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-reports-controller.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-cleanup.php';
 	}
 
 	private function register_hooks() {
@@ -107,6 +118,7 @@ class BYZO_Plugin {
 		BYZO_Public_Widget::init();
 		BYZO_Account_Widget::init();
 		BYZO_Notifications::init();
+		BYZO_Booking_Cleanup::init();
 
 		add_filter( 'byzo_rest_controllers', array( $this, 'register_core_rest_controllers' ) );
 
