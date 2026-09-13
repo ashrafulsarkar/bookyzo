@@ -102,11 +102,13 @@ class BYZO_Elementor_Widget extends \Elementor\Widget_Base {
 		// shortcode/block's own precedence (BYZO_Public_Widget::render()'s
 		// elseif) — a pinned item already skips the picker step, so a
 		// type has nothing left to filter.
-		echo BYZO_Public_Widget::render_widget( // phpcs:ignore WordPress.Security.EscapeOutput.OutputNotEscaped -- render_widget() returns a fixed, already-escaped mount-div markup string, same as the shortcode/block callbacks that echo it directly too.
+		// phpcs:disable WordPress.Security.EscapeOutput.OutputNotEscaped -- render_widget() returns a fixed, already-escaped mount-div markup string (BYZO_Public_Widget::render() runs both values through esc_attr()/absint() internally), same as the shortcode/block callbacks that echo it directly too. A single inline `// phpcs:ignore` on the echo's own line doesn't reach the sniff's per-argument findings on the lines below within this same multi-line statement — needs the block form.
+		echo BYZO_Public_Widget::render_widget(
 			array(
 				'bookable_item_id' => ! empty( $settings['byzo_bookable_item_id'] ) ? $settings['byzo_bookable_item_id'] : '',
 				'type'             => ! empty( $settings['byzo_type'] ) ? $settings['byzo_type'] : '',
 			)
 		);
+		// phpcs:enable WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 }

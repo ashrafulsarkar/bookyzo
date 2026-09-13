@@ -132,7 +132,7 @@ class BYZO_Customer {
 
 		$rows = $params
 			? $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
-			: $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
+			: $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery -- no $params means none of the three optional filters added a WHERE clause, so $where_sql is guaranteed to be the hardcoded '1=1' literal from line 102 with zero interpolated user data; nothing here needs $wpdb->prepare().
 
 		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
 	}
