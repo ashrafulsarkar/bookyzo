@@ -193,11 +193,11 @@ Folded into **Phase 1.5** — the all-in-one angle is the WordPress.org listing'
 
 Design done 2026-09-13 — full technical breakdown in `DETAILED-SPEC.md` §3 "B9. WooCommerce Bridge". A third, separate plugin (`bookyzo-woocommerce`), Pro-license-gated, not bundled into `bookyzo-pro`. Ordered build steps:
 
-1. **Free-side schema + stale-booking cleanup** — `bookings.wc_order_id` + `bookable_items.wc_product_id` columns (`BYZO_DB_VERSION` bump), new `byzo_release_stale_pending_bookings` hourly cron + `pending_booking_hold_hours` setting. Ships in `bookyzo` itself, ahead of the bridge plugin existing.
-2. **`bookyzo-woocommerce` plugin scaffold** — bootstrap, dependency checks (bookyzo + bookyzo-pro active+licensed + WooCommerce active, graceful no-op otherwise), "WooCommerce" admin screen listing bookable items with a per-item enable toggle.
-3. **`BYZOWC_Product_Sync`** — hidden/virtual WC product create+update mirroring an enabled bookable item's name/price, bidirectional `wc_product_id`/`_byzo_bookable_item_id` linkage.
-4. **Checkout flow** — widget's final-step swap (add-to-cart instead of inline Stripe/PayPal) + `BYZOWC_Order_Sync` (order status → booking status/`wc_order_id`).
-5. Smoke tests, full regression, docs, commit+push both `bookyzo` and `bookyzo-woocommerce`.
+1. ✅ **Free-side schema + stale-booking cleanup** — DONE 2026-09-13. `bookings.wc_order_id` + `bookable_items.wc_product_id` columns (`BYZO_DB_VERSION` 2.6→2.7), new `byzo_release_stale_pending_bookings` hourly cron + `pending_booking_hold_hours` setting.
+2. ✅ **`bookyzo-woocommerce` plugin scaffold** — DONE 2026-09-13. Bootstrap + dependency checks (bookyzo + bookyzo-pro active+licensed + WooCommerce active, admin notice otherwise), "WooCommerce" admin screen (`/wc/settings`) listing active bookable items with a per-item Enable/Sync/Disable action.
+3. ✅ **`BYZOWC_Product_Sync`** — DONE 2026-09-13. Hidden/virtual/tax-exempt WC product create+update mirroring an enabled bookable item's name/price, bidirectional `wc_product_id`/`_byzo_bookable_item_id` linkage. v1 sync is manual ("Enable"/"Sync now"), not automatic on every item edit — documented limitation, see the class's own docblock.
+4. ✅ **Checkout flow** — DONE 2026-09-13. Widget's final-step swap (new `StepWooCommerceCheckout.vue`, step 3.6, takes priority over Stripe's 3.5 when the selected item's `wc_checkout_enabled` is true) → `BYZOWC_Checkout::start_checkout()` (email-ownership-gated, adds the already-created pending booking to the WC cart, cart item price overridden to the booking's real computed `payment_amount`/`deposit_amount` via `woocommerce_before_calculate_totals`) → `BYZOWC_Checkout::on_order_status_changed()` (order → processing/completed confirms + stamps `wc_order_id`; → cancelled/failed/refunded releases capacity through the existing cancel path).
+5. ✅ **Smoke tests, full regression, docs** — DONE 2026-09-13. 32-check `smoke-phase5-bridge.php` (bookyzo-woocommerce) all green; full 36-file Free regression clean (one test's field-whitelist assertion updated for the new `wc_checkout_enabled` public field, two pre-existing unrelated stale-assertion failures left as-is, see [[unified-booking-plugin]] memory). **PHASE 5 IS COMPLETE.**
 
 ## Phase 6 — Agency / Multi-Site Tier
 

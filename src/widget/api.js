@@ -55,3 +55,11 @@ export const confirmBookingPayment = (bookingId, customerEmail, paymentIntentId)
     method: 'POST',
     body: JSON.stringify({ customer_email: customerEmail, payment_intent_id: paymentIntentId }),
   });
+
+// Phase 5 (DETAILED-SPEC.md §3 B9) — only ever called when the selected
+// item's wc_checkout_enabled flag is true, i.e. the separate
+// bookyzo-woocommerce bridge plugin is active and enabled for this item;
+// the route itself only exists then too. Harmless dead code on every
+// other install, same as every other Pro-conditional call in this file.
+export const startWooCommerceCheckout = (bookingId, customerEmail) =>
+  request(`/wc-checkout/${bookingId}`, { method: 'POST', body: JSON.stringify({ customer_email: customerEmail }) });

@@ -256,6 +256,39 @@ class BYZO_Bookable_Item {
 	 * @param float|null $fee A flat, once-per-booking amount, or null to clear.
 	 * @return true|WP_Error
 	 */
+	/**
+	 * Links/unlinks the hidden WC product BYZOWC_Product_Sync (the
+	 * separate `bookyzo-woocommerce` bridge plugin, DETAILED-SPEC.md §3
+	 * B9) mirrors this item into — `wc_product_id = null` (the item's not
+	 * WC-bridge-enabled) is Free's own default and stays that way forever
+	 * on every install without the bridge plugin active. Same
+	 * no-capability-gate shape as update_booking_fee()/
+	 * update_tax_rate_override() above: purely informational until a Pro
+	 * add-on writes it, Free's own admin screens never expose it.
+	 *
+	 * @param int      $id
+	 * @param int|null $wc_product_id
+	 * @return true|WP_Error
+	 */
+	public static function update_wc_product_id( $id, $wc_product_id ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$wpdb->update(
+			self::table(),
+			array(
+				'wc_product_id' => null !== $wc_product_id ? absint( $wc_product_id ) : null,
+				'updated_at'    => current_time( 'mysql' ),
+			),
+			array( 'id' => $id )
+		);
+
+		return true;
+	}
+
 	public static function update_booking_fee( $id, $fee ) {
 		global $wpdb;
 
@@ -452,6 +485,7 @@ class BYZO_Bookable_Item {
 		$row['floor_width']        = isset( $row['floor_width'] ) && null !== $row['floor_width'] ? (int) $row['floor_width'] : null;
 		$row['floor_height']       = isset( $row['floor_height'] ) && null !== $row['floor_height'] ? (int) $row['floor_height'] : null;
 		$row['floor_shape']        = isset( $row['floor_shape'] ) && null !== $row['floor_shape'] ? (string) $row['floor_shape'] : null;
+		$row['wc_product_id']      = isset( $row['wc_product_id'] ) && null !== $row['wc_product_id'] ? (int) $row['wc_product_id'] : null;
 
 		return $row;
 	}

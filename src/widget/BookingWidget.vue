@@ -26,6 +26,11 @@
          done/skipped and confirmation is reached — no dedicated extra dot
          needed for what's an optional detour, not a required step. -->
     <StepPayment v-else-if="step === 3.5" :booking="createdBooking" @paid="step = 4" @skip="step = 4" />
+    <!-- step 3.6: WooCommerce Bridge checkout hand-off (DETAILED-SPEC.md
+         §3 B9) — takes priority over Stripe's own 3.5 step when the
+         selected item has wc_checkout_enabled; the two are mutually
+         exclusive per booking, decided in onDetailsSubmit() below. -->
+    <StepWooCommerceCheckout v-else-if="step === 3.6" :booking="createdBooking" @skip="step = 4" />
     <StepConfirmation v-else-if="step === 4" :booking="createdBooking" :item="selectedItem" />
   </div>
 </template>
@@ -36,6 +41,7 @@ import StepBookableItem from './steps/StepBookableItem.vue';
 import StepSlot from './steps/StepSlot.vue';
 import StepDetails from './steps/StepDetails.vue';
 import StepPayment from './steps/StepPayment.vue';
+import StepWooCommerceCheckout from './steps/StepWooCommerceCheckout.vue';
 import StepConfirmation from './steps/StepConfirmation.vue';
 import { createBooking } from './api';
 
@@ -117,9 +123,18 @@ async function onDetailsSubmit(form) {
     });
     createdBooking.value = booking;
 
-    const stripeAvailable = !!(window.byzoWidget && window.byzoWidget.stripeEnabled);
     const hasAmountDue = booking.payment_amount && booking.payment_amount > 0;
-    step.value = stripeAvailable && hasAmountDue ? 3.5 : 4;
+    // WooCommerce Bridge takes priority over Stripe when both would
+    // otherwise apply (DETAILED-SPEC.md §3 B9) — an item enabled for the
+    // bridge is meant to route through WC's own checkout/gateways
+    // entirely, not additionally offer Bookyzo's own inline Stripe step.
+    const wcCheckoutAvailable = !!(selectedItem.value && selectedItem.value.wc_checkout_enabled);
+    const stripeAvailable = !!(window.byzoWidget && window.byzoWidget.stripeEnabled);
+    step.value = wcCheckoutAvailable && hasAmountDue
+      ? 3.6
+      : stripeAvailable && hasAmountDue
+        ? 3.5
+        : 4;
   } catch (e) {
     error.value = e.message;
   } finally {

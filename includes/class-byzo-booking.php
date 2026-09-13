@@ -1258,6 +1258,31 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * Stamps the WooCommerce order this booking's payment went through
+	 * (DETAILED-SPEC.md §3 B9) — written by the separate `bookyzo-woocommerce`
+	 * bridge plugin's BYZOWC_Order_Sync on `woocommerce_order_status_changed`,
+	 * same simple-set shape as set_payment_status() above (no state-machine
+	 * restriction; a booking only ever gets ONE wc_order_id, set once).
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function set_wc_order_id( $id, $wc_order_id ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$wpdb->update(
+			self::table(),
+			array( 'wc_order_id' => absint( $wc_order_id ), 'updated_at' => current_time( 'mysql' ) ),
+			array( 'id' => $id )
+		);
+
+		return true;
+	}
+
+	/**
 	 * Sets the staff-only internal_notes/tags fields (DETAILED-SPEC.md §3
 	 * B3, Phase 2 step 11) — a plain field update, not a status
 	 * transition, so it's independent of TRANSITIONS/update_status().
@@ -1715,6 +1740,7 @@ class BYZO_Booking {
 		$row['combined_table_ids'] = isset( $row['combined_table_ids'] ) && $row['combined_table_ids']
 			? array_map( 'intval', explode( ',', $row['combined_table_ids'] ) )
 			: array();
+		$row['wc_order_id']    = isset( $row['wc_order_id'] ) && $row['wc_order_id'] ? (int) $row['wc_order_id'] : null;
 
 		// slot_start/slot_end come from the LEFT JOIN in get()/query() —
 		// always present in the shape (null when the slot was deleted,
