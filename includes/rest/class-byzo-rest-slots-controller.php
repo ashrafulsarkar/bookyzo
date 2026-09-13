@@ -41,6 +41,19 @@ class BYZO_REST_Slots_Controller extends BYZO_REST_Controller {
 	public function get_items( WP_REST_Request $request ) {
 		$service_id = (int) $request->get_param( 'service_id' );
 
+		// Neither identifying param present — this used to silently fall
+		// through to the bookable_item_id branch below with an implicit
+		// id of 0, which BYZO_Bookable_Item::get() correctly treats as
+		// "not found" (404) — the same response a genuinely wrong id
+		// gets, which is the wrong signal for a caller that simply forgot
+		// the param. This method's own docblock in register_routes()
+		// already documented the intended 400 here; the check itself was
+		// just never actually written (found stale 2026-09-13, Phase 5's
+		// own regression pass).
+		if ( ! $service_id && ! $request->get_param( 'bookable_item_id' ) ) {
+			return new WP_Error( 'byzo_missing_param', __( 'bookable_item_id or service_id is required.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
 		// Phase 2 step 5 (DETAILED-SPEC.md §3 B7) — "any available staff"
 		// browsing: a combined list across every bookable item offering
 		// the service, resolved the same way BYZO_Booking::create_for_service()
