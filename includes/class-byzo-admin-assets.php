@@ -114,8 +114,14 @@ class BYZO_Admin_Assets {
 	 * as an explicit override to force built mode even if a stale marker
 	 * is somehow left behind — auto-detect is right by default, this is
 	 * only an escape hatch, not the primary mechanism.
+	 *
+	 * Public (not just used internally): BYZOP_Admin_Assets checks this too,
+	 * since Pro's own bundle can't just depend on the 'byzo-admin' script
+	 * handle for load ordering — that handle is never registered while this
+	 * is true (see print_dev_scripts(), which prints raw <script> tags
+	 * instead of going through wp_enqueue_script()).
 	 */
-	private static function is_dev_mode() {
+	public static function is_dev_mode() {
 		if ( defined( 'BYZO_DEV_MODE' ) && false === BYZO_DEV_MODE ) {
 			return false;
 		}
@@ -180,7 +186,7 @@ class BYZO_Admin_Assets {
 		$currency = class_exists( 'BYZO_Settings' ) ? BYZO_Settings::get()['currency'] : 'USD';
 
 		return sprintf(
-			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s };',
+			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s, proLicensed: %s, getProUrl: %s };',
 			wp_json_encode( admin_url( 'admin-post.php' ) ),
 			// Nonce action string must stay in sync with
 			// BYZO_Booking_Export::NONCE — not referencing the constant
@@ -194,7 +200,15 @@ class BYZO_Admin_Assets {
 			// slug — see BYZO_Plugin::routes(). The Vue Router owns every
 			// navigation after this first one.
 			wp_json_encode( self::initial_route() ),
-			wp_json_encode( $currency )
+			wp_json_encode( $currency ),
+			// ByzoSidebar.vue only renders the "Get Pro" row while this is
+			// false — kept in lockstep with BYZO_Plugin::routes() (which
+			// only registers the matching WP submenu page under the same
+			// condition) via the same byzo_is_pro_licensed() call, so the
+			// sidebar link and the page it points to can never disagree
+			// about whether Get Pro should exist right now.
+			wp_json_encode( byzo_is_pro_licensed() ),
+			wp_json_encode( byzo_get_pro_url() )
 		);
 	}
 

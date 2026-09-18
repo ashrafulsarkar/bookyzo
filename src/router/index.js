@@ -9,6 +9,7 @@ import EmailTemplates from '../views/settings/EmailTemplates.vue';
 import PaymentSettings from '../views/settings/PaymentSettings.vue';
 import GeneralSettings from '../views/settings/GeneralSettings.vue';
 import AppearanceSettings from '../views/settings/AppearanceSettings.vue';
+import GetPro from '../views/GetPro.vue';
 import { api } from '../api/client';
 import { createWpAdminHistory } from './history';
 
@@ -47,6 +48,14 @@ const routes = [
   // byzo_appearance option, which BYZO_Public_Widget turns into CSS
   // custom property overrides on the public widget.
   { path: '/settings/appearance', name: 'settings.appearance', component: AppearanceSettings },
+  // Only ever navigated to while unlicensed — BYZO_Plugin::routes() only
+  // registers the matching 'bookyzo-get-pro' WP admin page (and therefore
+  // this route as an initialRoute target) under that same condition, and
+  // ByzoSidebar.vue only links to it then too. The route itself stays
+  // registered unconditionally so a stale bookmark from before activating
+  // a license doesn't 404 inside the SPA — GetPro.vue's own content is
+  // harmless to view either way, it's just unreachable from the UI once licensed.
+  { path: '/get-pro', name: 'get-pro', component: GetPro },
 ];
 
 export const router = createRouter({

@@ -23,6 +23,7 @@
         :key="item.to"
         :to="item.to"
         class="byzo-sidebar-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+        :class="{ 'byzo-sidebar-item--accent': item.accent }"
         active-class="byzo-sidebar-item--active"
       >
         <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center" v-html="item.icon"></span>
@@ -109,10 +110,27 @@ const items = [
   { to: '/settings/general', label: 'Settings', icon: icon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>') },
 ];
 
+// A real, separate "Get Pro" page — never a locked/disabled preview of an
+// actual feature, see GetPro.vue's own docblock and the bookyzo-design
+// skill's explicit rule on this. Shown whenever we're not CONFIRMED
+// licensed (proLicensed defaults to false/shown if the flag is somehow
+// missing, since hiding a legitimate free user's upgrade path is worse
+// than one extra link for an already-licensed site) — PHP only registers
+// the WP admin page + Vue route it points to under that same condition
+// (BYZO_Plugin::routes()), so this can never link to a 404.
+const proLicensed = !!(window.byzoAdmin && window.byzoAdmin.proLicensed);
+const getProItem = {
+  to: '/get-pro',
+  label: 'Get Pro',
+  icon: icon('<path d="m12 15 3.5-3.5L12 8"/><path d="M4.93 4.93a10 10 0 1 0 14.14 14.14A10 10 0 0 0 4.93 4.93Z"/>'),
+  accent: true,
+};
+
 // Pro's own bundle pushes its nav items (e.g. License) onto extraNavItems
 // via window.byzoAdmin.registerExtension — see lib/admin-extensions.js.
-// Rendered after Free's own items, always.
-const allItems = computed(() => [...items, ...extraNavItems]);
+// Rendered after Free's own items; "Get Pro" goes last of all so it never
+// gets mistaken for one of Pro's own screens.
+const allItems = computed(() => [...items, ...extraNavItems, ...(proLicensed ? [] : [getProItem])]);
 </script>
 
 <style scoped>
@@ -143,6 +161,19 @@ const allItems = computed(() => [...items, ...extraNavItems]);
   background: var(--byzo-primary-light);
   color: var(--byzo-primary-dark);
   font-weight: 600;
+}
+
+/* Stays red/bold even while active (declared after --active so it wins
+   on the shared `color`/`font-weight` properties) — a call-to-action row,
+   not just another nav destination, same "Get Pro" treatment this
+   author's other Codeholt plugins use. */
+.byzo-sidebar-item--accent {
+  color: var(--byzo-danger);
+  font-weight: 700;
+}
+.byzo-sidebar-item--accent:hover {
+  color: var(--byzo-danger);
+  background: var(--byzo-danger-bg);
 }
 
 /*

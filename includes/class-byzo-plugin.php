@@ -233,7 +233,7 @@ class BYZO_Plugin {
 	 * @return array<string,array{route:string,label:string,title:string}>
 	 */
 	public static function routes() {
-		return array(
+		$routes = array(
 			self::MENU_SLUG => array(
 				'route' => '/',
 				'label' => __( 'Dashboard', 'bookyzo' ),
@@ -280,6 +280,25 @@ class BYZO_Plugin {
 				'title' => __( 'Bookyzo Settings', 'bookyzo' ),
 			),
 		);
+
+		// A real, separate "Get Pro" page/tab — not a locked/dimmed
+		// preview of any actual feature — is the honest pattern the
+		// bookyzo-design skill explicitly calls out as fine (mirrors
+		// license-envato's own Get Pro comparison page). Only registered
+		// at all while Bookyzo isn't fully Pro-licensed: once it is, this
+		// row (and its WP submenu page) simply stops existing rather than
+		// staying around disabled, same "absent, not half-functioning"
+		// rule this project already applies to every other capability
+		// gate.
+		if ( ! byzo_is_pro_licensed() ) {
+			$routes['bookyzo-get-pro'] = array(
+				'route' => '/get-pro',
+				'label' => __( 'Get Pro', 'bookyzo' ),
+				'title' => __( 'Bookyzo — Get Pro', 'bookyzo' ),
+			);
+		}
+
+		return $routes;
 	}
 
 	public function render_admin_root() {
