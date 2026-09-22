@@ -52,7 +52,16 @@ class BYZO_Account_Widget {
 
 	public static function render_shortcode() {
 		if ( ! (bool) BYZO_Settings::get()['customer_accounts_enabled'] ) {
-			return '';
+			// Still nothing for visitors, but an admin viewing the page gets
+			// told why it's empty (QA report 2026-09-22 B18).
+			if ( ! current_user_can( 'manage_options' ) ) {
+				return '';
+			}
+
+			return '<p class="bookyzo-admin-notice" style="margin:0 0 12px;padding:10px 12px;border-left:4px solid #d97706;background:#fffbeb;color:#78350f;font-size:14px;">'
+				. esc_html__( 'Admin notice: customer accounts are turned off, so this page shows visitors nothing.', 'bookyzo' )
+				. ' <a href="' . esc_url( admin_url( 'admin.php?page=bookyzo-settings' ) ) . '">' . esc_html__( 'Turn them on in Bookyzo → Settings', 'bookyzo' ) . '</a>. <em>'
+				. esc_html__( 'Only site admins see this message.', 'bookyzo' ) . '</em></p>';
 		}
 
 		self::enqueue_assets();
