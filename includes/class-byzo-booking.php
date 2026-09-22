@@ -864,6 +864,24 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * Whether new bookings (and reschedules onto it) may land on this
+	 * bookable item. /slots already hides an inactive or archived item's
+	 * times, but a slot id POSTed directly was still accepted (QA report
+	 * 2026-09-22 B6). Admins may still book inactive items — e.g. a
+	 * private session on an item that's hidden from the public widget —
+	 * but nobody can book an archived or deleted one.
+	 *
+	 * @param array|null $item
+	 */
+	private static function item_accepts_bookings( $item ) {
+		if ( ! $item || 'archived' === $item['status'] ) {
+			return false;
+		}
+
+		return 'active' === $item['status'] || current_user_can( 'manage_options' );
+	}
+
+	/**
 	 * Whether one booking takes the whole slot instead of party_size
 	 * places in it. True for tables (DETAILED-SPEC.md §1.3: "A table for
 	 * six either exists at 7pm or it doesn't") — the slot's capacity is
@@ -984,6 +1002,10 @@ class BYZO_Booking {
 		// that has already started, or started weeks ago, was bookable by
 		// anyone who POSTed it directly.
 		$slot_item = BYZO_Bookable_Item::get( $slot['bookable_item_id'] );
+		if ( ! self::item_accepts_bookings( $slot_item ) ) {
+			return new WP_Error( 'byzo_item_unavailable', __( 'This is not available for booking right now.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
+
 		if ( BYZO_Slot::lead_time_applies() ) {
 			if ( $slot['start_datetime'] < BYZO_Slot::earliest_bookable_start( $slot_item ? $slot_item['type'] : '' ) ) {
 				return new WP_Error( 'byzo_slot_unavailable', __( 'This time can no longer be booked online. Please pick a later time.', 'bookyzo' ), array( 'status' => 409 ) );
@@ -1197,6 +1219,10 @@ class BYZO_Booking {
 		// A customer rescheduling from their account follows the same lead
 		// time as a new booking; admins are exempt (see lead_time_applies()).
 		$new_slot_item = BYZO_Bookable_Item::get( $new_slot['bookable_item_id'] );
+		if ( ! self::item_accepts_bookings( $new_slot_item ) ) {
+			return new WP_Error( 'byzo_item_unavailable', __( 'That is not available for booking right now.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
+
 		if ( BYZO_Slot::lead_time_applies() ) {
 			if ( $new_slot['start_datetime'] < BYZO_Slot::earliest_bookable_start( $new_slot_item ? $new_slot_item['type'] : '' ) ) {
 				return new WP_Error( 'byzo_slot_unavailable', __( 'That time can no longer be booked online. Please pick a later time.', 'bookyzo' ), array( 'status' => 409 ) );
