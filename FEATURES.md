@@ -171,7 +171,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - **Booking notes/internal tags (staff-only visibility) — DONE 2026-09-12, Phase 2 step 11:** same "Bulk & Notes" screen, `bookings.internal_notes`/`tags` (Free schema, Pro-only write UI).
 - Customer booking history and profile (repeat customer detection)
 - Multiple cancellation/refund policy tiers (flexible per bookable item type)
-- Timeline view — all bookable items of a type shown as rows with time across the top, for scanning multi-bookable item availability at a glance (only useful once Pro's unlimited bookable items are in play)
+- Timeline view — all bookable items of a type shown as rows with time across the top, for scanning multi-bookable item availability at a glance (**screen built 2026-09-22**, Pro → Overview → Timeline) (only useful once Pro's unlimited bookable items are in play)
 - Availability search — customers filter bookable items by date, capacity, or tags once more than one bookable item of a type exists (the per-item tag field itself ships with this — it was dropped from Free on 2026-09-06, since with Free's four-item cap nothing read it; see `DETAILED-SPEC.md` §1.1)
 - Export the customer list to CSV, including each customer's booking and payment history
 - **Duplicate booking — DONE 2026-09-12, Phase 2 step 18:** clone an existing booking's bookable item/customer/details as the starting point for a new one — walk-in regulars, recurring phone bookings that don't need a full series. New "Duplicate" action on the "Bulk & Notes" screen; calls the same unrestricted `POST /bookings` every other booking path already uses, no new backend surface.
