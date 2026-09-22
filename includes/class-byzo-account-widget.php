@@ -166,6 +166,7 @@ class BYZO_Account_Widget {
 			'mode'            => $mode,
 			'errorMessage'    => BYZO_Customer_Auth::error_message( $error ),
 			'displayName'     => is_user_logged_in() ? wp_get_current_user()->display_name : '',
+			'justRegistered'  => is_user_logged_in() && isset( $_GET['welcome'] ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- only picks the greeting.
 			'restUrl'         => esc_url_raw( rest_url( 'bookyzo/v1' ) ),
 			'nonce'           => wp_create_nonce( 'wp_rest' ),
 			'registerUrl'     => add_query_arg( 'action', BYZO_Customer_Auth::ACTION_REGISTER, admin_url( 'admin-post.php' ) ),

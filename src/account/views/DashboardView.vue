@@ -1,5 +1,5 @@
 <template>
-  <h1>Welcome back<template v-if="displayName">, {{ displayName }}</template></h1>
+  <h1>{{ justRegistered ? 'Welcome' : 'Welcome back' }}<template v-if="displayName">, {{ displayName }}</template></h1>
 
   <p v-if="loading" class="bookyzo-account__empty">Loading your bookings…</p>
   <p v-else-if="loadError" class="bookyzo-account__empty">Couldn't load your bookings. Please refresh the page.</p>
@@ -55,6 +55,8 @@ import { getMyBookings, cancelMyBooking, getInvoiceUrl, getTicketQrUrl } from '.
 defineProps({
   logoutUrl: { type: String, required: true },
   displayName: { type: String, default: '' },
+  // Straight after creating the account — "Welcome back" read oddly there.
+  justRegistered: { type: Boolean, default: false },
   pdfInvoiceEnabled: { type: Boolean, default: false },
   qrTicketEnabled: { type: Boolean, default: false },
 });

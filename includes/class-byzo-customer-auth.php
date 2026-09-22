@@ -68,7 +68,10 @@ class BYZO_Customer_Auth {
 	 * for BYZO_Account_Widget's config() to pick back up.
 	 */
 	public static function build_redirect_target( $args = array() ) {
-		$base = wp_get_referer() ?: home_url( '/' );
+		// The referer can still carry the previous attempt's ?error=/?mode=
+		// (a failed register, then a successful one) — drop them so a
+		// success doesn't land on the dashboard with a stale error.
+		$base = remove_query_arg( array( 'error', 'mode', 'welcome' ), wp_get_referer() ?: home_url( '/' ) );
 
 		return $args ? add_query_arg( $args, $base ) : $base;
 	}
@@ -150,7 +153,9 @@ class BYZO_Customer_Auth {
 		wp_set_current_user( $user_id );
 		wp_set_auth_cookie( $user_id, true );
 
-		wp_safe_redirect( self::build_redirect_target() );
+		// ?welcome=1 lets the dashboard greet a brand-new account as new
+		// rather than "Welcome back" (QA report 2026-09-22 U7).
+		wp_safe_redirect( self::build_redirect_target( array( 'welcome' => '1' ) ) );
 		exit;
 	}
 
