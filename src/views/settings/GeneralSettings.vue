@@ -20,20 +20,21 @@
           <CardHeader>
             <CardTitle>Business profile</CardTitle>
           </CardHeader>
-          <!-- Capped at a readable measure rather than the card's full
-               width: a business name or timezone stretched to ~900px on a
-               desktop, so short values sat in enormous boxes while the
-               narrow w-24 fields beside them made the column read ragged.
-               Two-up grids collapse to one column on a phone. -->
-          <CardContent class="flex max-w-2xl flex-col gap-4">
-            <div class="flex flex-col gap-1.5">
-              <Label for="s-business-name">Business name</Label>
-              <Input id="s-business-name" v-model="form.business_name" type="text" />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <Label for="s-timezone">Timezone</Label>
-              <Input id="s-timezone" v-model="form.timezone" type="text" placeholder="e.g. Asia/Dhaka" />
-              <p class="text-xs text-muted-foreground">A PHP timezone identifier, e.g. Asia/Dhaka, or a UTC offset like +06:00.</p>
+          <!-- Two-up grids throughout so short values (business name,
+               timezone, currency, times) never stretch into enormous
+               boxes even though the card itself now spans the full page
+               width; grids collapse to one column on a phone. -->
+          <CardContent class="flex flex-col gap-4">
+            <div class="grid gap-4 sm:grid-cols-2">
+              <div class="flex flex-col gap-1.5">
+                <Label for="s-business-name">Business name</Label>
+                <Input id="s-business-name" v-model="form.business_name" type="text" />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <Label for="s-timezone">Timezone</Label>
+                <Input id="s-timezone" v-model="form.timezone" type="text" placeholder="e.g. Asia/Dhaka" />
+                <p class="text-xs text-muted-foreground">A PHP timezone identifier, e.g. Asia/Dhaka, or a UTC offset like +06:00.</p>
+              </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="flex flex-col gap-1.5">
@@ -80,7 +81,7 @@
             <CardTitle>Booking behavior</CardTitle>
             <CardDescription>Set once during setup — change anytime here.</CardDescription>
           </CardHeader>
-          <CardContent class="flex max-w-2xl flex-col gap-4">
+          <CardContent class="flex flex-col gap-4">
             <label class="flex items-center gap-2 text-sm">
               <Switch v-model="form.require_phone" />
               Require a phone number on every booking
@@ -106,7 +107,7 @@
             <CardTitle>Customer accounts</CardTitle>
             <CardDescription>Let customers register, log in, and manage their own bookings.</CardDescription>
           </CardHeader>
-          <CardContent class="flex max-w-2xl flex-col gap-4">
+          <CardContent class="flex flex-col gap-4">
             <label class="flex items-center gap-2 text-sm">
               <Switch v-model="form.customer_accounts_enabled" />
               Enable customer accounts
@@ -125,7 +126,7 @@
           <CardHeader>
             <CardTitle>Notifications</CardTitle>
           </CardHeader>
-          <CardContent class="flex max-w-2xl flex-col gap-4">
+          <CardContent class="flex flex-col gap-4">
             <label class="flex items-center gap-2 text-sm">
               <Switch v-model="form.send_confirmation_email" />
               Send a confirmation email to the customer
