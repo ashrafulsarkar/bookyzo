@@ -28,4 +28,34 @@ class BYZO_Booking_Token {
 
 		return hash_equals( self::generate( $booking_id, $customer_email ), (string) $token );
 	}
+
+	/**
+	 * verify() when only the booking id is known — the shape a REST route
+	 * with a `?token=` query arg has.
+	 */
+	public static function verify_for_booking( $booking_id, $token ) {
+		$booking = BYZO_Booking::get( (int) $booking_id );
+
+		return $booking && self::verify( $booking['id'], $booking['customer_email'], $token );
+	}
+
+	/**
+	 * A guest-openable link to one of a booking's documents — the PDF
+	 * invoice or the QR e-ticket (QA report 2026-09-22 B10: both used to be
+	 * reachable only from a logged-in customer account, which is off by
+	 * default, so most customers never got them). The token is the same
+	 * one the "manage booking" link carries; the add-on that serves those
+	 * routes checks it. Callers gate on BYZO_Capabilities first — this only
+	 * builds the URL.
+	 *
+	 * @param array  $booking  A BYZO_Booking::get() row.
+	 * @param string $document 'invoice' or 'ticket-qr'.
+	 */
+	public static function document_url( $booking, $document ) {
+		return add_query_arg(
+			'token',
+			self::generate( $booking['id'], $booking['customer_email'] ),
+			rest_url( 'bookyzo/v1/bookings/' . (int) $booking['id'] . '/' . $document )
+		);
+	}
 }

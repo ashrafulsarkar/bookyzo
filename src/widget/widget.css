@@ -761,6 +761,28 @@
   font-size: 13px;
 }
 
+/* QR e-ticket — white behind the code even on a dark theme, since
+   scanners need the contrast. */
+.bookyzo-widget .confirmation .ticket {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.bookyzo-widget .confirmation .ticket img {
+  background: #fff;
+  padding: 8px;
+  border: 1px solid var(--byzo-border);
+  border-radius: var(--byzo-radius-sm);
+}
+
+.bookyzo-widget .confirmation .ticket-note {
+  font-size: 13px;
+  color: var(--byzo-text-muted);
+}
+
 .bookyzo-widget .confirmation .add-to-calendar a {
   color: var(--byzo-primary);
   text-decoration: none;

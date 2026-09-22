@@ -37,6 +37,11 @@
                 Placeholders: <code>{customer_name}</code> <code>{bookable_item_name}</code> <code>{start_time}</code>
                 <code>{business_name}</code> <code>{cancel_link}</code> <code>{add_to_calendar_link}</code>
                 <code>{location}</code> <code>{meeting_link}</code>
+                <template v-if="documents.ticket"> <code>{ticket_link}</code></template>
+                <template v-if="documents.invoice"> <code>{invoice_link}</code></template>
+              </p>
+              <p v-if="event.id === 'booking_confirmed' && (documents.ticket || documents.invoice)" class="text-xs text-muted-foreground">
+                If this email doesn't use {{ documentPlaceholders }}, the link is added at the end automatically.
               </p>
             </div>
           </CardContent>
@@ -57,6 +62,11 @@ import { Textarea } from '@/components/ui/textarea';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import { api } from '@/api/client';
+
+// Booking documents an add-on provides (QA report 2026-09-22 B10) — their
+// placeholders are only listed when they exist.
+const documents = (window.byzoAdmin && window.byzoAdmin.documents) || {};
+const documentPlaceholders = [documents.ticket && '{ticket_link}', documents.invoice && '{invoice_link}'].filter(Boolean).join(' / ');
 
 // Free = plain textarea per event, no visual/HTML builder
 // (DETAILED-SPEC.md §A6 — that's a Pro feature layered on the same

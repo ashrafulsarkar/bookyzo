@@ -146,7 +146,49 @@ class BYZO_Notifications {
 			// optional placeholder here.
 			'{location}'             => $item && ! empty( $item['location'] ) ? $item['location'] : '',
 			'{meeting_link}'         => $item && ! empty( $item['meeting_link'] ) ? $item['meeting_link'] : '',
+			// Added 2026-09-22 (QA report B10) — blank unless the capability
+			// is on and the booking has one (an e-ticket for a confirmed
+			// event booking, an invoice for anything with a price).
+			'{ticket_link}'          => self::document_link( $booking, $item, 'ticket-qr' ),
+			'{invoice_link}'         => self::document_link( $booking, $item, 'invoice' ),
 		);
+	}
+
+	private static function document_link( $booking, $item, $document ) {
+		if ( 'ticket-qr' === $document ) {
+			$available = BYZO_Capabilities::qr_ticket_enabled() && $item && 'event' === $item['type'] && 'confirmed' === $booking['status'];
+		} else {
+			$available = BYZO_Capabilities::pdf_invoice_enabled() && null !== $booking['payment_amount'] && in_array( $booking['status'], array( 'pending', 'confirmed', 'completed' ), true );
+		}
+
+		return $available ? BYZO_Booking_Token::document_url( $booking, $document ) : '';
+	}
+
+	/**
+	 * The confirmation email carries the e-ticket and invoice links even
+	 * when the site's template predates those placeholders — otherwise a
+	 * guest (no customer account) had no way to get either. A template that
+	 * places {ticket_link}/{invoice_link} itself is left exactly as written.
+	 */
+	private static function append_document_links( $event, $template_body, $body, $placeholders ) {
+		if ( 'booking_confirmed' !== $event ) {
+			return $body;
+		}
+
+		$lines = array(
+			/* translators: %s: link to the booking's QR e-ticket */
+			'{ticket_link}'  => __( 'Your e-ticket: %s', 'bookyzo' ),
+			/* translators: %s: link to the booking's PDF invoice */
+			'{invoice_link}' => __( 'Your invoice: %s', 'bookyzo' ),
+		);
+
+		foreach ( $lines as $placeholder => $line ) {
+			if ( '' !== $placeholders[ $placeholder ] && false === strpos( $template_body, $placeholder ) ) {
+				$body .= "\n\n" . sprintf( $line, $placeholders[ $placeholder ] );
+			}
+		}
+
+		return $body;
 	}
 
 	/**
@@ -177,7 +219,7 @@ class BYZO_Notifications {
 		$placeholders = self::build_placeholders( $booking );
 
 		$subject = strtr( $template['subject'], $placeholders );
-		$body    = strtr( $template['body'], $placeholders );
+		$body    = self::append_document_links( $event, $template['body'], strtr( $template['body'], $placeholders ), $placeholders );
 
 		$message = byzo_get_template( 'emails/notification.php', array( 'body' => $body ) );
 		if ( '' === $message ) {

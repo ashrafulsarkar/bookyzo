@@ -197,10 +197,19 @@ class BYZO_Public_Widget {
 		// fetch, same shape as customerAccountsEnabled above.
 		$collect_attendee_details = (bool) BYZO_Capabilities::collect_attendee_details_enabled();
 
+		// QA report 2026-09-22 B10 — whether the confirmation screen shows
+		// the QR e-ticket (confirmed event bookings) and an invoice link
+		// (bookings with a price); the same capability checks the customer
+		// account dashboard already uses.
+		$documents = array(
+			'ticket'  => (bool) BYZO_Capabilities::qr_ticket_enabled(),
+			'invoice' => (bool) BYZO_Capabilities::pdf_invoice_enabled(),
+		);
+
 		wp_add_inline_script(
 			'byzo-widget',
 			sprintf(
-				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s, collectAttendeeDetailsEnabled: %s, payInPersonEnabled: %s };',
+				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s, collectAttendeeDetailsEnabled: %s, payInPersonEnabled: %s, documents: %s };',
 				wp_json_encode( esc_url_raw( rest_url( 'bookyzo/v1' ) ) ),
 				wp_json_encode( ! empty( $stripe['enabled'] ) && ! empty( $stripe['publishable_key'] ) ),
 				wp_json_encode( $stripe['publishable_key'] ?? '' ),
@@ -208,7 +217,8 @@ class BYZO_Public_Widget {
 				wp_json_encode( $accounts_enabled ),
 				wp_json_encode( $tax_rate ),
 				wp_json_encode( $collect_attendee_details ),
-				wp_json_encode( $pay_in_person_enabled )
+				wp_json_encode( $pay_in_person_enabled ),
+				wp_json_encode( $documents )
 			),
 			'before'
 		);

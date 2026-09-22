@@ -2,7 +2,8 @@
   <div class="confirmation">
     <div class="check">✓</div>
     <h2>{{ copy.confirmHeading }}</h2>
-    <p>A confirmation will be sent to {{ booking?.customer_email }} once it's approved.</p>
+    <p v-if="booking?.status === 'confirmed'">A confirmation has been sent to {{ booking?.customer_email }}.</p>
+    <p v-else>A confirmation will be sent to {{ booking?.customer_email }} once it's approved.</p>
 
     <!-- The booking restated as a scannable card rather than buried in a
          sentence — this is the screen people screenshot or come back to. -->
@@ -23,6 +24,16 @@
 
     <p v-if="item?.meeting_link" class="location">
       <a :href="item.meeting_link" target="_blank" rel="noopener noreferrer">Join meeting link</a>
+    </p>
+    <!-- QR e-ticket and invoice (QA report 2026-09-22 B10) — a guest has no
+         customer account to fetch them from, so they're offered here, via
+         the same signed token as the "manage booking" link. -->
+    <div v-if="ticketUrl" class="ticket">
+      <img :src="ticketUrl" alt="Your e-ticket QR code" width="180" height="180" />
+      <p class="ticket-note">Show this code at the door. It's in your confirmation email too.</p>
+    </div>
+    <p v-if="invoiceUrl" class="location">
+      <a :href="invoiceUrl" target="_blank" rel="noopener noreferrer">Download invoice (PDF)</a>
     </p>
     <div v-if="booking?.slot_start_gmt" class="add-to-calendar">
       <a :href="googleCalendarUrl" target="_blank" rel="noopener noreferrer">Add to Google Calendar</a>
@@ -48,6 +59,20 @@ const props = defineProps({
 });
 
 const copy = computed(() => copyFor(props.item?.type));
+
+const documents = (window.byzoWidget && window.byzoWidget.documents) || {};
+const restBase = (window.byzoWidget && window.byzoWidget.restUrl) || '/wp-json/bookyzo/v1';
+function documentUrl(document) {
+  const { id, manage_token: token } = props.booking || {};
+  return id && token ? `${restBase}/bookings/${id}/${document}?token=${encodeURIComponent(token)}` : '';
+}
+// Same rules the confirmation email uses (BYZO_Notifications::document_link()).
+const ticketUrl = computed(() =>
+  documents.ticket && props.item?.type === 'event' && props.booking?.status === 'confirmed' ? documentUrl('ticket-qr') : ''
+);
+const invoiceUrl = computed(() =>
+  documents.invoice && props.booking?.payment_amount !== null && props.booking?.payment_amount !== undefined ? documentUrl('invoice') : ''
+);
 
 function toLocalDate(iso) {
   return new Date(iso.replace(' ', 'T'));
