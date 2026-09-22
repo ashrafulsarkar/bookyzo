@@ -82,6 +82,17 @@ class BYZO_Notifications {
 	 * catch a real duplicate in normal operation.
 	 */
 	public static function send_reminders() {
+		/**
+		 * Filters whether this built-in 24-hours-before email reminder is
+		 * sent at all. An add-on that sends its own email reminders turns
+		 * it off, so the customer isn't emailed the same reminder twice.
+		 *
+		 * @param bool $send Default true.
+		 */
+		if ( ! apply_filters( 'byzo_send_default_email_reminder', true ) ) {
+			return;
+		}
+
 		$now = new DateTime( 'now', wp_timezone() );
 		$target = ( clone $now )->modify( '+24 hours' );
 		$target->setTime( (int) $target->format( 'H' ), 0, 0 );
