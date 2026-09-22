@@ -62,7 +62,10 @@
               <TableCell><ByzoBadge :status="item.status">{{ item.status }}</ByzoBadge></TableCell>
               <TableCell>
                 <div class="flex items-center gap-1.5">
-                  <code class="whitespace-nowrap rounded bg-muted px-1.5 py-0.5 text-xs">{{ shortcode(item) }}</code>
+                  <!-- Truncated so the Action column stays on screen at
+                       common laptop widths (it was cut off at 1440px) — the
+                       full shortcode is in the tooltip and on the copy button. -->
+                  <code class="block max-w-[13rem] truncate whitespace-nowrap rounded bg-muted px-1.5 py-0.5 text-xs" :title="shortcode(item)">{{ shortcode(item) }}</code>
                   <Button variant="ghost" size="icon" class="h-6 w-6" title="Copy shortcode" @click="copyShortcode(item)">
                     <Copy class="h-3.5 w-3.5" />
                   </Button>
