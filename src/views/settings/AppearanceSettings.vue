@@ -93,6 +93,12 @@
             </CardContent>
           </Card>
 
+          <!-- Add-on extension point (FEATURES.md B10 — custom CSS/full
+               theme authoring beyond these preset controls). Absent when
+               nothing is registered, so Free renders exactly as before —
+               see lib/admin-extensions.js. -->
+          <component :is="extraAppearanceSection" v-if="extraAppearanceSection" />
+
           <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
         </div>
 
@@ -122,6 +128,7 @@ import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import ColorField from './appearance/ColorField.vue';
 import WidgetPreview from './appearance/WidgetPreview.vue';
+import { extraAppearanceSection } from '@/lib/admin-extensions';
 import { api } from '@/api/client';
 
 // Mirrors BYZO_Appearance_Settings::defaults() — kept in sync so the

@@ -201,6 +201,14 @@ Design done 2026-09-13 — full technical breakdown in `DETAILED-SPEC.md` §3 "B
 
 ---
 
+## Post-Phase-5 — B10 Custom CSS (out-of-sequence, user-requested)
+
+`FEATURES.md` B10 had no numbered step of its own (Phase 2's competitor gap-fill batches never picked it up) — added directly once the user asked for "more options under Appearance once Pro is active."
+
+1. ✅ **DONE (2026-09-22)** — Custom CSS / theme authoring. New `BYZOP_Appearance` (prints a `<style>` tag from `wp_footer`, gated on the widget/account style actually being enqueued on the page) + `custom_css` field on `BYZOP_Settings` (`GET/PUT /pro-settings`, already-existing route — no new REST controller needed). Vue side: new `AppearanceCustomCss.vue`, plugged into Free's `AppearanceSettings.vue` through a new single-slot extension point (`extraAppearanceSection` in bookyzo's `src/lib/admin-extensions.js`, same `registerExtension()` mechanism as `extraPaymentGatewayComponents`) — Free's screen renders nothing extra when Pro isn't licensed, same as every other slot. White-label (remove plugin branding) left undone — there's currently no plugin branding shown on the widget/account pages to remove. Both bundles (`npm run build:admin` in bookyzo, `npm run build` in bookyzo-pro) verified clean; no PHP syntax errors (`php -l`) on the 3 touched/new PHP files. **Not yet browser-verified** — no browser automation available this session; left for the user to confirm the Custom CSS card renders under Appearance once bookyzo-pro is active and licensed.
+
+---
+
 ## Free → Pro Conversion Strategy
 
 **Principle:** every Pro feature must be something a Free user genuinely *runs into as a wall* through normal, growing use of their business — not something Claude or the plugin dangles in front of them with a lock icon. This is a hard constraint, not just good marketing: `bundle-product-plugin`'s WordPress.org submission was **rejected twice for Guideline 5 (Trialware)** specifically because it showed visible locked/disabled Pro UI in the Free plugin. See `.claude/skills/bookyzo-dev/SKILL.md` for the enforcement rules. The two goals (avoid Trialware rejection, and make Pro genuinely desirable) turn out to be the *same* goal solved the *same* way: real limits tied to real growth, discovered by hitting them, not by seeing them.

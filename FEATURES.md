@@ -248,8 +248,8 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - **Subscribable calendar feed — DONE 2026-09-12, Phase 2 step 15:** one token-gated `.ics` URL per bookable item, for feeding into Airbnb/Booking.com-style external calendars — new "Integrations" screen shows a copyable link per item.
 
 ### B10. Branding & Customization
-- White-label booking widget (remove plugin branding)
-- Custom CSS for the booking form, and full theme authoring beyond Free's preset appearance controls (A5) — hooks the `byzo_appearance_css_vars` / `byzo_appearance_css_declarations` filters rather than replacing that screen
+- White-label booking widget (remove plugin branding) — no plugin branding is currently shown on the widget/account pages to remove, so nothing to build here yet; revisit if that changes
+- **Custom CSS for the booking form, full theme authoring beyond Free's preset appearance controls (A5) — DONE 2026-09-22:** a "Custom CSS" section (`BYZOP_Appearance`) rendered inline on Free's own Appearance screen via the shared admin app's extension point (`extraAppearanceSection`, `src/lib/admin-extensions.js`) rather than a separate Pro page — same never-replace-the-screen rule, just plugged in as an added section instead of through the `byzo_appearance_css_vars`/`byzo_appearance_css_declarations` filters originally sketched here: those two only ever land inside one already-open `.bookyzo-widget{...}` block, which can't express an arbitrary child selector the way real theme authoring needs. Stored on `byzop_settings.custom_css` (`GET/PUT /pro-settings`, `wp_strip_all_tags` sanitized), printed as its own `<style>` tag from `wp_footer` once a booking widget/account screen has actually enqueued on the page.
 - Custom domain for standalone booking page (if a hosted booking page option exists)
 
 ### B11. Advanced Form Builder & Localization

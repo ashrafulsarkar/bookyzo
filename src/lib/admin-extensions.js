@@ -1,4 +1,4 @@
-import { reactive } from 'vue';
+import { reactive, ref } from 'vue';
 import { router } from '../router';
 
 /**
@@ -39,8 +39,18 @@ export const extraNavItems = reactive([]);
 // just a third recognized key.
 export const extraPaymentGatewayComponents = reactive({});
 
+// Single extra section AppearanceSettings.vue renders below its own preset
+// controls (custom CSS / theme authoring today, FEATURES.md B10) — a ref
+// rather than a map like extraPaymentGatewayComponents above since there's
+// only ever one appearance screen to extend, not a per-id list. null until
+// (if ever) an add-on registers one, so Free never renders an empty section.
+export const extraAppearanceSection = ref(null);
+
 export function registerExtension(extension = {}) {
   (extension.routes || []).forEach((route) => router.addRoute(route));
   extraNavItems.push(...(extension.navItems || []));
   Object.assign(extraPaymentGatewayComponents, extension.paymentGatewayComponents || {});
+  if (extension.appearanceSection) {
+    extraAppearanceSection.value = extension.appearanceSection;
+  }
 }
