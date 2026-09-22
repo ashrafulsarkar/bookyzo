@@ -167,6 +167,15 @@ class BYZO_Public_Widget {
 		$stripe   = class_exists( 'BYZO_Payment_Settings' ) ? BYZO_Payment_Settings::get()['gateways']['stripe'] : array();
 		$currency = class_exists( 'BYZO_Settings' ) ? BYZO_Settings::get()['currency'] : 'USD';
 
+		// payInPersonEnabled gates StepPayment.vue's "Pay in person instead"
+		// button (Settings screen's "Booking behavior" section,
+		// BYZO_Settings::get()['allow_pay_in_person']) — on by default so
+		// an existing site's widget keeps behaving exactly as it always
+		// has. Defaults true (not false) if the class is somehow missing,
+		// same fail-open reasoning as every other "don't accidentally lock
+		// a merchant's own customers out" default in this file.
+		$pay_in_person_enabled = ! class_exists( 'BYZO_Settings' ) || (bool) BYZO_Settings::get()['allow_pay_in_person'];
+
 		// customerAccountsEnabled added Phase 1.7 step 6 (DETAILED-SPEC.md
 		// §A11) — gates StepDetails.vue's "Create an account" checkbox the
 		// same way every other capability toggle in this doc gates its own
@@ -191,14 +200,15 @@ class BYZO_Public_Widget {
 		wp_add_inline_script(
 			'byzo-widget',
 			sprintf(
-				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s, collectAttendeeDetailsEnabled: %s };',
+				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s, collectAttendeeDetailsEnabled: %s, payInPersonEnabled: %s };',
 				wp_json_encode( esc_url_raw( rest_url( 'bookyzo/v1' ) ) ),
 				wp_json_encode( ! empty( $stripe['enabled'] ) && ! empty( $stripe['publishable_key'] ) ),
 				wp_json_encode( $stripe['publishable_key'] ?? '' ),
 				wp_json_encode( $currency ),
 				wp_json_encode( $accounts_enabled ),
 				wp_json_encode( $tax_rate ),
-				wp_json_encode( $collect_attendee_details )
+				wp_json_encode( $collect_attendee_details ),
+				wp_json_encode( $pay_in_person_enabled )
 			),
 			'before'
 		);

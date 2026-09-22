@@ -92,6 +92,19 @@
             </label>
 
             <div class="flex flex-col gap-1.5">
+              <label class="flex items-center gap-2 text-sm">
+                <Switch v-model="form.allow_pay_in_person" />
+                Let customers choose "Pay in person instead" and skip online payment
+              </label>
+              <p class="text-xs text-muted-foreground">
+                On by default: a customer can finish booking without paying now, and you mark it paid
+                yourself later (a booking's own Payment field, see Bookings). Turn this off to require
+                online payment through a gateway (see Payments) before checkout completes — the option
+                disappears from the booking widget entirely, it isn't just disabled.
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
               <Label for="s-cancellation-hours">Guest cancellation window</Label>
               <div class="flex items-center gap-2">
                 <Input id="s-cancellation-hours" v-model.number="form.cancellation_hours" type="number" min="0" step="1" class="w-24" />
@@ -185,6 +198,8 @@ const form = ref({
   // the shortcode/bundle, every REST route) has existed since steps 1-6,
   // this is purely the missing admin control to actually turn it on.
   customer_accounts_enabled: false,
+  // Added 2026-09-22 — gates StepPayment.vue's "Pay in person instead".
+  allow_pay_in_person: true,
 });
 const loading = ref(true);
 const saving = ref(false);

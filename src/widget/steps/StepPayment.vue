@@ -15,7 +15,7 @@
     </template>
 
     <div class="actions">
-      <button type="button" class="btn btn-outline" @click="$emit('skip')">Pay in person instead</button>
+      <button v-if="payInPersonEnabled" type="button" class="btn btn-outline" @click="$emit('skip')">Pay in person instead</button>
       <button type="button" class="btn btn-primary" :disabled="!cardReady || paying" @click="pay">
         {{ paying ? 'Processing…' : `Pay ${formattedAmount}` }}
       </button>
@@ -28,15 +28,22 @@
 // from Stripe's own CDN (js.stripe.com), which is required rather than
 // optional: Stripe's terms don't allow self-hosting/bundling this
 // script, and doing so would break PCI-DSS compliance for anyone using
-// it. "Pay in person instead" always stays available (matches the
+// it. "Pay in person instead" stays available by default (matches the
 // manual/offline payment option DETAILED-SPEC.md §A7 already calls
-// for) — this step is never a hard gate on completing a booking.
+// for) — this step is not a hard gate on completing a booking UNLESS the
+// merchant explicitly turns it off via the Settings screen's "Booking
+// behavior" section (BYZO_Settings::get()['allow_pay_in_person'],
+// payInPersonEnabled below), added 2026-09-22 because "Pay in person"
+// and "Pay ${amount}" sitting as equal-weight buttons let a customer
+// bypass online payment even on a site whose owner wants to require it.
 //
 // Verified end-to-end against Stripe test-mode keys 2026-09-11 (see
 // BYZO_Stripe's own docblock).
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { createBookingPaymentIntent, confirmBookingPayment } from '../api';
 import WidgetLoading from '../WidgetLoading.vue';
+
+const payInPersonEnabled = !(window.byzoWidget && window.byzoWidget.payInPersonEnabled === false);
 
 const props = defineProps({
   booking: { type: Object, required: true },

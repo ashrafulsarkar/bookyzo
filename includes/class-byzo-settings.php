@@ -66,6 +66,13 @@ class BYZO_Settings {
 			// slot forever, today's exact behavior on every existing install
 			// until this setting is touched).
 			'pending_booking_hold_hours' => 24,
+			// Added 2026-09-22 — gates StepPayment.vue's "Pay in person
+			// instead" button (BYZO_Public_Widget's payInPersonEnabled).
+			// On by default so an existing site's widget keeps behaving
+			// exactly as it always has (that button was previously
+			// hardcoded/always-shown); a merchant who wants to require
+			// online payment turns this off explicitly.
+			'allow_pay_in_person'        => true,
 		);
 
 		return wp_parse_args( get_option( 'byzo_settings', array() ), $defaults );
@@ -135,7 +142,7 @@ class BYZO_Settings {
 			$patch['default_end_time'] = $time;
 		}
 
-		foreach ( array( 'require_phone', 'auto_confirm', 'send_confirmation_email', 'send_admin_notification', 'customer_accounts_enabled' ) as $bool_field ) {
+		foreach ( array( 'require_phone', 'auto_confirm', 'send_confirmation_email', 'send_admin_notification', 'customer_accounts_enabled', 'allow_pay_in_person' ) as $bool_field ) {
 			if ( isset( $data[ $bool_field ] ) ) {
 				$patch[ $bool_field ] = (bool) $data[ $bool_field ];
 			}

@@ -22,6 +22,15 @@
 // (not an SPA route) is correct here — WooCommerce's own checkout is a
 // real page WordPress renders, not something this widget could render
 // inline even if it wanted to.
+//
+// Its own "Pay in person instead" below is deliberately NOT gated by the
+// Payments screen's payInPersonEnabled flag (unlike StepPayment.vue's) —
+// it only ever appears when starting the WC checkout hand-off itself
+// FAILED (see the v-else branch), i.e. as error recovery for a broken
+// integration, not as a customer's deliberate choice to skip payment. A
+// merchant requiring online payment still needs the WC checkout to
+// actually reach WooCommerce, not to lose their customer's already-placed
+// booking to a dead end.
 import { onMounted, ref } from 'vue';
 import { startWooCommerceCheckout } from '../api';
 import WidgetLoading from '../WidgetLoading.vue';
