@@ -1,11 +1,32 @@
 <template>
   <WidgetLoading v-if="loading" />
   <div v-else-if="error" class="error">{{ error }}</div>
-  <div v-else-if="items.length === 0" class="empty">No bookable services are available right now.</div>
+  <div v-else-if="items.length === 0 && services.length === 0" class="empty">No bookable services are available right now.</div>
   <div v-else-if="!autoSkipping">
     <h2>{{ copy.pickHeading }}</h2>
     <p class="step-sub">{{ copy.pickSub }}</p>
-    <div class="bookable-item-list">
+    <!-- Pro services (QA report 2026-09-22 B9): picked by what, not by
+         whom — the next step offers the staff who provide it, or "any
+         available". Absent when there are none (always, without Pro). -->
+    <div v-if="services.length" class="bookable-item-list">
+      <button
+        v-for="service in services"
+        :key="`service-${service.id}`"
+        type="button"
+        class="option-card"
+        @click="$emit('selected-service', service, items)"
+      >
+        <span class="option-card-body">
+          <span class="name">{{ service.name }}</span>
+          <span class="meta">
+            <span class="meta-item">{{ serviceDuration(service) }} min</span>
+            <span v-if="servicePrice(service)" class="meta-price">{{ servicePrice(service) }}</span>
+          </span>
+        </span>
+        <span class="option-card-go" aria-hidden="true">&#8250;</span>
+      </button>
+    </div>
+    <div v-if="items.length" class="bookable-item-list" :class="{ 'bookable-item-list--after-services': services.length }">
       <button
         v-for="item in items"
         :key="item.id"
@@ -28,7 +49,7 @@
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
-import { getPublicBookableItems } from '../api';
+import { getPublicBookableItems, getPublicServices } from '../api';
 import { copyFor, MIXED_COPY } from '../copy';
 import WidgetLoading from '../WidgetLoading.vue';
 import { formatMoney } from '@/lib/money';
@@ -44,15 +65,28 @@ import { formatMoney } from '@/lib/money';
 const props = defineProps({
   config: { type: Object, required: true },
 });
-const emit = defineEmits(['selected']);
+const emit = defineEmits(['selected', 'selected-service']);
 
 const items = ref([]);
+const services = ref([]);
 const loading = ref(true);
 const error = ref('');
 const autoSkipping = ref(false);
 
 function formatPrice(price) {
   return formatMoney(price);
+}
+
+// A service's staff can differ in length and price — show the shortest
+// and "from" the lowest, the same way the staff step's "Any available" does.
+function serviceDuration(service) {
+  return Math.min(...service.staff.map((m) => m.duration_minutes));
+}
+function servicePrice(service) {
+  const prices = service.staff.map((m) => m.price).filter((p) => p !== null);
+  if (!prices.length) return '';
+  const low = Math.min(...prices);
+  return prices.every((p) => p === low) ? formatMoney(low) : `from ${formatMoney(low)}`;
 }
 
 // A picker filtered to one type (or a site that only sells one) can speak
@@ -66,10 +100,17 @@ onMounted(async () => {
   try {
     items.value = await getPublicBookableItems(props.config.type);
 
+    // Services are appointments, so an embed limited to another type, or
+    // pinned to one item, never lists them. Without Pro the route doesn't
+    // exist — any failure just means "no services".
+    if (!props.config.bookableItemId && (!props.config.type || props.config.type === 'appointment')) {
+      services.value = await getPublicServices().catch(() => []);
+    }
+
     let target = null;
     if (props.config.bookableItemId) {
       target = items.value.find((i) => i.id === props.config.bookableItemId) || null;
-    } else if (items.value.length === 1) {
+    } else if (items.value.length === 1 && services.value.length === 0) {
       target = items.value[0];
     }
 

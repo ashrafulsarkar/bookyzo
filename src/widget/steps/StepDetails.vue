@@ -250,9 +250,14 @@ const addons = ref([]);
 // ticket tiers for this bookable item. Same "empty means absent" shape.
 const ticketTiers = ref([]);
 
+// The bookable item whose extras apply — the chosen slot's own. Same as
+// item.id for a normal booking; for "any available staff" (item.id null)
+// it's the staff member the chosen time belongs to.
+const extrasItemId = computed(() => props.slot.bookable_item_id || props.item.id);
+
 onMounted(async () => {
   try {
-    const fields = await getCustomFields(props.item.id);
+    const fields = await getCustomFields(extrasItemId.value);
     customFields.value = fields;
     for (const field of fields) {
       form.custom_fields[field.id] = field.field_type === 'checkbox' ? false : '';
@@ -265,14 +270,14 @@ onMounted(async () => {
   }
 
   try {
-    addons.value = await getAddons(props.item.id);
+    addons.value = await getAddons(extrasItemId.value);
   } catch {
     addons.value = [];
   }
 
   if ('event' === props.item.type) {
     try {
-      ticketTiers.value = await getTicketTiers(props.item.id);
+      ticketTiers.value = await getTicketTiers(extrasItemId.value);
     } catch {
       ticketTiers.value = [];
     }
@@ -342,8 +347,12 @@ let quoteTimer = null;
 async function refreshQuote() {
   const requestId = ++quoteRequest;
   try {
+    const anyStaff = props.item.service_id && !props.item.staff_id;
     const result = await getQuote({
-      slot_id: props.slot.id,
+      // "Any available staff" is priced like create_for_service() books it:
+      // by service and start time, not by one staff member's slot.
+      ...(anyStaff ? { start_datetime: props.slot.start_datetime } : { slot_id: props.slot.id }),
+      service_id: props.item.service_id || undefined,
       party_size: quantity.value,
       ticket_tier_id: form.ticket_tier_id,
       addon_ids: form.addon_ids,

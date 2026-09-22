@@ -31,6 +31,14 @@ async function request(path, options = {}) {
 export const getPublicBookableItems = (type) => request(`/bookable-items/public${type ? `?type=${encodeURIComponent(type)}` : ''}`);
 export const getSlots = (bookableItemId) => request(`/slots?bookable_item_id=${bookableItemId}`);
 
+// Services + "any available staff" (DETAILED-SPEC.md §3 B7, QA report
+// 2026-09-22 B9). /services/public is Pro's route — without Pro it 404s and
+// the widget simply shows no services (same harmless-dead-code shape as
+// the WooCommerce hand-off below).
+export const getPublicServices = () => request('/services/public');
+// Every open time across the staff who offer a service, merged.
+export const getSlotsForService = (serviceId) => request(`/slots?service_id=${serviceId}`);
+
 // Phase 2 step 16 (DETAILED-SPEC.md §3 B11) — Pro-defined custom form
 // fields for this bookable item, empty array when Pro is off/unconfigured.
 export const getCustomFields = (bookableItemId) => request(`/custom-fields/public?bookable_item_id=${bookableItemId}`);

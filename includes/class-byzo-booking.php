@@ -656,7 +656,7 @@ class BYZO_Booking {
 		// staff member's slot to actually claim. A direct slot_id booking
 		// (every Free booking, and any Pro booking where the customer
 		// picked a specific staff member) is completely unchanged below.
-		if ( $validated['service_id'] ) {
+		if ( $validated['service_id'] && ! $validated['slot_id'] ) {
 			return self::create_for_service( $validated );
 		}
 
@@ -665,7 +665,14 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_slot_unavailable', __( 'This time slot is no longer available.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
 
-		return self::attempt_create_on_slot( $slot, $validated, null );
+		if ( $validated['service_id'] ) {
+			$offering = array_map( 'absint', (array) apply_filters( 'byzo_bookable_items_offering_service', array(), $validated['service_id'] ) );
+			if ( ! in_array( (int) $slot['bookable_item_id'], $offering, true ) ) {
+				return new WP_Error( 'byzo_service_unavailable', __( 'This staff member does not offer that service.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+		}
+
+		return self::attempt_create_on_slot( $slot, $validated, $validated['service_id'] );
 	}
 
 	/**
@@ -1645,7 +1652,13 @@ class BYZO_Booking {
 		$service_id     = ! empty( $data['service_id'] ) ? absint( $data['service_id'] ) : 0;
 		$start_datetime = null;
 
-		if ( $service_id ) {
+		// service_id + slot_id (added 2026-09-22, QA report B9): the customer
+		// picked a specific staff member for the service — book that exact
+		// slot, priced as the service. Only service_id + start_datetime means
+		// "any available staff".
+		$slot_for_service = $service_id && ! empty( $data['slot_id'] );
+
+		if ( $service_id && ! $slot_for_service ) {
 			if ( empty( $data['start_datetime'] ) ) {
 				return new WP_Error( 'byzo_missing_start_datetime', __( 'start_datetime is required when booking by service_id.', 'bookyzo' ), array( 'status' => 400 ) );
 			}
@@ -1676,7 +1689,7 @@ class BYZO_Booking {
 		$party_size = isset( $data['party_size'] ) ? max( 1, absint( $data['party_size'] ) ) : 1;
 
 		return array(
-			'slot_id'        => $service_id ? null : absint( $data['slot_id'] ),
+			'slot_id'        => $service_id && ! $slot_for_service ? null : absint( $data['slot_id'] ),
 			'service_id'     => $service_id ?: null,
 			'start_datetime' => $start_datetime,
 			'customer_name'  => sanitize_text_field( $data['customer_name'] ),

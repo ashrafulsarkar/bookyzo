@@ -300,6 +300,12 @@
   gap: 8px;
 }
 
+/* Services list first, then the items themselves — same rhythm as the
+   gap between cards, so the two read as one list. */
+.bookyzo-widget .bookable-item-list--after-services {
+  margin-top: 8px;
+}
+
 .bookyzo-widget .slot-list {
   display: flex;
   flex-direction: row;

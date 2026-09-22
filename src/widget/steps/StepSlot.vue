@@ -150,7 +150,7 @@
 
 <script setup>
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
-import { getSlots } from '../api';
+import { getSlots, getSlotsForService } from '../api';
 import { copyFor } from '../copy';
 import WidgetLoading from '../WidgetLoading.vue';
 
@@ -387,9 +387,19 @@ watch(dates, (list) => {
   }
 });
 
+// "Any available staff": /slots?service_id= returns every staff member's
+// slot, so two free people at 10:00 would show 10:00 twice. One chip per
+// start time — the server picks who at booking (BYZO_Booking::create_for_service()).
+function onePerStartTime(list) {
+  const seen = new Set();
+  return list.filter((slot) => (seen.has(slot.start_datetime) ? false : seen.add(slot.start_datetime)));
+}
+
 onMounted(async () => {
   try {
-    allSlots.value = await getSlots(props.item.id);
+    allSlots.value = props.item.service_id && !props.item.staff_id
+      ? onePerStartTime(await getSlotsForService(props.item.service_id))
+      : await getSlots(props.item.id);
   } catch (e) {
     error.value = e.message;
   } finally {

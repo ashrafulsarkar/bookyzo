@@ -4,8 +4,11 @@
       <span v-for="n in dotCount" :key="n" class="dot" :class="{ active: n <= displayStep }" />
     </div>
 
-    <StepBookableItem v-if="step === 1" :config="config" @selected="onItemSelected" />
-    <StepSlot v-else-if="step === 2" :item="selectedItem" @selected="onSlotSelected" @back="step = 1" />
+    <StepBookableItem v-if="step === 1" :config="config" @selected="onItemSelected" @selected-service="onServiceSelected" />
+    <!-- step 1.5: who, after a Pro service was picked (QA report 2026-09-22
+         B9) — part of the first dot, like the payment detour below. -->
+    <StepStaff v-else-if="step === 1.5" :service="selectedService" :items="publicItems" @selected="onItemSelected" @back="step = 1" />
+    <StepSlot v-else-if="step === 2" :item="selectedItem" @selected="onSlotSelected" @back="step = selectedItem.service_id ? 1.5 : 1" />
     <StepDetails
       v-else-if="step === 3"
       :item="selectedItem"
@@ -31,13 +34,14 @@
          selected item has wc_checkout_enabled; the two are mutually
          exclusive per booking, decided in onDetailsSubmit() below. -->
     <StepWooCommerceCheckout v-else-if="step === 3.6" :booking="createdBooking" @skip="step = 4" />
-    <StepConfirmation v-else-if="step === 4" :booking="createdBooking" :item="selectedItem" />
+    <StepConfirmation v-else-if="step === 4" :booking="createdBooking" :item="confirmedItem" />
   </div>
 </template>
 
 <script setup>
 import { ref, computed } from 'vue';
 import StepBookableItem from './steps/StepBookableItem.vue';
+import StepStaff from './steps/StepStaff.vue';
 import StepSlot from './steps/StepSlot.vue';
 import StepDetails from './steps/StepDetails.vue';
 import StepPayment from './steps/StepPayment.vue';
@@ -60,6 +64,8 @@ const partySize = ref(null);
 const submitting = ref(false);
 const error = ref('');
 const createdBooking = ref(null);
+const selectedService = ref(null);
+const publicItems = ref([]);
 
 // Set when StepBookableItem never actually renders a picker for the user —
 // either the embed is pinned to one bookable item (config.bookableItemId)
@@ -70,6 +76,12 @@ const createdBooking = ref(null);
 const itemStepSkipped = ref(false);
 const dotCount = computed(() => (itemStepSkipped.value ? 3 : 4));
 const displayStep = computed(() => (itemStepSkipped.value ? step.value - 1 : step.value));
+
+function onServiceSelected(service, items) {
+  selectedService.value = service;
+  publicItems.value = items;
+  step.value = 1.5;
+}
 
 function onItemSelected(item, wasAutoSkipped) {
   selectedItem.value = item;
@@ -85,12 +97,28 @@ function onSlotSelected(slot, chosenPartySize) {
   step.value = 3;
 }
 
+// What the confirmation screen names — for "any available staff", only
+// known once the server has assigned someone.
+const confirmedItem = computed(() => {
+  const item = selectedItem.value;
+  const booking = createdBooking.value;
+  if (!item || !item.service_id || item.staff_id || !booking) return item;
+  const member = (item.staff || []).find((m) => m.id === booking.bookable_item_id);
+  const own = publicItems.value.find((i) => i.id === booking.bookable_item_id) || {};
+  return member ? { ...own, ...item, id: member.id, name: `${item.service_name} with ${member.name}` } : item;
+});
+
 async function onDetailsSubmit(form) {
   error.value = '';
   submitting.value = true;
   try {
     const booking = await createBooking({
-      slot_id: selectedSlot.value.id,
+      // A Pro service: a chosen staff member books that exact slot at the
+      // service's price; "any available" sends the service and time and the
+      // server assigns whoever is free (BYZO_Booking::create()).
+      ...(selectedItem.value.service_id && !selectedItem.value.staff_id
+        ? { service_id: selectedItem.value.service_id, start_datetime: selectedSlot.value.start_datetime }
+        : { slot_id: selectedSlot.value.id, service_id: selectedItem.value.service_id || undefined }),
       party_size: form.party_size,
       customer_name: form.name,
       customer_email: form.email,

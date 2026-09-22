@@ -206,7 +206,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 
 #### Appointment Pro — module complete
 - **Staff-specific service assignment and pricing — DONE 2026-09-11, Phase 2 step 5:** `wp_byzo_services` + per-staff price overrides, "Services" admin screen.
-- **"Any available staff" auto-assignment — DONE 2026-09-11, Phase 2 step 5:** tries each candidate staff's slot in turn until one's atomic capacity claim succeeds. Admin+backend only — no public widget picker yet.
+- **"Any available staff" auto-assignment — DONE 2026-09-11, Phase 2 step 5:** tries each candidate staff's slot in turn until one's atomic capacity claim succeeds. **Booking UI added 2026-09-22 (QA report B9):** the widget lists services first, then a "Choose who you'd like" step ("Any available" + each staff member with their price), and the admin's manual booking modal has a Service picker for staff who offer services.
 - **Staff calendar sync (Google Calendar / Outlook two-way) — DONE 2026-09-12, Phase 2 step 9:** bring-your-own OAuth app, push (booking → external event) and pull (external busy time → blocked slot) both ways.
 - **Commission/payout tracking per staff (optional) — DONE 2026-09-12, Phase 2 step 12:** not restricted to Appointment-type items despite the name — any bookable item can carry a commission rate. "Payouts" admin screen.
 

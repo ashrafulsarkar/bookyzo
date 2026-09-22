@@ -16,6 +16,20 @@
           </Select>
         </div>
 
+        <!-- Pro services this staff member offers (QA report 2026-09-22
+             B9) — absent when there are none, which is always the case
+             without Pro. "None" books at the item's own price. -->
+        <div v-if="servicesForItem.length" class="flex flex-col gap-1.5">
+          <Label for="mb-service">Service</Label>
+          <Select v-model="selectedServiceId">
+            <SelectTrigger id="mb-service" class="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem :value="NO_SERVICE">None</SelectItem>
+              <SelectItem v-for="service in servicesForItem" :key="service.id" :value="service.id">{{ service.label }}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div class="flex flex-col gap-1.5">
           <Label for="mb-slot">Time slot</Label>
           <Select v-model="selectedSlotId" :disabled="loadingSlots || slots.length === 0">
@@ -75,6 +89,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { api } from '@/api/client';
+import { formatMoney } from '@/lib/money';
 
 // Same POST /bookings the public widget uses, per DETAILED-SPEC.md §A4 —
 // the only difference from the guest flow is this request carries an
@@ -90,6 +105,10 @@ const items = ref([]);
 const selectedBookableItemId = ref(props.initialBookableItemId);
 const slots = ref([]);
 const selectedSlotId = ref(null);
+// Select can't hold null, so "no service" is a sentinel value.
+const NO_SERVICE = 0;
+const services = ref([]);
+const selectedServiceId = ref(NO_SERVICE);
 const loadingSlots = ref(false);
 const saving = ref(false);
 const error = ref('');
@@ -116,6 +135,21 @@ const selectedSlot = computed(() => slots.value.find((s) => s.id === selectedSlo
 const showPartySize = computed(() => selectedItem.value && selectedItem.value.type !== 'appointment');
 const partySizeLabel = computed(() => PARTY_SIZE_LABELS[selectedItem.value?.type] || 'Party size');
 const partySizeMax = computed(() => Math.max(1, selectedSlot.value?.capacity_remaining || 1));
+
+// /services/public is Pro's route; without Pro it 404s and there are simply
+// no services to offer here.
+async function loadServices() {
+  services.value = await api.get('/services/public').catch(() => []);
+}
+
+const servicesForItem = computed(() =>
+  services.value
+    .map((service) => {
+      const member = (service.staff || []).find((m) => m.id === selectedBookableItemId.value);
+      return member ? { id: service.id, label: member.price !== null ? `${service.name} — ${formatMoney(member.price)}` : service.name } : null;
+    })
+    .filter(Boolean)
+);
 
 async function loadItems() {
   items.value = await api.get('/bookable-items?status=active&per_page=100');
@@ -151,6 +185,7 @@ async function save() {
   try {
     const booking = await api.post('/bookings', {
       slot_id: selectedSlotId.value,
+      service_id: selectedServiceId.value || undefined,
       ...form.value,
     });
     emit('created', booking);
@@ -161,7 +196,10 @@ async function save() {
   }
 }
 
-watch(selectedBookableItemId, loadSlots);
+watch(selectedBookableItemId, () => {
+  selectedServiceId.value = NO_SERVICE;
+  loadSlots();
+});
 // A newly picked slot may have less remaining capacity than whatever was
 // typed for the previous one — reset rather than silently clamp, so the
 // customer's actual pick decision isn't guessed at.
@@ -169,7 +207,7 @@ watch(selectedSlotId, () => {
   form.value.party_size = 1;
 });
 onMounted(async () => {
-  await loadItems();
+  await Promise.all([loadItems(), loadServices()]);
   await loadSlots();
 });
 </script>

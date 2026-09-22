@@ -504,14 +504,25 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 	}
 
 	/**
-	 * Body: { slot_id, party_size?, ticket_tier_id?, service_id?, addon_ids? }.
+	 * Body: { slot_id, party_size?, ticket_tier_id?, service_id?, addon_ids? },
+	 * or { service_id, start_datetime, ... } for "any available staff".
 	 * Returns the same money fields a booking made with that body would
 	 * store. 404 for a slot whose item isn't active (same answer /slots
 	 * gives), so it can't be used to price hidden items.
 	 */
 	public function quote( WP_REST_Request $request ) {
-		$body = (array) $request->get_json_params();
-		$slot = BYZO_Slot::get( absint( $body['slot_id'] ?? 0 ) );
+		$body       = (array) $request->get_json_params();
+		$service_id = absint( $body['service_id'] ?? 0 );
+		$slot       = BYZO_Slot::get( absint( $body['slot_id'] ?? 0 ) );
+
+		// "Any available staff": price the slot create_for_service() would
+		// try first at that time (open_at()'s own order).
+		if ( ! $slot && $service_id && ! empty( $body['start_datetime'] ) ) {
+			$candidates = array_map( 'absint', (array) apply_filters( 'byzo_bookable_items_offering_service', array(), $service_id ) );
+			$open       = $candidates ? BYZO_Slot::open_at( $candidates, sanitize_text_field( $body['start_datetime'] ) ) : array();
+			$slot       = $open ? $open[0] : null;
+		}
+
 		$item = $slot ? BYZO_Bookable_Item::get( $slot['bookable_item_id'] ) : null;
 
 		if ( ! $item || 'active' !== $item['status'] ) {
@@ -522,7 +533,7 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			$slot,
 			max( 1, absint( $body['party_size'] ?? 1 ) ),
 			absint( $body['ticket_tier_id'] ?? 0 ) ?: null,
-			absint( $body['service_id'] ?? 0 ) ?: null,
+			$service_id ?: null,
 			array_filter( array_map( 'absint', (array) ( $body['addon_ids'] ?? array() ) ) )
 		);
 
