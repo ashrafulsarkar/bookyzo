@@ -82,14 +82,14 @@ const rows = [
   { label: 'Deposits & multiple payment gateways', free: '—', pro: '✓' },
   { label: 'Coupons, package credits & dynamic pricing', free: '—', pro: '✓' },
   { label: 'Bulk actions, notes & tags', free: '—', pro: '✓' },
-  { label: 'Recurring class series & waitlist', free: '—', pro: '✓' },
+  { label: 'Recurring class series', free: '—', pro: '✓' },
   { label: 'Table floor plan editor & walk-in waitlist', free: '—', pro: '✓' },
   { label: 'Event ticket tiers, QR e-tickets & check-in scanner', free: '—', pro: '✓' },
   { label: 'Analytics dashboard & CSV exports', free: '—', pro: '✓' },
   { label: 'Staff calendar sync (Google / Outlook)', free: '—', pro: '✓' },
   { label: 'Webhooks, marketing pixels & calendar feeds', free: '—', pro: '✓' },
   { label: 'Custom form field builder', free: '—', pro: '✓' },
-  { label: 'White-label branding & custom CSS', free: '—', pro: '✓' },
+  { label: 'Custom CSS for the booking widget', free: '—', pro: '✓' },
   { label: 'Automatic Pro plugin updates', free: '—', pro: '✓' },
 ];
 </script>
