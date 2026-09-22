@@ -24,7 +24,7 @@
     <p v-if="item?.meeting_link" class="location">
       <a :href="item.meeting_link" target="_blank" rel="noopener noreferrer">Join meeting link</a>
     </p>
-    <div v-if="booking?.slot_start" class="add-to-calendar">
+    <div v-if="booking?.slot_start_gmt" class="add-to-calendar">
       <a :href="googleCalendarUrl" target="_blank" rel="noopener noreferrer">Add to Google Calendar</a>
       <span class="sep">·</span>
       <a href="#" @click.prevent="downloadIcs">Download .ics</a>
@@ -64,14 +64,23 @@ function formatTime(iso) {
 // (item name, slot_start/slot_end) is already in these two props from
 // the booking-creation response. Google Calendar's own render?action=TEMPLATE
 // deep link needs no API call, just a query-string-encoded URL.
-function toUtcStamp(iso) {
-  return toLocalDate(iso).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
+//
+// slot_start/slot_end are the SITE's wall-clock time with no zone attached,
+// so converting them here would read them in the VISITOR's timezone — a
+// Dhaka visitor booking 09:00 on a UTC site got a 03:00Z event (QA report
+// 2026-09-22 B7). The server sends the real instants as slot_start_gmt/
+// slot_end_gmt (ISO 8601, UTC) for exactly this.
+function toUtcStamp(isoUtc) {
+  return new Date(isoUtc).toISOString().replace(/[-:]/g, '').replace(/\.\d{3}Z$/, 'Z');
 }
 
+const startGmt = computed(() => props.booking?.slot_start_gmt);
+const endGmt = computed(() => props.booking?.slot_end_gmt || props.booking?.slot_start_gmt);
+
 const googleCalendarUrl = computed(() => {
-  if (!props.booking?.slot_start) return '#';
-  const start = toUtcStamp(props.booking.slot_start);
-  const end = toUtcStamp(props.booking.slot_end || props.booking.slot_start);
+  if (!startGmt.value) return '#';
+  const start = toUtcStamp(startGmt.value);
+  const end = toUtcStamp(endGmt.value);
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: props.item?.name || 'Booking',
@@ -81,8 +90,8 @@ const googleCalendarUrl = computed(() => {
 });
 
 function icsContent() {
-  const start = toUtcStamp(props.booking.slot_start);
-  const end = toUtcStamp(props.booking.slot_end || props.booking.slot_start);
+  const start = toUtcStamp(startGmt.value);
+  const end = toUtcStamp(endGmt.value);
   const title = (props.item?.name || 'Booking').replace(/[\r\n]/g, ' ');
   return [
     'BEGIN:VCALENDAR',

@@ -1909,6 +1909,27 @@ class BYZO_Booking {
 		$row['slot_start'] = $row['slot_start'] ?? null;
 		$row['slot_end']   = $row['slot_end'] ?? null;
 
+		// The same two instants in UTC (ISO 8601, `Z`), for anything that
+		// needs an absolute time rather than the site's wall-clock one —
+		// the widget's add-to-calendar links, which otherwise had to guess
+		// a zone and used the visitor's (QA report 2026-09-22 B7).
+		$row['slot_start_gmt'] = self::local_to_gmt_iso( $row['slot_start'] );
+		$row['slot_end_gmt']   = self::local_to_gmt_iso( $row['slot_end'] );
+
 		return $row;
+	}
+
+	/**
+	 * @param string|null $local A site-local 'Y-m-d H:i:s' datetime.
+	 * @return string|null e.g. '2026-09-26T18:00:00Z'.
+	 */
+	private static function local_to_gmt_iso( $local ) {
+		if ( ! $local ) {
+			return null;
+		}
+
+		$datetime = date_create_immutable( $local, wp_timezone() );
+
+		return $datetime ? $datetime->setTimezone( new DateTimeZone( 'UTC' ) )->format( 'Y-m-d\TH:i:s\Z' ) : null;
 	}
 }
