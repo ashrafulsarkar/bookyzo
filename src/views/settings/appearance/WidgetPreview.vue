@@ -1,11 +1,15 @@
 <template>
-  <!-- A static replica of the real widget's slot-picking step, driven by
-       the same CSS custom property names src/widget/widget.css uses, so
-       what's rendered here is what those tokens will produce on the front
-       end. Deliberately NOT the real widget bundle: that would need REST
-       data, a booking flow, and a second Vue app inside wp-admin to show
-       what is only ever a color/spacing check. Keep the token names in
-       sync with widget.css if they ever change there. -->
+  <!-- A static replica of the real widget's three main steps (service
+       list, calendar + time picker, details form), matching
+       src/widget/widget.css's actual current markup/classes structurally
+       (segmented progress bar, .option-card rows, month calendar +
+       grouped times, .summary card) and driven by the same CSS custom
+       property names, so what's rendered here is what those tokens will
+       produce on the front end. Deliberately NOT the real widget bundle:
+       that would need REST data, a booking flow, and a second Vue app
+       inside wp-admin to show what is only ever a color/spacing check.
+       Keep this in sync with widget.css/the widget/steps/*.vue markup if
+       they change there. -->
   <div class="byzo-stage">
     <!-- A mock browser chrome around the widget. The point is context:
          on its own, the widget's own white card is invisible against the
@@ -22,6 +26,9 @@
 
       <div class="byzo-stage__page">
         <div class="byzo-preview" :style="previewStyle">
+          <!-- A segmented bar, not dots — matches src/widget/widget.css's
+               own .progress: each fixed-width segment is one step, filled
+               up to the current one. -->
           <div class="byzo-preview__progress">
             <span
               v-for="n in 3"
@@ -35,15 +42,21 @@
             <h2 class="byzo-preview__title">Choose a service</h2>
             <p class="byzo-preview__subtitle">Pick what you'd like to book.</p>
 
-            <div class="byzo-preview__cards">
+            <div class="byzo-preview__card-list">
               <span
                 v-for="service in services"
                 :key="service.name"
                 class="byzo-preview__card"
-                :class="{ 'byzo-preview__card--selected': service.selected }"
+                :class="{ 'byzo-preview__card--hover': service.highlighted }"
               >
-                <span class="byzo-preview__card-name">{{ service.name }}</span>
-                <span class="byzo-preview__card-meta">{{ service.meta }}</span>
+                <span class="byzo-preview__card-body">
+                  <span class="byzo-preview__card-name">{{ service.name }}</span>
+                  <span class="byzo-preview__card-meta">
+                    <span>{{ service.duration }}</span>
+                    <span class="byzo-preview__card-price">{{ service.price }}</span>
+                  </span>
+                </span>
+                <span class="byzo-preview__card-go">&#8250;</span>
               </span>
             </div>
           </template>
@@ -52,16 +65,50 @@
             <h2 class="byzo-preview__title">Pick a time</h2>
             <p class="byzo-preview__subtitle">Maya Chen — Senior Stylist</p>
 
-            <div class="byzo-preview__chips">
-              <span class="byzo-preview__chip byzo-preview__chip--selected">Thu 10 Sept</span>
-              <span class="byzo-preview__chip">Fri 11 Sept</span>
-              <span class="byzo-preview__chip">Sat 12 Sept</span>
-            </div>
+            <!-- Month calendar beside grouped times, same as StepSlot.vue's
+                 real .picker layout (not the old flat run of date chips). -->
+            <div class="byzo-preview__picker">
+              <div class="byzo-preview__cal">
+                <div class="byzo-preview__cal-head">
+                  <span class="byzo-preview__cal-nav">&#8249;</span>
+                  <span class="byzo-preview__cal-title">September 2026</span>
+                  <span class="byzo-preview__cal-nav">&#8250;</span>
+                </div>
+                <div class="byzo-preview__cal-grid byzo-preview__cal-dow">
+                  <span v-for="dow in dayNames" :key="dow">{{ dow }}</span>
+                </div>
+                <div class="byzo-preview__cal-grid">
+                  <span
+                    v-for="(cell, index) in calendarCells"
+                    :key="index"
+                    class="byzo-preview__cal-cell"
+                    :class="{
+                      'byzo-preview__cal-cell--empty': !cell,
+                      'byzo-preview__cal-cell--open': cell?.state === 'open',
+                      'byzo-preview__cal-cell--selected': cell?.state === 'selected',
+                    }"
+                  >{{ cell?.day }}</span>
+                </div>
+              </div>
 
-            <div class="byzo-preview__chips byzo-preview__chips--times">
-              <span class="byzo-preview__chip">9:00</span>
-              <span class="byzo-preview__chip">10:50</span>
-              <span class="byzo-preview__chip">12:40</span>
+              <div class="byzo-preview__times">
+                <div class="byzo-preview__times-head">Thursday, September 10</div>
+                <div class="byzo-preview__time-group">
+                  <div class="byzo-preview__time-group-label">Morning</div>
+                  <div class="byzo-preview__chips">
+                    <span class="byzo-preview__chip">9:00</span>
+                    <span class="byzo-preview__chip byzo-preview__chip--selected">10:50</span>
+                    <span class="byzo-preview__chip">11:30</span>
+                  </div>
+                </div>
+                <div class="byzo-preview__time-group">
+                  <div class="byzo-preview__time-group-label">Afternoon</div>
+                  <div class="byzo-preview__chips">
+                    <span class="byzo-preview__chip">12:40</span>
+                    <span class="byzo-preview__chip">2:15</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div class="byzo-preview__actions">
@@ -72,7 +119,23 @@
 
           <template v-else>
             <h2 class="byzo-preview__title">Your details</h2>
-            <p class="byzo-preview__subtitle">Thu 10 Sept at 10:50</p>
+
+            <!-- Restated booking summary, same as StepDetails.vue's real
+                 .summary card — not a bare form. -->
+            <div class="byzo-preview__summary">
+              <div class="byzo-preview__summary-row">
+                <span class="byzo-preview__summary-label">Service</span>
+                <span class="byzo-preview__summary-value">Maya Chen — Senior Stylist</span>
+              </div>
+              <div class="byzo-preview__summary-row">
+                <span class="byzo-preview__summary-label">When</span>
+                <span class="byzo-preview__summary-value">Thu 10 Sept, 10:50</span>
+              </div>
+              <div class="byzo-preview__summary-row byzo-preview__summary-row--total">
+                <span class="byzo-preview__summary-label">Total</span>
+                <span class="byzo-preview__summary-value">65.00</span>
+              </div>
+            </div>
 
             <div class="byzo-preview__field">
               <span class="byzo-preview__label">Name</span>
@@ -126,9 +189,28 @@ const stepOptions = [
 const step = ref('time');
 
 const services = [
-  { name: 'Maya Chen — Senior Stylist', meta: '45 min · 65.00', selected: true },
-  { name: 'Morning Flow Yoga', meta: '60 min · 18.00', selected: false },
+  { name: 'Maya Chen — Senior Stylist', duration: '45 min', price: '65.00', highlighted: true },
+  { name: 'Morning Flow Yoga', duration: '60 min', price: '18.00', highlighted: false },
 ];
+
+const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+// September 2026 starts on a Tuesday — 2 leading blanks, then 30 days.
+// A handful marked "open" (bookable) and one "selected", the rest muted,
+// same three cell states StepSlot.vue's real calendar uses.
+const OPEN_DAYS = new Set([3, 4, 8, 11, 15, 17, 18, 22, 24, 25, 29]);
+const SELECTED_DAY = 10;
+
+const calendarCells = computed(() => {
+  const cells = new Array(2).fill(null);
+  for (let day = 1; day <= 30; day += 1) {
+    cells.push({
+      day,
+      state: day === SELECTED_DAY ? 'selected' : OPEN_DAYS.has(day) ? 'open' : 'muted',
+    });
+  }
+  return cells;
+});
 
 const activeStep = computed(() => stepOptions.findIndex((o) => o.value === step.value) + 1);
 
@@ -256,29 +338,30 @@ const previewStyle = computed(() => {
   padding: 24px;
 }
 
+/* A segmented bar (flex-1 pills), not round dots — matches widget.css's
+   real .progress exactly, just at the preview's own smaller scale. */
 .byzo-preview__progress {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 20px;
+  gap: 5px;
+  margin-bottom: 18px;
 }
 
 .byzo-preview__dot {
-  width: 8px;
-  height: 8px;
+  flex: 1;
+  height: 4px;
   border-radius: 999px;
   background: var(--byzo-border);
 }
 
 .byzo-preview__dot--active {
-  width: 20px;
   background: var(--byzo-primary);
 }
 
 .byzo-preview__title {
   margin: 0 0 4px;
   font-size: 1.29em;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--byzo-text);
 }
 
@@ -287,32 +370,213 @@ const previewStyle = computed(() => {
   color: var(--byzo-text-muted);
 }
 
-.byzo-preview__cards {
+/* Service list — real StepBookableItem.vue's .option-card: a full-width
+   row (name + duration/price on the left, a "go" chevron on the right),
+   not a bare bordered block. */
+.byzo-preview__card-list {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
 .byzo-preview__card {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 10px;
   border: 1px solid var(--byzo-border);
   border-radius: var(--byzo-radius-sm);
   padding: 12px;
+  background: var(--byzo-surface);
 }
 
-.byzo-preview__card--selected {
+/* Static stand-in for .option-card:hover — there's no real cursor here,
+   so one card is shown in its hover state to demonstrate the accent
+   color/light-tint tokens actually being used. */
+.byzo-preview__card--hover {
   border-color: var(--byzo-primary);
+  background: var(--byzo-primary-light);
+}
+
+.byzo-preview__card-body {
+  flex: 1;
+  min-width: 0;
 }
 
 .byzo-preview__card-name {
   display: block;
   font-weight: 600;
+  margin-bottom: 2px;
 }
 
 .byzo-preview__card-meta {
-  display: block;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   color: var(--byzo-text-muted);
+  font-size: 0.87em;
+}
+
+.byzo-preview__card-price {
+  color: var(--byzo-text);
+  font-weight: 600;
+}
+
+.byzo-preview__card-go {
+  color: var(--byzo-text-muted);
+  font-size: 1.2em;
+  flex-shrink: 0;
+}
+
+/* Calendar + grouped times, same layout as StepSlot.vue's real .picker.
+   The calendar's own tint (--byzo-subtle in widget.css) is NOT a
+   customizable Appearance field on the real widget either — kept as the
+   same fixed value here so the preview doesn't imply a control that
+   doesn't exist. */
+.byzo-preview__picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.byzo-preview__cal {
+  flex: 0 0 auto;
+  background: #f6f7f9;
+  border-radius: var(--byzo-radius-sm);
+  padding: 10px 12px;
+}
+
+.byzo-preview__cal-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.byzo-preview__cal-title {
+  font-weight: 650;
+  font-size: 0.87em;
+  white-space: nowrap;
+}
+
+.byzo-preview__cal-nav {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  background: var(--byzo-surface);
+  color: var(--byzo-text-muted);
+  font-size: 0.8em;
+  flex-shrink: 0;
+}
+
+.byzo-preview__cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 22px);
+  justify-content: space-between;
+  gap: 3px 0;
+}
+
+.byzo-preview__cal-dow {
+  margin-bottom: 4px;
+  font-size: 0.6em;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--byzo-text-muted);
+  text-align: center;
+}
+
+.byzo-preview__cal-cell {
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  color: #b6bcc6;
+  font-size: 0.7em;
+}
+
+.byzo-preview__cal-cell--empty {
+  visibility: hidden;
+}
+
+.byzo-preview__cal-cell--open {
+  color: var(--byzo-text);
+  font-weight: 600;
+  background: var(--byzo-surface);
+}
+
+.byzo-preview__cal-cell--selected {
+  background: var(--byzo-primary);
+  color: #fff;
+}
+
+.byzo-preview__times {
+  flex: 1 1 160px;
+  min-width: 0;
+}
+
+.byzo-preview__times-head {
+  font-weight: 650;
   font-size: 0.93em;
+  margin-bottom: 10px;
+}
+
+.byzo-preview__time-group + .byzo-preview__time-group {
+  margin-top: 10px;
+}
+
+.byzo-preview__time-group-label {
+  font-size: 0.7em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--byzo-text-muted);
+  margin-bottom: 5px;
+}
+
+/* Details step — restated booking summary, same as StepDetails.vue's
+   real .summary card. */
+.byzo-preview__summary {
+  background: var(--byzo-primary-light);
+  border-radius: var(--byzo-radius-sm);
+  padding: 10px 12px;
+  margin-bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.byzo-preview__summary-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 0.87em;
+}
+
+.byzo-preview__summary-label {
+  color: var(--byzo-text-muted);
+  flex-shrink: 0;
+}
+
+.byzo-preview__summary-value {
+  font-weight: 600;
+  text-align: right;
+}
+
+.byzo-preview__summary-row--total {
+  border-top: 1px solid rgba(0, 0, 0, 0.1);
+  margin-top: 1px;
+  padding-top: 6px;
+}
+
+.byzo-preview__summary-row--total .byzo-preview__summary-value {
+  font-size: 1.07em;
+  color: var(--byzo-text);
 }
 
 .byzo-preview__field {
@@ -342,24 +606,22 @@ const previewStyle = computed(() => {
 .byzo-preview__chips {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-}
-
-.byzo-preview__chips--times {
-  margin-top: 12px;
+  gap: 6px;
 }
 
 .byzo-preview__chip {
   border: 1px solid var(--byzo-border);
-  border-radius: 999px;
-  padding: 6px 14px;
-  font-size: 0.93em;
+  border-radius: var(--byzo-radius-sm);
+  padding: 6px 12px;
+  font-size: 0.87em;
+  font-weight: 600;
 }
 
+/* Filled, not just tinted — matches widget.css's real .chip.selected. */
 .byzo-preview__chip--selected {
   border-color: var(--byzo-primary);
-  color: var(--byzo-primary);
-  background: var(--byzo-primary-light);
+  background: var(--byzo-primary);
+  color: #fff;
 }
 
 .byzo-preview__actions {
@@ -369,7 +631,7 @@ const previewStyle = computed(() => {
 }
 
 .byzo-preview__btn {
-  font-weight: 500;
+  font-weight: 600;
   border-radius: var(--byzo-radius-sm);
   padding: 9px 16px;
   border: 1px solid transparent;
@@ -379,6 +641,9 @@ const previewStyle = computed(() => {
 .byzo-preview__btn--primary {
   background: linear-gradient(135deg, var(--byzo-primary), var(--byzo-primary-dark));
   color: #fff;
+  /* Hardcoded to match widget.css's own .btn-primary shadow, which is
+     likewise NOT derived from the accent color token on the real widget. */
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
 }
 
 .byzo-preview__btn--outline {

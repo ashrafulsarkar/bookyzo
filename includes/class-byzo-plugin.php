@@ -121,6 +121,7 @@ class BYZO_Plugin {
 		BYZO_Booking_Cleanup::init();
 
 		add_filter( 'byzo_rest_controllers', array( $this, 'register_core_rest_controllers' ) );
+		add_filter( 'plugin_action_links_' . BYZO_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );
 
 		add_action( 'admin_menu', array( $this, 'register_admin_menu' ) );
 		add_action( 'byzo_generate_slots', array( 'BYZO_Slot_Generator', 'generate_all' ) );
@@ -137,6 +138,31 @@ class BYZO_Plugin {
 
 	public function generate_slots_for_bookable_item( $bookable_item_id ) {
 		BYZO_Slot_Generator::generate_for_bookable_item( $bookable_item_id );
+	}
+
+	/**
+	 * Action links on the Plugins page row: Get Pro | Dashboard | Deactivate.
+	 * "Get Pro" links to GetPro.vue's own screen (never a raw purchase URL —
+	 * that's byzo_get_pro_url()'s own job) and disappears once
+	 * byzo_is_pro_licensed() is true; "Dashboard" always stays. Same pattern
+	 * as the sister license-envato plugin's Admin::plugin_menu_links()
+	 * (its always-present link is "Settings" — Bookyzo has no separate
+	 * settings page of its own, so "Dashboard" is the equivalent landing
+	 * point here).
+	 *
+	 * @param array $actions
+	 * @return array
+	 */
+	public function plugin_action_links( $actions ) {
+		$links = array();
+
+		if ( ! byzo_is_pro_licensed() ) {
+			$links[] = '<a href="' . esc_url( admin_url( 'admin.php?page=bookyzo-get-pro' ) ) . '" style="color:#d63638;font-weight:700;">' . esc_html__( 'Get Pro', 'bookyzo' ) . '</a>';
+		}
+
+		$links[] = '<a href="' . esc_url( admin_url( 'admin.php?page=' . self::MENU_SLUG ) ) . '">' . esc_html__( 'Dashboard', 'bookyzo' ) . '</a>';
+
+		return array_merge( $links, $actions );
 	}
 
 	public function register_core_rest_controllers( $controllers ) {
@@ -298,7 +324,21 @@ class BYZO_Plugin {
 			);
 		}
 
-		return $routes;
+		/**
+		 * Lets an add-on (Pro) register its OWN real WP submenu page,
+		 * exactly like one of the entries above — same
+		 * add_submenu_page()/BYZO_Admin_Assets treatment, just contributed
+		 * from outside this class. Pro uses this for exactly one screen
+		 * (License, see BYZOP_Plugin::add_license_admin_route()) rather
+		 * than every Pro screen, to keep the native WP left-hand menu from
+		 * growing to match the app's own much longer in-app sidebar
+		 * (ByzoSidebar.vue, populated client-side via
+		 * window.byzoAdmin.registerExtension()) — everything else Pro adds
+		 * stays reachable from inside the app only, same as it always has.
+		 *
+		 * @param array<string,array{route:string,label:string,title:string}> $routes
+		 */
+		return apply_filters( 'byzo_admin_routes', $routes );
 	}
 
 	public function render_admin_root() {

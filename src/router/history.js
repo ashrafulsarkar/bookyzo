@@ -46,6 +46,15 @@ const SLUG_FOR_ROUTE = {
   // reload/bookmark of the Settings screen.
   '/settings/general': 'bookyzo-settings',
   '/settings/appearance': 'bookyzo-appearance',
+  '/get-pro': 'bookyzo-get-pro',
+  // Pro's one exception to "extension routes ride the `view` param" (see
+  // the function comment below): License gets a real native WP submenu
+  // page of its own (BYZOP_Plugin::add_license_admin_route(), added via
+  // the byzo_admin_routes filter), so it needs the same inverse mapping
+  // every other real page gets — otherwise navigating here in-app would
+  // still rewrite the URL to `page=bookyzo&view=/pro/license` and leave
+  // WP's own menu highlighting the Dashboard row instead of License.
+  '/pro/license': 'bookyzo-license',
 };
 
 /**

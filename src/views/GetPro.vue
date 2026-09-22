@@ -15,13 +15,17 @@
     </ByzoPageHeader>
 
     <div class="px-6 pb-8 flex flex-col gap-4">
-      <!-- Honest, not-yet-for-sale state — never a dead/fake link. Bookyzo
-           Pro exists and is installable today, but this project has no
-           real purchase URL yet (see byzo_get_pro_url()'s own docblock);
-           showing that plainly beats a button that goes nowhere. -->
-      <div v-if="!getProUrl" class="rounded-lg border px-4 py-3 text-sm" style="border-color: var(--byzo-border); background: var(--byzo-surface-alt); color: var(--byzo-text-muted)">
-        Bookyzo Pro isn't available for purchase yet. If you already have a license key, install &amp; activate the
-        Bookyzo Pro plugin, then enter it under Bookyzo → License.
+      <!-- NOTE: placeholder href="#" below — must be wired to a real purchase
+           URL (or removed again) before any WP.org submission; a dead link
+           here is a Guideline 5 (Trialware) rejection risk, see bookyzo-dev skill. -->
+      <div v-if="!getProUrl" class="rounded-lg border px-4 py-3 text-sm flex items-center justify-between gap-4" style="border-color: var(--byzo-border); background: var(--byzo-surface-alt); color: var(--byzo-text-muted)">
+        <span>
+          Unlock unlimited bookable items and every growth feature with Bookyzo Pro. If you already have a
+          license key, install &amp; activate the Bookyzo Pro plugin, then enter it under Bookyzo → License.
+        </span>
+        <a href="#" class="shrink-0">
+          <Button style="background: var(--byzo-danger); border-color: var(--byzo-danger)">Purchase Bookyzo Pro</Button>
+        </a>
       </div>
 
       <Card>
