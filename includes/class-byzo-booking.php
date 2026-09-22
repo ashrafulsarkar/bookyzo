@@ -723,6 +723,147 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * What a booking of $slot costs, computed exactly the way create()
+	 * charges it. Shared by attempt_create_on_slot() and the public
+	 * POST /bookings/quote route, so the total the widget shows before
+	 * the customer confirms can never drift from the amount actually
+	 * charged (QA report 2026-09-22 B3: the widget re-did the arithmetic
+	 * in JS and missed Pro's pricing rules and booking fees).
+	 *
+	 * Pure — reads settings/filters, writes nothing. Price-resolving
+	 * filters (byzo_ticket_tier_price, byzo_service_price, byzo_unit_price,
+	 * byzo_resolve_addons, byzo_deposit_amount) must stay side-effect
+	 * free for that reason; claiming capacity lives in
+	 * byzo_claim_ticket_tier instead.
+	 *
+	 * @param array    $slot           A BYZO_Slot::cast() row.
+	 * @param int      $party_size     Quantity (seats/tickets/places).
+	 * @param int|null $ticket_tier_id Event ticket tier, or null.
+	 * @param int|null $service_id     Service being booked, or null.
+	 * @param int[]    $addon_ids      Requested add-on ids (unvalidated; resolved server-side).
+	 * @return array { unit_price, subtotal, addons, addons_total, booking_fee_amount, tax_rate, tax_amount, payment_amount, deposit_amount } — money fields are null when there's nothing to charge.
+	 */
+	public static function price_breakdown( $slot, $party_size, $ticket_tier_id = null, $service_id = null, $addon_ids = array() ) {
+		$party_size = max( 1, (int) $party_size );
+
+		// payment_amount is ALWAYS server-computed, never taken from client
+		// input (validate_for_create() doesn't even look at a
+		// client-supplied payment_amount — see its docblock) — this is what
+		// BYZO_Stripe's payment-intent creation charges, so trusting a
+		// client-suppliable amount here would let a guest pay $0.01 for an
+		// expensive service. NULL price (a free item, DETAILED-SPEC.md
+		// §1.1) means nothing to charge.
+		//
+		// Default source is the bookable item's own price; a service
+		// booking (Phase 2 step 5, DETAILED-SPEC.md §3 B7) overrides it via
+		// byzo_service_price — Pro resolves wp_byzo_bookable_item_services'
+		// price_override, falling back to the service's own default_price.
+		// Free never hooks this filter, so a direct (non-service) booking
+		// is byte-for-byte the same computation as before this step.
+		$item      = BYZO_Bookable_Item::get( $slot['bookable_item_id'] );
+		$unit_price = $item ? $item['price'] : null;
+
+		// Ticket tier pricing (Phase 2 step 12 continued) — same
+		// precedence shape as service pricing below (checked before the
+		// bookable item's own flat price), but mutually exclusive with it
+		// in practice (a ticket_tier_id only ever accompanies an Event
+		// booking, a service_id only an Appointment one).
+		if ( $ticket_tier_id ) {
+			$tier_price = apply_filters( 'byzo_ticket_tier_price', null, $ticket_tier_id );
+			if ( null !== $tier_price ) {
+				$unit_price = (float) $tier_price;
+			}
+		}
+
+		if ( $service_id ) {
+			$service_price = apply_filters( 'byzo_service_price', null, $service_id, $slot['bookable_item_id'] );
+			if ( null !== $service_price ) {
+				$unit_price = (float) $service_price;
+			}
+		}
+
+		// Seasonal/dynamic pricing (Phase 2 step 14, DETAILED-SPEC.md §3
+		// B6) — applied BEFORE tax, same "adjust the base first, tax the
+		// adjusted total" order §A7's own tax step already established.
+		// Free never hooks this (no pricing-rules UI exists there); Pro
+		// resolves its own wp_byzo_pricing_rules against the slot's own
+		// start_datetime for season/weekday rules or against (start_datetime
+		// - now) for lead-time rules. A null $unit_price (free item) is
+		// passed through unadjusted — nothing to adjust a percentage of.
+		if ( null !== $unit_price ) {
+			$unit_price = (float) apply_filters( 'byzo_unit_price', $unit_price, $item['id'], $slot );
+		}
+
+		$subtotal = null !== $unit_price ? round( $unit_price * $party_size, 2 ) : null;
+
+		// Add-ons (Phase 2 step 17, DETAILED-SPEC.md §3 B6) — the client
+		// submits only `addon_ids`; the price NEVER comes from the client
+		// (same rule payment_amount as a whole already follows). Pro
+		// resolves its own wp_byzo_addons table via this filter, silently
+		// dropping any id that isn't active or doesn't actually apply to
+		// this bookable item rather than erroring — same "the real wall
+		// answers honestly" shape as an unavailable slot. Free never hooks
+		// this, so a request with no addon_ids computes exactly as before.
+		$resolved_addons = ! empty( $addon_ids )
+			? (array) apply_filters( 'byzo_resolve_addons', array(), $addon_ids, $item['id'] )
+			: array();
+		$addons_total    = array_sum( array_column( $resolved_addons, 'price' ) );
+
+		// Flat booking fee (Phase 2 step 17) — once per booking, not
+		// multiplied by party_size, unlike unit_price above.
+		$booking_fee_amount = ( null !== $item && null !== $item['booking_fee'] ) ? (float) $item['booking_fee'] : null;
+
+		$has_charge    = null !== $subtotal || $addons_total > 0 || null !== $booking_fee_amount;
+		$taxable_total = ( null !== $subtotal ? $subtotal : 0 ) + $addons_total + (float) $booking_fee_amount;
+
+		// Flat site-wide tax rate (added 2026-09-05, Phase 1.5 step 9,
+		// DETAILED-SPEC.md §A7) — tax_amount is broken out from
+		// payment_amount for invoice display; both NULL when there's
+		// nothing to charge in the first place. `tax_rate_override`
+		// (added 2026-09-12, Phase 2 step 14, DETAILED-SPEC.md §1.1) is a
+		// Pro-only-WRITTEN Free-schema column — when a bookable item has
+		// one set, it replaces the site-wide rate outright for THIS
+		// booking (not added to it); Free itself never writes the column,
+		// so an install with no Pro (or Pro's override cleared) computes
+		// byte-for-byte the same as before this step. Tax applies to the
+		// WHOLE taxable total (base + add-ons + booking fee), matching how
+		// a real invoice taxes every line item, not just the base price.
+		$tax_rate       = null !== $item && null !== $item['tax_rate_override'] ? (float) $item['tax_rate_override'] : (float) BYZO_Settings::get()['tax_rate'];
+		$tax_amount     = ( $has_charge && $tax_rate > 0 ) ? round( $taxable_total * $tax_rate / 100, 2 ) : null;
+		$payment_amount = $has_charge ? round( $taxable_total + (float) $tax_amount, 2 ) : null;
+
+		// Deposits/partial payments (Phase 2 step 6, DETAILED-SPEC.md §A7)
+		// — how much of payment_amount is actually due online now, vs. the
+		// remainder collected later. BYZO_Capabilities::deposits_enabled()
+		// (Free=false) is the master on/off switch — the byzo_deposit_amount
+		// filter is only even consulted once it's on, same two-filter
+		// shape (a boolean gate + a value resolver) B7's service pricing
+		// already established with business_hours_link_enabled/
+		// byzo_service_price. Clamped to [0, payment_amount] so a
+		// misconfigured Pro filter can never charge more than the booking
+		// is actually worth or go negative.
+		$deposit_amount = null;
+		if ( null !== $payment_amount && BYZO_Capabilities::deposits_enabled() ) {
+			$deposit_amount = apply_filters( 'byzo_deposit_amount', null, $payment_amount, $slot['bookable_item_id'] );
+			if ( null !== $deposit_amount ) {
+				$deposit_amount = round( max( 0, min( (float) $deposit_amount, $payment_amount ) ), 2 );
+			}
+		}
+
+		return array(
+			'unit_price'         => $unit_price,
+			'subtotal'           => $subtotal,
+			'addons'             => $resolved_addons,
+			'addons_total'       => round( (float) $addons_total, 2 ),
+			'booking_fee_amount' => $booking_fee_amount,
+			'tax_rate'           => $tax_rate,
+			'tax_amount'         => $tax_amount,
+			'payment_amount'     => $payment_amount,
+			'deposit_amount'     => $deposit_amount,
+		);
+	}
+
+	/**
 	 * The actual atomic-claim-and-insert, shared by both the direct
 	 * slot_id path and create_for_service()'s candidate loop above — this
 	 * is exactly what create() used to do inline before Phase 2 step 5
@@ -797,109 +938,13 @@ class BYZO_Booking {
 
 		$now = current_time( 'mysql' );
 
-		// payment_amount is ALWAYS server-computed, never taken from client
-		// input (validate_for_create() doesn't even look at a
-		// client-supplied payment_amount — see its docblock) — this is what
-		// BYZO_Stripe's payment-intent creation charges, so trusting a
-		// client-suppliable amount here would let a guest pay $0.01 for an
-		// expensive service. NULL price (a free item, DETAILED-SPEC.md
-		// §1.1) means nothing to charge.
-		//
-		// Default source is the bookable item's own price; a service
-		// booking (Phase 2 step 5, DETAILED-SPEC.md §3 B7) overrides it via
-		// byzo_service_price — Pro resolves wp_byzo_bookable_item_services'
-		// price_override, falling back to the service's own default_price.
-		// Free never hooks this filter, so a direct (non-service) booking
-		// is byte-for-byte the same computation as before this step.
-		$item      = BYZO_Bookable_Item::get( $slot['bookable_item_id'] );
-		$unit_price = $item ? $item['price'] : null;
+		$price = self::price_breakdown( $slot, $party_size, $ticket_tier_id, $service_id, $validated['addon_ids'] ?? array() );
 
-		// Ticket tier pricing (Phase 2 step 12 continued) — same
-		// precedence shape as service pricing below (checked before the
-		// bookable item's own flat price), but mutually exclusive with it
-		// in practice (a ticket_tier_id only ever accompanies an Event
-		// booking, a service_id only an Appointment one).
-		if ( $ticket_tier_id ) {
-			$tier_price = apply_filters( 'byzo_ticket_tier_price', null, $ticket_tier_id );
-			if ( null !== $tier_price ) {
-				$unit_price = (float) $tier_price;
-			}
-		}
-
-		if ( $service_id ) {
-			$service_price = apply_filters( 'byzo_service_price', null, $service_id, $slot['bookable_item_id'] );
-			if ( null !== $service_price ) {
-				$unit_price = (float) $service_price;
-			}
-		}
-
-		// Seasonal/dynamic pricing (Phase 2 step 14, DETAILED-SPEC.md §3
-		// B6) — applied BEFORE tax, same "adjust the base first, tax the
-		// adjusted total" order §A7's own tax step already established.
-		// Free never hooks this (no pricing-rules UI exists there); Pro
-		// resolves its own wp_byzo_pricing_rules against the slot's own
-		// start_datetime for season/weekday rules or against (start_datetime
-		// - now) for lead-time rules. A null $unit_price (free item) is
-		// passed through unadjusted — nothing to adjust a percentage of.
-		if ( null !== $unit_price ) {
-			$unit_price = (float) apply_filters( 'byzo_unit_price', $unit_price, $item['id'], $slot );
-		}
-
-		$subtotal = null !== $unit_price ? round( $unit_price * $party_size, 2 ) : null;
-
-		// Add-ons (Phase 2 step 17, DETAILED-SPEC.md §3 B6) — the client
-		// submits only `addon_ids`; the price NEVER comes from the client
-		// (same rule payment_amount as a whole already follows). Pro
-		// resolves its own wp_byzo_addons table via this filter, silently
-		// dropping any id that isn't active or doesn't actually apply to
-		// this bookable item rather than erroring — same "the real wall
-		// answers honestly" shape as an unavailable slot. Free never hooks
-		// this, so a request with no addon_ids computes exactly as before.
-		$resolved_addons = ! empty( $validated['addon_ids'] )
-			? (array) apply_filters( 'byzo_resolve_addons', array(), $validated['addon_ids'], $item['id'] )
-			: array();
-		$addons_total    = array_sum( array_column( $resolved_addons, 'price' ) );
-
-		// Flat booking fee (Phase 2 step 17) — once per booking, not
-		// multiplied by party_size, unlike unit_price above.
-		$booking_fee_amount = ( null !== $item && null !== $item['booking_fee'] ) ? (float) $item['booking_fee'] : null;
-
-		$has_charge    = null !== $subtotal || $addons_total > 0 || null !== $booking_fee_amount;
-		$taxable_total = ( null !== $subtotal ? $subtotal : 0 ) + $addons_total + (float) $booking_fee_amount;
-
-		// Flat site-wide tax rate (added 2026-09-05, Phase 1.5 step 9,
-		// DETAILED-SPEC.md §A7) — tax_amount is broken out from
-		// payment_amount for invoice display; both NULL when there's
-		// nothing to charge in the first place. `tax_rate_override`
-		// (added 2026-09-12, Phase 2 step 14, DETAILED-SPEC.md §1.1) is a
-		// Pro-only-WRITTEN Free-schema column — when a bookable item has
-		// one set, it replaces the site-wide rate outright for THIS
-		// booking (not added to it); Free itself never writes the column,
-		// so an install with no Pro (or Pro's override cleared) computes
-		// byte-for-byte the same as before this step. Tax applies to the
-		// WHOLE taxable total (base + add-ons + booking fee), matching how
-		// a real invoice taxes every line item, not just the base price.
-		$tax_rate       = null !== $item && null !== $item['tax_rate_override'] ? (float) $item['tax_rate_override'] : (float) BYZO_Settings::get()['tax_rate'];
-		$tax_amount     = ( $has_charge && $tax_rate > 0 ) ? round( $taxable_total * $tax_rate / 100, 2 ) : null;
-		$payment_amount = $has_charge ? round( $taxable_total + (float) $tax_amount, 2 ) : null;
-
-		// Deposits/partial payments (Phase 2 step 6, DETAILED-SPEC.md §A7)
-		// — how much of payment_amount is actually due online now, vs. the
-		// remainder collected later. BYZO_Capabilities::deposits_enabled()
-		// (Free=false) is the master on/off switch — the byzo_deposit_amount
-		// filter is only even consulted once it's on, same two-filter
-		// shape (a boolean gate + a value resolver) B7's service pricing
-		// already established with business_hours_link_enabled/
-		// byzo_service_price. Clamped to [0, payment_amount] so a
-		// misconfigured Pro filter can never charge more than the booking
-		// is actually worth or go negative.
-		$deposit_amount = null;
-		if ( null !== $payment_amount && BYZO_Capabilities::deposits_enabled() ) {
-			$deposit_amount = apply_filters( 'byzo_deposit_amount', null, $payment_amount, $slot['bookable_item_id'] );
-			if ( null !== $deposit_amount ) {
-				$deposit_amount = round( max( 0, min( (float) $deposit_amount, $payment_amount ) ), 2 );
-			}
-		}
+		$resolved_addons    = $price['addons'];
+		$booking_fee_amount = $price['booking_fee_amount'];
+		$tax_amount         = $price['tax_amount'];
+		$payment_amount     = $price['payment_amount'];
+		$deposit_amount     = $price['deposit_amount'];
 
 		// byzo_settings.auto_confirm (DETAILED-SPEC.md §A4, added for the
 		// deepened onboarding wizard's Confirmation step) — skips the

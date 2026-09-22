@@ -25,6 +25,14 @@
            "Confirm booking" with no amount anywhere on screen. Shown for
            free items too ("Free"), since silence about the price is
            exactly what makes people hesitate here. -->
+      <div v-if="quote && quote.booking_fee_amount" class="summary-row">
+        <span class="summary-label">Booking fee</span>
+        <span class="summary-value">{{ formatMoney(quote.booking_fee_amount) }}</span>
+      </div>
+      <div v-if="quote && quote.tax_amount" class="summary-row">
+        <span class="summary-label">Tax</span>
+        <span class="summary-value">{{ formatMoney(quote.tax_amount) }}</span>
+      </div>
       <div class="summary-row summary-row-total">
         <span class="summary-label">{{ totalLabel }}</span>
         <span class="summary-value">{{ totalValue }}</span>
@@ -176,7 +184,7 @@
 import { reactive, computed, ref, onMounted, watch } from 'vue';
 import { copyFor } from '../copy';
 import { formatMoney } from '@/lib/money';
-import { getCustomFields, getAddons, getTicketTiers } from '../api';
+import { getCustomFields, getAddons, getTicketTiers, getQuote } from '../api';
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -271,11 +279,8 @@ onMounted(async () => {
   }
 });
 
-// Mirrors BYZO_Booking::create()'s own arithmetic — price × quantity,
-// plus the flat site-wide tax rate — so the number here is the number
-// that gets charged. The server stays the only authority on the amount;
-// if the two ever disagree the server wins, which is why this is a
-// display-only computed and never travels back in the POST body.
+// Quantity the price is multiplied by — the Table step's party size when an
+// earlier step asked, otherwise this step's own field.
 const quantity = computed(() => Math.max(1, Number(props.partySize ?? form.party_size) || 1));
 
 // Phase 2 step 20 (DETAILED-SPEC.md §3 B4) — window.byzoWidget.collectAttendeeDetailsEnabled
@@ -324,7 +329,42 @@ const selectedTierPrice = computed(() => {
   return tier ? Number(tier.price) : null;
 });
 
-const totalAmount = computed(() => {
+// The server's own quote (POST /bookings/quote → BYZO_Booking::price_breakdown(),
+// the same function create() charges with) — QA report 2026-09-22 B3: a JS
+// re-implementation of the arithmetic here showed $70 for a booking Pro's
+// weekend pricing rule then charged $80.50. Re-fetched whenever anything
+// that affects the price changes; the local estimate below is only a
+// fallback for the moment before the first quote lands, or if it fails.
+const quote = ref(null);
+let quoteRequest = 0;
+let quoteTimer = null;
+
+async function refreshQuote() {
+  const requestId = ++quoteRequest;
+  try {
+    const result = await getQuote({
+      slot_id: props.slot.id,
+      party_size: quantity.value,
+      ticket_tier_id: form.ticket_tier_id,
+      addon_ids: form.addon_ids,
+    });
+    // A slower, older response must not overwrite a newer one.
+    if (requestId === quoteRequest) quote.value = result;
+  } catch {
+    if (requestId === quoteRequest) quote.value = null;
+  }
+}
+
+watch(
+  () => [quantity.value, form.ticket_tier_id, form.addon_ids.join(',')],
+  () => {
+    clearTimeout(quoteTimer);
+    quoteTimer = setTimeout(refreshQuote, 200);
+  },
+  { immediate: true }
+);
+
+const estimatedAmount = computed(() => {
   const unitPrice = selectedTierPrice.value !== null ? selectedTierPrice.value : props.item.price;
   const hasBasePrice = unitPrice !== null && unitPrice !== undefined;
   if (!hasBasePrice && addonsTotal.value === 0) {
@@ -337,12 +377,15 @@ const totalAmount = computed(() => {
   return Math.round((subtotal + tax) * 100) / 100;
 });
 
+const totalAmount = computed(() => (quote.value ? quote.value.payment_amount : estimatedAmount.value));
+
 // "Total" only once quantity or tax makes it a sum of something; for a
 // single unpriced-by-quantity booking it's just the price.
 const totalLabel = computed(() => {
   const taxRate = Number((window.byzoWidget && window.byzoWidget.taxRate) || 0);
+  const hasExtras = quote.value && (quote.value.booking_fee_amount || quote.value.tax_amount || quote.value.addons_total);
 
-  return quantity.value > 1 || taxRate > 0 ? 'Total' : 'Price';
+  return quantity.value > 1 || taxRate > 0 || hasExtras ? 'Total' : 'Price';
 });
 
 const totalValue = computed(() => formatMoney(totalAmount.value, { emptyLabel: 'Free' }));

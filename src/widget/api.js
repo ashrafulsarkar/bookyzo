@@ -43,6 +43,10 @@ export const getAddons = (bookableItemId) => request(`/addons/public?bookable_it
 // ticket tiers for this bookable item, empty array when Pro is off/
 // unconfigured.
 export const getTicketTiers = (bookableItemId) => request(`/ticket-tiers/public?bookable_item_id=${bookableItemId}`);
+// Server-computed price for what the customer has picked so far — the
+// same arithmetic POST /bookings charges with (pricing rules, tiers,
+// add-ons, booking fee, tax), so the Total shown is the Total charged.
+export const getQuote = (payload) => request('/bookings/quote', { method: 'POST', body: JSON.stringify(payload) });
 export const createBooking = (payload) => request('/bookings', { method: 'POST', body: JSON.stringify(payload) });
 export const createBookingPaymentIntent = (bookingId, customerEmail) =>
   request(`/bookings/${bookingId}/payment-intent`, { method: 'POST', body: JSON.stringify({ customer_email: customerEmail }) });

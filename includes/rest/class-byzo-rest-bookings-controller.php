@@ -159,6 +159,24 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			)
 		);
 
+		// Guest-allowed price preview (QA report 2026-09-22 B3) — the
+		// widget's "Total" comes from here, computed by the same
+		// BYZO_Booking::price_breakdown() create() charges with, so the two
+		// can't disagree. Read-only; reveals nothing a guest couldn't learn
+		// by booking. A literal segment, so it can't collide with the
+		// numeric (?P<id>\d+) routes.
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/' . $this->get_rest_base() . '/quote',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'quote' ),
+					'permission_callback' => array( $this, 'public_permissions_check' ),
+				),
+			)
+		);
+
 		// Same guest-allowed, email-guarded shape again. Called by the
 		// widget when the payment step opens (`stripe`) and when the
 		// customer picks "Pay in person instead" (`in_person`), so an
@@ -483,6 +501,42 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 		BYZO_Booking::set_payment_method( $booking['id'], 'stripe' );
 
 		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Body: { slot_id, party_size?, ticket_tier_id?, service_id?, addon_ids? }.
+	 * Returns the same money fields a booking made with that body would
+	 * store. 404 for a slot whose item isn't active (same answer /slots
+	 * gives), so it can't be used to price hidden items.
+	 */
+	public function quote( WP_REST_Request $request ) {
+		$body = (array) $request->get_json_params();
+		$slot = BYZO_Slot::get( absint( $body['slot_id'] ?? 0 ) );
+		$item = $slot ? BYZO_Bookable_Item::get( $slot['bookable_item_id'] ) : null;
+
+		if ( ! $item || 'active' !== $item['status'] ) {
+			return new WP_Error( 'byzo_not_found', __( 'Time slot not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$price = BYZO_Booking::price_breakdown(
+			$slot,
+			max( 1, absint( $body['party_size'] ?? 1 ) ),
+			absint( $body['ticket_tier_id'] ?? 0 ) ?: null,
+			absint( $body['service_id'] ?? 0 ) ?: null,
+			array_filter( array_map( 'absint', (array) ( $body['addon_ids'] ?? array() ) ) )
+		);
+
+		return rest_ensure_response(
+			array(
+				'unit_price'         => $price['unit_price'],
+				'subtotal'           => $price['subtotal'],
+				'addons_total'       => $price['addons_total'],
+				'booking_fee_amount' => $price['booking_fee_amount'],
+				'tax_amount'         => $price['tax_amount'],
+				'payment_amount'     => $price['payment_amount'],
+				'deposit_amount'     => $price['deposit_amount'],
+			)
+		);
 	}
 
 	/**
