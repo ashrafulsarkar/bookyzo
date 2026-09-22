@@ -67,7 +67,7 @@
             :key="booking.id"
             type="button"
             draggable="true"
-            class="absolute left-0.5 right-0.5 overflow-hidden rounded px-1.5 py-0.5 text-left text-xs leading-tight text-white shadow-sm"
+            class="absolute overflow-hidden rounded px-1.5 py-0.5 text-left text-xs leading-tight text-white shadow-sm ring-1 ring-card"
             :class="{ 'opacity-40': draggingId === booking.id }"
             :style="booking.style"
             :title="`${booking.customer_name} — ${booking.timeLabel}`"
@@ -153,12 +153,6 @@ function onDrop(day, hour, event) {
   emit('reschedule-booking', { booking, date: day.date, minutes });
 }
 
-// 07:00–20:00 covers the vast majority of small-business hours without
-// forcing an all-day 0-23 scroll — DETAILED-SPEC.md's business-hours
-// defaults (09:00-17:00) sit comfortably inside this window. Revisit if
-// Pro's per-staff schedules (Phase 2) push hours outside this range.
-const hours = Array.from({ length: 14 }, (_, i) => i + 7);
-
 function formatHour(hour) {
   const d = new Date();
   d.setHours(hour, 0, 0, 0);
@@ -175,14 +169,42 @@ const rangeStart = computed(() => {
   return d;
 });
 
+// 07:00–21:00 by default covers most small-business hours without forcing
+// an all-day 0-23 scroll, but it can't hide anything: the grid stretches
+// to the earliest start and latest end among the bookings it's showing
+// (QA report 2026-09-22 B11 — a 21:30 table slot and a gala running to
+// 23:00 fell off the bottom of a fixed 07–21 grid).
+const DEFAULT_FIRST_HOUR = 7;
+const DEFAULT_END_HOUR = 21;
+
+// By calendar date, not by instant — the day view's anchor can carry a time.
+const bookingsInRange = computed(() => {
+  const keys = new Set(Array.from({ length: props.days }, (_, i) => toDateKey(addDays(rangeStart.value, i))));
+  return props.bookings.filter((b) => b.slot_start && keys.has(toDateKey(new Date(b.slot_start))));
+});
+
+const hours = computed(() => {
+  let first = DEFAULT_FIRST_HOUR;
+  let end = DEFAULT_END_HOUR;
+  for (const b of bookingsInRange.value) {
+    const start = new Date(b.slot_start);
+    const finish = b.slot_end ? new Date(b.slot_end) : new Date(start.getTime() + 30 * 60000);
+    first = Math.min(first, start.getHours());
+    // A booking ending after midnight is drawn to the bottom of its own day.
+    const endHour = finish.getDate() !== start.getDate() ? 24 : finish.getHours() + (finish.getMinutes() > 0 ? 1 : 0);
+    end = Math.max(end, endHour);
+  }
+  return Array.from({ length: end - first }, (_, i) => i + first);
+});
+
 const dayList = computed(() => {
   const today = new Date();
   return Array.from({ length: props.days }, (_, i) => {
     const date = addDays(rangeStart.value, i);
     const key = toDateKey(date);
-    const dayBookings = props.bookings
-      .filter((b) => b.slot_start && toDateKey(new Date(b.slot_start)) === key)
-      .map((b) => positionBooking(b, date));
+    const dayBookings = layoutColumns(
+      bookingsInRange.value.filter((b) => toDateKey(new Date(b.slot_start)) === key)
+    ).map(({ booking, column, columns }) => positionBooking(booking, column, columns));
 
     return {
       key,
@@ -203,11 +225,66 @@ const dayList = computed(() => {
 const TWO_LINE_HEIGHT = 34;
 const MIN_BLOCK_HEIGHT = 20;
 
-function positionBooking(booking, date) {
+const PX_PER_MINUTE = 48 / 60;
+
+function visualSpan(booking) {
+  const start = new Date(booking.slot_start);
+  const end = booking.slot_end ? new Date(booking.slot_end) : new Date(start.getTime() + 30 * 60000);
+  const startMinutes = start.getHours() * 60 + start.getMinutes();
+  // Short bookings are drawn at MIN_BLOCK_HEIGHT, so that's how much room
+  // they really take when deciding what sits next to what.
+  const endMinutes = Math.max(startMinutes + MIN_BLOCK_HEIGHT / PX_PER_MINUTE, startMinutes + (end - start) / 60000);
+  return { startMinutes, endMinutes };
+}
+
+// Bookings that overlap in time share the column width side by side
+// instead of stacking on top of each other (QA report 2026-09-22 B11: the
+// top block hid the one under it, and a click on it opened the wrong
+// booking). Classic calendar packing: sort by start, put each booking in
+// the first column whose last booking has ended, and give every booking in
+// a chain of overlaps the same column count.
+function layoutColumns(dayBookings) {
+  const sorted = dayBookings
+    .map((booking) => ({ booking, ...visualSpan(booking) }))
+    .sort((a, b) => a.startMinutes - b.startMinutes || b.endMinutes - a.endMinutes);
+
+  const placed = [];
+  let cluster = [];
+  let columnEnds = [];
+  let clusterEnd = -1;
+
+  const closeCluster = () => {
+    cluster.forEach((entry) => { entry.columns = columnEnds.length; });
+    placed.push(...cluster);
+    cluster = [];
+    columnEnds = [];
+  };
+
+  for (const entry of sorted) {
+    if (entry.startMinutes >= clusterEnd) {
+      closeCluster();
+    }
+    let column = columnEnds.findIndex((end) => end <= entry.startMinutes);
+    if (column === -1) {
+      column = columnEnds.length;
+      columnEnds.push(entry.endMinutes);
+    } else {
+      columnEnds[column] = entry.endMinutes;
+    }
+    entry.column = column;
+    cluster.push(entry);
+    clusterEnd = Math.max(clusterEnd, entry.endMinutes);
+  }
+  closeCluster();
+
+  return placed;
+}
+
+function positionBooking(booking, column = 0, columns = 1) {
   const start = new Date(booking.slot_start);
   const end = booking.slot_end ? new Date(booking.slot_end) : new Date(start.getTime() + 30 * 60000);
 
-  const dayStartMinutes = hours[0] * 60;
+  const dayStartMinutes = hours.value[0] * 60;
   const startMinutes = start.getHours() * 60 + start.getMinutes() - dayStartMinutes;
   const durationMinutes = (end - start) / 60000;
 
@@ -223,6 +300,8 @@ function positionBooking(booking, date) {
     style: {
       top: `${startMinutes * pxPerMinute}px`,
       height: `${Math.max(MIN_BLOCK_HEIGHT, rawHeight)}px`,
+      left: `calc(${(column / columns) * 100}% + 2px)`,
+      width: `calc(${100 / columns}% - 4px)`,
       backgroundColor: STATUS_COLORS[booking.status] || STATUS_COLORS.pending,
     },
   };
