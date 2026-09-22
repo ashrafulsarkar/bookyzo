@@ -748,7 +748,7 @@ class BYZO_Booking {
 	 * @param int|null $ticket_tier_id Event ticket tier, or null.
 	 * @param int|null $service_id     Service being booked, or null.
 	 * @param int[]    $addon_ids      Requested add-on ids (unvalidated; resolved server-side).
-	 * @return array { unit_price, subtotal, addons, addons_total, booking_fee_amount, tax_rate, tax_amount, payment_amount, deposit_amount } — money fields are null when there's nothing to charge.
+	 * @return array Keys: unit_price, subtotal, addons, addons_total, booking_fee_amount, tax_rate, tax_amount, payment_amount, deposit_amount. Money fields are null when there's nothing to charge.
 	 */
 	public static function price_breakdown( $slot, $party_size, $ticket_tier_id = null, $service_id = null, $addon_ids = array() ) {
 		$party_size = max( 1, (int) $party_size );
@@ -1686,7 +1686,18 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_missing_phone', __( 'customer_phone is required.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
-		$party_size = isset( $data['party_size'] ) ? max( 1, absint( $data['party_size'] ) ) : 1;
+		// A whole number of at least 1 — anything else is refused rather
+		// than quietly reinterpreted (QA report 2026-09-22 B16: -3 used to be
+		// saved as 3 and 0 as 1, so a buggy client booked a different
+		// quantity than it asked for without being told).
+		$party_size = 1;
+		if ( isset( $data['party_size'] ) && '' !== $data['party_size'] ) {
+			$raw = $data['party_size'];
+			if ( ! is_numeric( $raw ) || (float) $raw !== (float) (int) $raw || (int) $raw < 1 || (int) $raw > 65535 ) {
+				return new WP_Error( 'byzo_invalid_party_size', __( 'party_size must be a whole number of at least 1.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			$party_size = (int) $raw;
+		}
 
 		return array(
 			'slot_id'        => $service_id && ! $slot_for_service ? null : absint( $data['slot_id'] ),
