@@ -8,6 +8,7 @@
             <DialogDescription class="mt-0.5 flex items-center gap-1.5">
               <CalendarClock class="h-3.5 w-3.5 shrink-0" />
               <span class="truncate">{{ timeRangeLabel }}</span>
+              <span class="shrink-0 font-mono text-xs">· #{{ booking.id }}</span>
             </DialogDescription>
           </div>
           <ByzoBadge :status="booking.status" class="shrink-0">{{ booking.status.replace('_', ' ') }}</ByzoBadge>

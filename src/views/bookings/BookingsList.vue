@@ -96,6 +96,9 @@
         <Table class="min-w-[720px]">
           <TableHeader>
             <TableRow>
+              <!-- The number staff quote on the phone and type into Check-in's
+                   manual field — it used to appear nowhere in the admin. -->
+              <TableHead class="w-16">#</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Bookable item</TableHead>
               <TableHead>Party</TableHead>
@@ -110,6 +113,7 @@
               class="cursor-pointer"
               @click="activeBooking = booking"
             >
+              <TableCell class="font-mono text-xs text-muted-foreground">{{ booking.id }}</TableCell>
               <TableCell>
                 <span class="block font-medium">{{ booking.customer_name }}</span>
                 <span class="block text-xs text-muted-foreground">{{ booking.customer_email }}</span>
