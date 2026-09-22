@@ -864,6 +864,104 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * Whether one booking takes the whole slot instead of party_size
+	 * places in it. True for tables (DETAILED-SPEC.md §1.3: "A table for
+	 * six either exists at 7pm or it doesn't") — the slot's capacity is
+	 * the table's seat count, which only decides whether a party FITS;
+	 * a party of 2 at a 4-seat table still occupies the table. Before
+	 * 2026-09-22 (QA report B4) tables were claimed per seat, leaving the
+	 * other two seats of a booked table open to a second party.
+	 *
+	 * @param array|null $item The slot's bookable item.
+	 */
+	private static function claims_whole_slot( $item ) {
+		/**
+		 * Filters whether a booking on this bookable item takes the whole
+		 * slot rather than party_size places in it.
+		 *
+		 * @param bool       $whole Default: true for table items.
+		 * @param array|null $item  The bookable item.
+		 */
+		return (bool) apply_filters( 'byzo_booking_claims_whole_slot', $item && 'table' === $item['type'], $item );
+	}
+
+	/**
+	 * Atomically takes capacity on an open slot — party_size places, or
+	 * the whole slot for claims_whole_slot() items — and flips it to
+	 * `full` once nothing is left. One conditional UPDATE is the
+	 * concurrency guard (see create()'s docblock): of two requests racing
+	 * for the last place, only one can match the WHERE.
+	 *
+	 * @return bool False when the slot is no longer open or the party doesn't fit.
+	 */
+	private static function claim_slot_capacity( $slot_id, $party_size, $item ) {
+		global $wpdb;
+
+		$slots_table = $wpdb->prefix . 'byzo_slots';
+		$take        = self::claims_whole_slot( $item ) ? 'capacity_remaining' : '%d';
+		$params      = self::claims_whole_slot( $item ) ? array( $slot_id, $party_size ) : array( $party_size, $slot_id, $party_size );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name and a fixed column expression, not user input.
+		$claimed = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$slots_table} SET capacity_remaining = capacity_remaining - {$take} WHERE id = %d AND status = 'open' AND capacity_remaining >= %d",
+				$params
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		if ( ! $claimed ) {
+			return false;
+		}
+
+		// Slot is now at 0 remaining -> flip it to 'full' so /slots stops offering it.
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$slots_table} SET status = 'full' WHERE id = %d AND capacity_remaining <= 0 AND status = 'open'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				$slot_id
+			)
+		);
+
+		return true;
+	}
+
+	/**
+	 * Gives back what claim_slot_capacity() took: party_size places, or —
+	 * for claims_whole_slot() items — the whole table again, i.e. its seat
+	 * count (never more, so a booking whose party_size was later raised by
+	 * combine_tables() can't overfill the primary table's slot). A slot
+	 * that was 'full' flips back to 'open'; the CASE keeps a 'blocked' slot
+	 * (a blackout added after the booking was made) from being silently
+	 * reopened.
+	 */
+	private static function release_slot_capacity( $slot_id, $party_size, $item ) {
+		global $wpdb;
+
+		$slots_table = $wpdb->prefix . 'byzo_slots';
+
+		if ( self::claims_whole_slot( $item ) ) {
+			$set    = 'capacity_remaining = GREATEST( capacity_remaining, %d )';
+			$amount = max( 1, (int) $item['capacity'] );
+		} else {
+			$set    = 'capacity_remaining = capacity_remaining + %d';
+			$amount = (int) $party_size;
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name and a fixed SET clause, not user input.
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$slots_table}
+				 SET {$set},
+				     status = CASE WHEN status = 'full' THEN 'open' ELSE status END
+				 WHERE id = %d",
+				$amount,
+				$slot_id
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+	}
+
+	/**
 	 * The actual atomic-claim-and-insert, shared by both the direct
 	 * slot_id path and create_for_service()'s candidate loop above — this
 	 * is exactly what create() used to do inline before Phase 2 step 5
@@ -885,8 +983,8 @@ class BYZO_Booking {
 		// BYZO_Slot::earliest_bookable_start()) — without it a slot id
 		// that has already started, or started weeks ago, was bookable by
 		// anyone who POSTed it directly.
+		$slot_item = BYZO_Bookable_Item::get( $slot['bookable_item_id'] );
 		if ( BYZO_Slot::lead_time_applies() ) {
-			$slot_item = BYZO_Bookable_Item::get( $slot['bookable_item_id'] );
 			if ( $slot['start_datetime'] < BYZO_Slot::earliest_bookable_start( $slot_item ? $slot_item['type'] : '' ) ) {
 				return new WP_Error( 'byzo_slot_unavailable', __( 'This time can no longer be booked online. Please pick a later time.', 'bookyzo' ), array( 'status' => 409 ) );
 			}
@@ -894,27 +992,9 @@ class BYZO_Booking {
 
 		$party_size = $validated['party_size'];
 
-		$slots_table = $wpdb->prefix . 'byzo_slots';
-		$updated     = $wpdb->query(
-			$wpdb->prepare(
-				"UPDATE {$slots_table} SET capacity_remaining = capacity_remaining - %d WHERE id = %d AND status = 'open' AND capacity_remaining >= %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$party_size,
-				$slot['id'],
-				$party_size
-			)
-		);
-
-		if ( ! $updated ) {
+		if ( ! self::claim_slot_capacity( $slot['id'], $party_size, $slot_item ) ) {
 			return new WP_Error( 'byzo_slot_full', __( 'This time slot was just booked by someone else. Please pick another time.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
-
-		// Slot is now at 0 remaining -> flip it to 'full' so /slots stops offering it.
-		$wpdb->query(
-			$wpdb->prepare(
-				"UPDATE {$slots_table} SET status = 'full' WHERE id = %d AND capacity_remaining <= 0 AND status = 'open'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$slot['id']
-			)
-		);
 
 		// Ticket tiers (Phase 2 step 12 continued, DETAILED-SPEC.md §3 B7
 		// Event) — when a specific tier was requested, ALSO atomically
@@ -930,7 +1010,7 @@ class BYZO_Booking {
 		if ( $ticket_tier_id ) {
 			$tier_claimed = apply_filters( 'byzo_claim_ticket_tier', null, $ticket_tier_id, $party_size );
 			if ( false === $tier_claimed ) {
-				$wpdb->query( $wpdb->prepare( "UPDATE {$slots_table} SET capacity_remaining = capacity_remaining + %d, status = 'open' WHERE id = %d", $party_size, $slot['id'] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				self::release_slot_capacity( $slot['id'], $party_size, $slot_item );
 
 				return new WP_Error( 'byzo_tier_sold_out', __( 'This ticket type just sold out. Please pick another.', 'bookyzo' ), array( 'status' => 409 ) );
 			}
@@ -989,7 +1069,7 @@ class BYZO_Booking {
 
 		if ( false === $inserted ) {
 			// Booking insert failed after capacity was already taken — release it back rather than leaking a phantom hold.
-			$wpdb->query( $wpdb->prepare( "UPDATE {$slots_table} SET capacity_remaining = capacity_remaining + %d, status = 'open' WHERE id = %d", $party_size, $slot['id'] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			self::release_slot_capacity( $slot['id'], $party_size, $slot_item );
 
 			return new WP_Error( 'byzo_db_error', __( 'Could not create booking.', 'bookyzo' ) );
 		}
@@ -1062,24 +1142,8 @@ class BYZO_Booking {
 		$wpdb->update( self::table(), $updates, array( 'id' => $id ) );
 
 		if ( $releases_capacity && $booking['slot_id'] ) {
-			$slots_table = $wpdb->prefix . 'byzo_slots';
-
-			// Credit the seat(s) back. A slot that was 'full' also flips
-			// back to 'open' (CASE keeps a 'blocked' slot — e.g. a
-			// blackout added after this booking was made — from being
-			// silently reopened by a later cancellation).
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name, not user input.
-			$wpdb->query(
-				$wpdb->prepare(
-					"UPDATE {$slots_table}
-					 SET capacity_remaining = capacity_remaining + %d,
-					     status = CASE WHEN status = 'full' THEN 'open' ELSE status END
-					 WHERE id = %d",
-					$booking['party_size'],
-					$booking['slot_id']
-				)
-			);
-			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+			// Credit the seat(s) — or the whole table — back.
+			self::release_slot_capacity( $booking['slot_id'], $booking['party_size'], BYZO_Bookable_Item::get( $booking['bookable_item_id'] ) );
 
 			// Ticket tiers (Phase 2 step 12 continued) — the symmetric
 			// release for byzo_claim_ticket_tier's atomic claim at create
@@ -1132,53 +1196,25 @@ class BYZO_Booking {
 
 		// A customer rescheduling from their account follows the same lead
 		// time as a new booking; admins are exempt (see lead_time_applies()).
+		$new_slot_item = BYZO_Bookable_Item::get( $new_slot['bookable_item_id'] );
 		if ( BYZO_Slot::lead_time_applies() ) {
-			$new_slot_item = BYZO_Bookable_Item::get( $new_slot['bookable_item_id'] );
 			if ( $new_slot['start_datetime'] < BYZO_Slot::earliest_bookable_start( $new_slot_item ? $new_slot_item['type'] : '' ) ) {
 				return new WP_Error( 'byzo_slot_unavailable', __( 'That time can no longer be booked online. Please pick a later time.', 'bookyzo' ), array( 'status' => 409 ) );
 			}
 		}
 
-		$party_size  = $booking['party_size'];
-		$slots_table = $wpdb->prefix . 'byzo_slots';
+		$party_size = $booking['party_size'];
 
-		$claimed = $wpdb->query(
-			$wpdb->prepare(
-				"UPDATE {$slots_table} SET capacity_remaining = capacity_remaining - %d WHERE id = %d AND status = 'open' AND capacity_remaining >= %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$party_size,
-				$new_slot_id,
-				$party_size
-			)
-		);
-
-		if ( ! $claimed ) {
+		if ( ! self::claim_slot_capacity( $new_slot_id, $party_size, $new_slot_item ) ) {
 			return new WP_Error( 'byzo_slot_full', __( 'This time slot was just booked by someone else. Please pick another time.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
-
-		$wpdb->query(
-			$wpdb->prepare(
-				"UPDATE {$slots_table} SET status = 'full' WHERE id = %d AND capacity_remaining <= 0 AND status = 'open'", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$new_slot_id
-			)
-		);
 
 		// Release the old slot back — same CASE-guarded credit as
 		// update_status()'s cancel/no_show/rejected release, so a
 		// 'blocked' old slot (e.g. a blackout added after this booking was
 		// made) isn't silently reopened by this reschedule.
 		if ( $booking['slot_id'] ) {
-			// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name, not user input.
-			$wpdb->query(
-				$wpdb->prepare(
-					"UPDATE {$slots_table}
-					 SET capacity_remaining = capacity_remaining + %d,
-					     status = CASE WHEN status = 'full' THEN 'open' ELSE status END
-					 WHERE id = %d",
-					$party_size,
-					$booking['slot_id']
-				)
-			);
-			// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+			self::release_slot_capacity( $booking['slot_id'], $party_size, BYZO_Bookable_Item::get( $booking['bookable_item_id'] ) );
 		}
 
 		$old_slot_id = $booking['slot_id'];
