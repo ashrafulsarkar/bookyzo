@@ -18,16 +18,28 @@
     </div>
 
     <nav class="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
+      <template v-for="group in groupedSections" :key="group.section">
+        <div class="byzo-sidebar-section-label">{{ group.section }}</div>
+        <router-link
+          v-for="item in group.items"
+          :key="item.to"
+          :to="item.to"
+          class="byzo-sidebar-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+          active-class="byzo-sidebar-item--active"
+        >
+          <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center" v-html="item.icon"></span>
+          {{ item.label }}
+        </router-link>
+      </template>
+
       <router-link
-        v-for="item in allItems"
-        :key="item.to"
-        :to="item.to"
-        class="byzo-sidebar-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
-        :class="{ 'byzo-sidebar-item--accent': item.accent }"
+        v-if="!proLicensed"
+        :to="getProItem.to"
+        class="byzo-sidebar-item byzo-sidebar-item--accent flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
         active-class="byzo-sidebar-item--active"
       >
-        <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center" v-html="item.icon"></span>
-        {{ item.label }}
+        <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center" v-html="getProItem.icon"></span>
+        {{ getProItem.label }}
       </router-link>
     </nav>
 
@@ -98,17 +110,37 @@ onBeforeUnmount(() => {
   clearTimeout(settleTimer);
 });
 
+// `section` groups nav rows under the headers rendered in the template
+// below (see SECTION_ORDER) — introduced so lookalike-but-different money
+// screens don't read as siblings just because they sit next to each other
+// in one long flat list. Concretely: Payments (this file, a *settings*
+// screen — which gateways accept a customer's money) and Pro's Payouts
+// (a *report* — commission owed per bookable item) were both one bare
+// "Pay-" row deep in a 26-row flat list with nothing else distinguishing
+// them, which read as confusable. Splitting them into "Pricing & Payments"
+// (settings: Payments, Pricing, Deposits, Add-ons & Fees) vs "Reports"
+// (Analytics, Payouts) reflects what each screen actually IS — config vs.
+// ledger — not just a cosmetic separation. Any new nav item (Free or an
+// add-on's via registerExtension) must set `section` to one of
+// SECTION_ORDER's values, or it silently won't render (see groupedSections
+// below) — extend SECTION_ORDER first if a genuinely new category is needed.
 const items = [
-  { to: '/', label: 'Dashboard', icon: icon('<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>') },
-  { to: '/calendar', label: 'Calendar', icon: icon('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>') },
-  { to: '/bookings', label: 'Bookings', icon: icon('<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>') },
-  { to: '/bookable-items', label: 'Bookable Items', icon: icon('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') },
-  { to: '/customers', label: 'Customers', icon: icon('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') },
-  { to: '/settings/email-templates', label: 'Emails', icon: icon('<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>') },
-  { to: '/settings/payments', label: 'Payments', icon: icon('<rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/>') },
-  { to: '/settings/appearance', label: 'Appearance', icon: icon('<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>') },
-  { to: '/settings/general', label: 'Settings', icon: icon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>') },
+  { to: '/', label: 'Dashboard', section: 'Overview', icon: icon('<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>') },
+  { to: '/calendar', label: 'Calendar', section: 'Overview', icon: icon('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>') },
+  { to: '/bookings', label: 'Bookings', section: 'Overview', icon: icon('<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>') },
+  { to: '/bookable-items', label: 'Bookable Items', section: 'Overview', icon: icon('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') },
+  { to: '/customers', label: 'Customers', section: 'Overview', icon: icon('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') },
+  { to: '/settings/email-templates', label: 'Emails', section: 'Customization', icon: icon('<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>') },
+  { to: '/settings/payments', label: 'Payments', section: 'Pricing & Payments', icon: icon('<rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/>') },
+  { to: '/settings/appearance', label: 'Appearance', section: 'Customization', icon: icon('<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>') },
+  { to: '/settings/general', label: 'Settings', section: 'Settings', icon: icon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>') },
 ];
+
+// Canonical section order — headers render in this order (skipping any
+// section with zero items, e.g. "Reports"/"Integrations" before Pro's
+// extraNavItems have registered on first paint). Keep in sync with the
+// `section` values add-ons are told to use (see admin-extensions.js).
+const SECTION_ORDER = ['Overview', 'Booking Tools', 'Pricing & Payments', 'Reports', 'Marketing', 'Customization', 'Integrations', 'Settings'];
 
 // A real, separate "Get Pro" page — never a locked/disabled preview of an
 // actual feature, see GetPro.vue's own docblock and the bookyzo-design
@@ -128,9 +160,15 @@ const getProItem = {
 
 // Pro's own bundle pushes its nav items (e.g. License) onto extraNavItems
 // via window.byzoAdmin.registerExtension — see lib/admin-extensions.js.
-// Rendered after Free's own items; "Get Pro" goes last of all so it never
-// gets mistaken for one of Pro's own screens.
-const allItems = computed(() => [...items, ...extraNavItems, ...(proLicensed ? [] : [getProItem])]);
+// "Get Pro" is rendered separately, below every section, in the template —
+// it's a CTA row, not a navigation destination, so it never joins a
+// section (and never gets mistaken for one of Pro's own screens).
+const groupedSections = computed(() =>
+  SECTION_ORDER.map((section) => ({
+    section,
+    items: [...items, ...extraNavItems].filter((item) => item.section === section),
+  })).filter((group) => group.items.length > 0)
+);
 </script>
 
 <style scoped>
@@ -148,6 +186,18 @@ const allItems = computed(() => [...items, ...extraNavItems, ...(proLicensed ? [
   width: var(--byzo-sidebar-width, 240px);
   height: calc(100vh - var(--byzo-sidebar-top, 32px));
   z-index: 20;
+}
+
+.byzo-sidebar-section-label {
+  padding: 1rem 0.75rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--byzo-text-muted);
+}
+.byzo-sidebar-section-label:first-child {
+  padding-top: 0.25rem;
 }
 
 .byzo-sidebar-item {
@@ -220,6 +270,13 @@ const allItems = computed(() => [...items, ...extraNavItems, ...(proLicensed ? [
   }
 
   .byzo-sidebar nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Section headers don't fit the horizontal pill-strip shape this
+     breakpoint switches to — items still render in the same grouped
+     order, just without the label breaking up the row. */
+  .byzo-sidebar-section-label {
     display: none;
   }
 

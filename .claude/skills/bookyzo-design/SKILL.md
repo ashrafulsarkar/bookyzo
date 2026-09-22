@@ -92,6 +92,23 @@ Unlike `license-envato-pro`'s admin (which uses red-bold "Get Pro"/"Activate Lic
 - Internal navigation (Dashboard / Bookable Items / Calendar / Bookings / Settings) is a client-side Vue Router inside one top-level wp-admin menu page, not five separate `add_submenu_page()` PHP routes each bootstrapping their own Vue instance — keeps state (e.g. selected date range) alive across navigation and avoids five separate script bundles.
 - Match native WP admin conventions where Vue doesn't have a strong reason to diverge (list-table-style rows for the booking list, WP's own date-picker conventions) — the goal is "feels like a well-designed part of wp-admin," not "feels like an embedded unrelated web app."
 
+## Sidebar nav is grouped into sections, not one flat list
+
+`ByzoSidebar.vue` renders `items` (Free, hardcoded) plus `extraNavItems` (pushed in by Pro/add-ons via `registerExtension`, see `lib/admin-extensions.js`) grouped under section headers, in a fixed `SECTION_ORDER`: **Overview, Booking Tools, Pricing & Payments, Reports, Marketing, Customization, Integrations, Settings**. Introduced 2026-09-22 because the flat list grew to ~26 rows across Free+Pro and two similarly-named-but-different screens — Free's "Payments" (settings: which gateways accept a customer's money) and Pro's "Payouts" (a report: commission owed per bookable item) — sat unlabeled in that one long list with nothing distinguishing them, which read as confusable (user-reported).
+
+Every nav item, Free or an add-on's, **must** set a `section` matching one of `SECTION_ORDER`'s values or it silently won't render (the sidebar groups by section rather than dumping unmatched items somewhere). Pick a new item's section by what the screen fundamentally *is*, not by visual proximity to a similarly-named screen:
+- A *settings/config* screen (how something is configured) → **Pricing & Payments** (money config: Payments, Pricing, Deposits, Add-ons & Fees), **Customization** (Emails, Appearance, Form Fields), or **Settings** (General, License).
+- A *report/ledger* screen (what happened, what's owed) → **Reports** (Analytics, Payouts).
+- A day-to-day *booking operations* tool → **Booking Tools** (Services, Class Series, Floor Plan, Waitlist, Ticket Tiers, Check-in, Bulk & Notes, Calendar Sync).
+- Outreach to customers → **Marketing** (Campaigns, Automated Messages).
+- Third-party connections → **Integrations** (WooCommerce, Integrations).
+
+If a genuinely new category doesn't fit any of these, extend `SECTION_ORDER` in `ByzoSidebar.vue` (keep it there as the single source of truth) rather than forcing a mismatched section onto a new screen. "Get Pro" is deliberately NOT part of any section — it renders as its own unlabeled CTA row below every group, same as before this change.
+
+## Pro (`bookyzo-pro`) does NOT use shadcn-vue
+
+`bookyzo-pro` is a separate Vite/npm project with no build-time access to this plugin's `src/components/ui/` — Pro screens are hand-written Vue + scoped CSS instead (`byzop-*` class prefix), sharing only the `--byzo-*` brand tokens above (Pro's components mount inside this app's `#byzo-admin-app`, so the tokens are already in scope). This is a known, accepted architectural split, not a bug to silently "fix" by trying to import these components into Pro. See `bookyzo-pro`'s own `.claude/skills/bookyzo-pro-design/SKILL.md` for Pro's parallel conventions — read that one instead of this one when working inside `bookyzo-pro/`.
+
 ## Before building a new admin screen
 
 1. Check whether an existing `Byzo*` base component already covers the need — don't create a one-off styled `<div>` when `ByzoCard`/`ByzoBadge`/etc. already exists.

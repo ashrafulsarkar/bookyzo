@@ -18,6 +18,16 @@ import { router } from '../router';
  * already mounted — Vue Router re-resolves matches for any add made before
  * the next navigation.
  */
+// Every pushed item needs a `section` matching one of ByzoSidebar.vue's
+// SECTION_ORDER values (Overview, Booking Tools, Pricing & Payments,
+// Reports, Marketing, Customization, Integrations, Settings) — an item
+// with no matching section silently doesn't render, since the sidebar
+// groups by section rather than rendering a flat list. Pick the section
+// by what the screen fundamentally IS (a settings/config screen vs. a
+// report/ledger vs. a booking-operations tool), not by proximity to a
+// similarly-named screen — this is what keeps lookalike names like
+// "Payments" (Pricing & Payments) and "Payouts" (Reports) from reading as
+// siblings.
 export const extraNavItems = reactive([]);
 
 // Gateway id -> settings component, e.g. { paypal: PayPalGatewaySettings }.
