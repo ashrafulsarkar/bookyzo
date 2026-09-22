@@ -130,7 +130,34 @@ class BYZO_Public_Widget {
 		// without Pro.
 		$after_mount = apply_filters( 'byzo_widget_after_mount', '', $config );
 
-		return '<div class="bookyzo-widget-mount"' . $attrs . '></div>' . $after_mount;
+		return self::pinned_item_notice( $config ) . '<div class="bookyzo-widget-mount"' . $attrs . '></div>' . $after_mount;
+	}
+
+	/**
+	 * A form pinned to an item that's gone (deleted, archived or inactive)
+	 * falls back to listing every item, which is the right thing for a
+	 * visitor — but an admin looking at the page had no way to tell the
+	 * embed was broken (QA report 2026-09-22 B17). Admins, and only admins,
+	 * get a line saying so above the form.
+	 */
+	private static function pinned_item_notice( $config ) {
+		if ( empty( $config['bookable_item_id'] ) || ! current_user_can( 'manage_options' ) ) {
+			return '';
+		}
+
+		$id   = absint( $config['bookable_item_id'] );
+		$item = BYZO_Bookable_Item::get( $id );
+		if ( $item && 'active' === $item['status'] ) {
+			return '';
+		}
+
+		$message = $item
+			/* translators: 1: bookable item name, 2: bookable item ID */
+			? sprintf( __( 'Admin notice: this booking form is set to “%1$s” (#%2$d), which isn\'t active, so visitors see every bookable item instead. Activate it, or change the form\'s bookable item.', 'bookyzo' ), $item['name'], $id )
+			/* translators: %d: bookable item ID */
+			: sprintf( __( 'Admin notice: this booking form is set to bookable item #%d, which no longer exists, so visitors see every bookable item instead. Change the form\'s bookable item.', 'bookyzo' ), $id );
+
+		return '<p class="bookyzo-admin-notice" style="margin:0 0 12px;padding:10px 12px;border-left:4px solid #d97706;background:#fffbeb;color:#78350f;font-size:14px;">' . esc_html( $message ) . ' <em>' . esc_html__( 'Only site admins see this message.', 'bookyzo' ) . '</em></p>';
 	}
 
 	private static function enqueue_assets() {
