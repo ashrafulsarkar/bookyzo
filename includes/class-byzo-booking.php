@@ -740,6 +740,17 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_slot_unavailable', __( 'This time slot is no longer available.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
 
+		// Same rule /slots applies when listing times (see
+		// BYZO_Slot::earliest_bookable_start()) — without it a slot id
+		// that has already started, or started weeks ago, was bookable by
+		// anyone who POSTed it directly.
+		if ( BYZO_Slot::lead_time_applies() ) {
+			$slot_item = BYZO_Bookable_Item::get( $slot['bookable_item_id'] );
+			if ( $slot['start_datetime'] < BYZO_Slot::earliest_bookable_start( $slot_item ? $slot_item['type'] : '' ) ) {
+				return new WP_Error( 'byzo_slot_unavailable', __( 'This time can no longer be booked online. Please pick a later time.', 'bookyzo' ), array( 'status' => 409 ) );
+			}
+		}
+
 		$party_size = $validated['party_size'];
 
 		$slots_table = $wpdb->prefix . 'byzo_slots';
@@ -1072,6 +1083,15 @@ class BYZO_Booking {
 		$new_slot = BYZO_Slot::get( $new_slot_id );
 		if ( ! $new_slot || 'open' !== $new_slot['status'] ) {
 			return new WP_Error( 'byzo_slot_unavailable', __( 'The selected time slot is not available.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
+
+		// A customer rescheduling from their account follows the same lead
+		// time as a new booking; admins are exempt (see lead_time_applies()).
+		if ( BYZO_Slot::lead_time_applies() ) {
+			$new_slot_item = BYZO_Bookable_Item::get( $new_slot['bookable_item_id'] );
+			if ( $new_slot['start_datetime'] < BYZO_Slot::earliest_bookable_start( $new_slot_item ? $new_slot_item['type'] : '' ) ) {
+				return new WP_Error( 'byzo_slot_unavailable', __( 'That time can no longer be booked online. Please pick a later time.', 'bookyzo' ), array( 'status' => 409 ) );
+			}
 		}
 
 		$party_size  = $booking['party_size'];

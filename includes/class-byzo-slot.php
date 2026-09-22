@@ -24,6 +24,7 @@ class BYZO_Slot {
 	 *     @type string $from             Y-m-d, defaults to today.
 	 *     @type string $to               Y-m-d, defaults to byzo_settings max_advance_days out.
 	 *     @type bool   $open_only        Default true — only 'open' slots with capacity_remaining > 0 (what the public widget needs). false = admin view, all statuses.
+	 *     @type bool   $upcoming_only    Default false — also drop slots starting before earliest_bookable_start() (what a customer may still book; the public /slots route sets this for everyone but admins).
 	 * }
 	 * @return array|WP_Error
 	 */
@@ -65,12 +66,53 @@ class BYZO_Slot {
 			$where[]  = 'capacity_remaining > 0';
 		}
 
+		if ( ! empty( $args['upcoming_only'] ) ) {
+			$item     = BYZO_Bookable_Item::get( $bookable_item_id );
+			$where[]  = 'start_datetime >= %s';
+			$params[] = self::earliest_bookable_start( $item ? $item['type'] : '' );
+		}
+
 		$where_sql = implode( ' AND ', $where );
 		$sql       = 'SELECT * FROM ' . self::table() . " WHERE {$where_sql} ORDER BY start_datetime ASC";
 
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 
 		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
+	}
+
+	/**
+	 * The earliest slot start a customer may still book, site-local
+	 * 'Y-m-d H:i:s' like start_datetime itself.
+	 *
+	 * Slots are materialized ahead of time by the generator, which only
+	 * skips times inside the minimum-advance window as of the moment it
+	 * ran — a 10:00 slot generated overnight is still an `open` row at
+	 * 09:59, and at 14:00, and three weeks later. So the same rule has to
+	 * hold at read and booking time too. Event occurrences never go
+	 * through the generator (their times are the admin's own), so for them
+	 * the only rule is "hasn't started yet".
+	 *
+	 * @param string $type The bookable item's type.
+	 */
+	public static function earliest_bookable_start( $type ) {
+		$hours = 'event' === $type ? 0 : max( 0, (int) BYZO_Settings::get()['min_advance_hours'] );
+
+		return wp_date( 'Y-m-d H:i:s', time() + $hours * HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * Whether earliest_bookable_start() binds the current request. Admins
+	 * are exempt — they record walk-ins and phone bookings for times a
+	 * customer could no longer book online.
+	 */
+	public static function lead_time_applies() {
+		/**
+		 * Filters whether the booking lead time (no past slots, and the
+		 * minimum advance notice) applies to the current request.
+		 *
+		 * @param bool $applies Default: true for everyone but users who can manage_options.
+		 */
+		return (bool) apply_filters( 'byzo_enforce_booking_lead_time', ! current_user_can( 'manage_options' ) );
 	}
 
 	/**

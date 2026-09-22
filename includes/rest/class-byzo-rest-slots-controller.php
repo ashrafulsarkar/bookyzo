@@ -66,8 +66,9 @@ class BYZO_REST_Slots_Controller extends BYZO_REST_Controller {
 			$slots = BYZO_Slot::query_for_bookable_items(
 				$candidates,
 				array(
-					'from' => $request->get_param( 'from' ),
-					'to'   => $request->get_param( 'to' ),
+					'from'          => $request->get_param( 'from' ),
+					'to'            => $request->get_param( 'to' ),
+					'upcoming_only' => BYZO_Slot::lead_time_applies(),
 				)
 			);
 
@@ -94,6 +95,10 @@ class BYZO_REST_Slots_Controller extends BYZO_REST_Controller {
 				'from'             => $request->get_param( 'from' ),
 				'to'               => $request->get_param( 'to' ),
 				'open_only'        => true,
+				// Past slots and ones inside the minimum advance notice stay
+				// hidden from customers; admins still see the whole day
+				// (walk-ins, phone bookings, rescheduling).
+				'upcoming_only'    => BYZO_Slot::lead_time_applies(),
 			)
 		);
 
