@@ -105,6 +105,19 @@
             </div>
 
             <div class="flex flex-col gap-1.5">
+              <Label for="s-hold-hours">Unfinished online payments</Label>
+              <div class="flex items-center gap-2">
+                <Input id="s-hold-hours" v-model.number="form.pending_booking_hold_hours" type="number" min="0" step="1" class="w-24" />
+                <span class="text-sm text-muted-foreground">hours, then the booking is cancelled (0 = never)</span>
+              </div>
+              <p class="text-xs text-muted-foreground">
+                A customer who opens the online payment form but never finishes paying holds that time until
+                then. Bookings waiting for your approval, free bookings and "Pay in person" bookings are never
+                cancelled automatically.
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
               <Label for="s-cancellation-hours">Guest cancellation window</Label>
               <div class="flex items-center gap-2">
                 <Input id="s-cancellation-hours" v-model.number="form.cancellation_hours" type="number" min="0" step="1" class="w-24" />
@@ -200,6 +213,7 @@ const form = ref({
   customer_accounts_enabled: false,
   // Added 2026-09-22 — gates StepPayment.vue's "Pay in person instead".
   allow_pay_in_person: true,
+  pending_booking_hold_hours: 24,
 });
 const loading = ref(true);
 const saving = ref(false);

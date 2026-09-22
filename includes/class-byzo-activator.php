@@ -227,6 +227,15 @@ class BYZO_Activator {
 		// manual flow (i.e. every booking on an install without the
 		// bridge). One booking, one order — see §3 B9 for why this is a
 		// plain column, not a join table.
+		// `payment_method` added 2026-09-22 (BYZO_DB_VERSION 2.7->2.8) —
+		// how the customer set out to pay: `stripe`/`paypal`/`woocommerce`
+		// once an online payment was actually started for this booking,
+		// `in_person` once they chose "Pay in person instead", NULL when
+		// neither happened (free bookings, admin-created ones, anything
+		// made before this column existed). BYZO_Booking_Cleanup only ever
+		// auto-cancels a booking whose online payment was started and
+		// never finished, so a booking merely waiting for admin approval
+		// is never swept up by it.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
@@ -246,6 +255,7 @@ class BYZO_Activator {
 			party_size SMALLINT UNSIGNED NOT NULL DEFAULT 1,
 			status VARCHAR(20) NOT NULL DEFAULT 'pending',
 			payment_status VARCHAR(20) NOT NULL DEFAULT 'unpaid',
+			payment_method VARCHAR(20) NULL,
 			payment_amount DECIMAL(10,2) NULL,
 			deposit_amount DECIMAL(10,2) NULL,
 			tax_amount DECIMAL(10,2) NULL,

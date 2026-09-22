@@ -15,7 +15,7 @@
     </template>
 
     <div class="actions">
-      <button v-if="payInPersonEnabled" type="button" class="btn btn-outline" @click="$emit('skip')">Pay in person instead</button>
+      <button v-if="payInPersonEnabled" type="button" class="btn btn-outline" :disabled="paying" @click="payInPerson">Pay in person instead</button>
       <button type="button" class="btn btn-primary" :disabled="!cardReady || paying" @click="pay">
         {{ paying ? 'Processing…' : `Pay ${formattedAmount}` }}
       </button>
@@ -40,7 +40,7 @@
 // Verified end-to-end against Stripe test-mode keys 2026-09-11 (see
 // BYZO_Stripe's own docblock).
 import { ref, onMounted, onBeforeUnmount, nextTick } from 'vue';
-import { createBookingPaymentIntent, confirmBookingPayment } from '../api';
+import { createBookingPaymentIntent, confirmBookingPayment, setBookingPaymentMethod } from '../api';
 import WidgetLoading from '../WidgetLoading.vue';
 
 const payInPersonEnabled = !(window.byzoWidget && window.byzoWidget.payInPersonEnabled === false);
@@ -92,6 +92,18 @@ function loadStripeJs() {
   });
 }
 
+// Best-effort: a failed call must never strand the customer on this step.
+// The worst case is a pay-later booking recorded as an abandoned card
+// payment, which the server only releases after the hold window.
+function recordPaymentMethod(method) {
+  return setBookingPaymentMethod(props.booking.id, props.booking.customer_email, method).catch(() => {});
+}
+
+async function payInPerson() {
+  await recordPaymentMethod('in_person');
+  emit('skip');
+}
+
 async function pay() {
   payError.value = '';
   paying.value = true;
@@ -137,6 +149,10 @@ onMounted(async () => {
     loadingStripe.value = false;
     return;
   }
+
+  // The card form is on screen: from here on an unfinished booking is an
+  // abandoned online payment, not one waiting for the admin's approval.
+  recordPaymentMethod('stripe');
 
   try {
     const Stripe = await loadStripeJs();

@@ -1273,9 +1273,42 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
+		// A linked WC order is an online payment in progress — stamped here
+		// so BYZO_Booking_Cleanup can release it if the order is abandoned.
 		$wpdb->update(
 			self::table(),
-			array( 'wc_order_id' => absint( $wc_order_id ), 'updated_at' => current_time( 'mysql' ) ),
+			array( 'wc_order_id' => absint( $wc_order_id ), 'payment_method' => 'woocommerce', 'updated_at' => current_time( 'mysql' ) ),
+			array( 'id' => $id )
+		);
+
+		return true;
+	}
+
+	/**
+	 * Records how the customer set out to pay (see the `payment_method`
+	 * column note in BYZO_Activator). Called when an online payment is
+	 * started (`stripe` by the payment-intent route, `paypal` by Pro's
+	 * order route) and when the customer picks "Pay in person instead"
+	 * (`in_person`). The latest choice wins — a customer who opened the
+	 * card form and then switched to paying in person ends up `in_person`.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function set_payment_method( $id, $payment_method ) {
+		global $wpdb;
+
+		$payment_method = sanitize_key( $payment_method );
+		if ( '' === $payment_method || strlen( $payment_method ) > 20 ) {
+			return new WP_Error( 'byzo_invalid_payment_method', __( 'Invalid payment method.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$wpdb->update(
+			self::table(),
+			array( 'payment_method' => $payment_method, 'updated_at' => current_time( 'mysql' ) ),
 			array( 'id' => $id )
 		);
 
@@ -1741,6 +1774,7 @@ class BYZO_Booking {
 			? array_map( 'intval', explode( ',', $row['combined_table_ids'] ) )
 			: array();
 		$row['wc_order_id']    = isset( $row['wc_order_id'] ) && $row['wc_order_id'] ? (int) $row['wc_order_id'] : null;
+		$row['payment_method'] = isset( $row['payment_method'] ) && '' !== $row['payment_method'] ? $row['payment_method'] : null;
 
 		// slot_start/slot_end come from the LEFT JOIN in get()/query() —
 		// always present in the shape (null when the slot was deleted,

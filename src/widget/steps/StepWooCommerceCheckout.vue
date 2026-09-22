@@ -5,7 +5,7 @@
     <template v-else>
       <p class="error">{{ error }}</p>
       <div class="actions">
-        <button type="button" class="btn btn-outline" @click="$emit('skip')">Pay in person instead</button>
+        <button type="button" class="btn btn-outline" @click="payInPerson">Pay in person instead</button>
       </div>
     </template>
   </div>
@@ -32,15 +32,22 @@
 // actually reach WooCommerce, not to lose their customer's already-placed
 // booking to a dead end.
 import { onMounted, ref } from 'vue';
-import { startWooCommerceCheckout } from '../api';
+import { startWooCommerceCheckout, setBookingPaymentMethod } from '../api';
 import WidgetLoading from '../WidgetLoading.vue';
 
 const props = defineProps({
   booking: { type: Object, required: true },
 });
-defineEmits(['skip']);
+const emit = defineEmits(['skip']);
 
 const error = ref('');
+
+// Refused server-side when the merchant turned "Pay in person" off —
+// swallowed either way, this button is error recovery (see above).
+async function payInPerson() {
+  await setBookingPaymentMethod(props.booking.id, props.booking.customer_email, 'in_person').catch(() => {});
+  emit('skip');
+}
 
 onMounted(async () => {
   try {

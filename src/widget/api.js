@@ -56,6 +56,16 @@ export const confirmBookingPayment = (bookingId, customerEmail, paymentIntentId)
     body: JSON.stringify({ customer_email: customerEmail, payment_intent_id: paymentIntentId }),
   });
 
+// Records how the customer is paying (`stripe` when the card form opens,
+// `in_person` for "Pay in person instead") so the server can tell an
+// abandoned online payment from a deliberate pay-later booking — only the
+// former is ever auto-released (BYZO_Booking_Cleanup).
+export const setBookingPaymentMethod = (bookingId, customerEmail, paymentMethod) =>
+  request(`/bookings/${bookingId}/payment-method`, {
+    method: 'POST',
+    body: JSON.stringify({ customer_email: customerEmail, payment_method: paymentMethod }),
+  });
+
 // Phase 5 (DETAILED-SPEC.md §3 B9) — only ever called when the selected
 // item's wc_checkout_enabled flag is true, i.e. the separate
 // bookyzo-woocommerce bridge plugin is active and enabled for this item;

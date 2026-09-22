@@ -158,6 +158,23 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 				),
 			)
 		);
+
+		// Same guest-allowed, email-guarded shape again. Called by the
+		// widget when the payment step opens (`stripe`) and when the
+		// customer picks "Pay in person instead" (`in_person`), so an
+		// abandoned card form and a deliberate pay-later booking are told
+		// apart — BYZO_Booking_Cleanup only ever releases the former.
+		register_rest_route(
+			self::NAMESPACE_V1,
+			'/' . $this->get_rest_base() . '/(?P<id>\d+)/payment-method',
+			array(
+				array(
+					'methods'             => WP_REST_Server::CREATABLE,
+					'callback'            => array( $this, 'choose_payment_method' ),
+					'permission_callback' => array( $this, 'public_permissions_check' ),
+				),
+			)
+		);
 	}
 
 	public function get_items( WP_REST_Request $request ) {
@@ -463,7 +480,50 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return $result;
 		}
 
+		BYZO_Booking::set_payment_method( $booking['id'], 'stripe' );
+
 		return rest_ensure_response( $result );
+	}
+
+	/**
+	 * Records how the customer is paying: `stripe` (the card form was
+	 * opened) or `in_person`. Only these two are accepted from a guest —
+	 * PayPal/WooCommerce are stamped server-side when their own checkout
+	 * starts. `in_person` is refused when the merchant turned that option
+	 * off (the widget hides the button then, so only a hand-made request
+	 * reaches this). A no-op for a booking that is already paid or no
+	 * longer active.
+	 */
+	public function choose_payment_method( WP_REST_Request $request ) {
+		$id      = (int) $request->get_param( 'id' );
+		$booking = BYZO_Booking::get( $id );
+
+		if ( ! $booking ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$body = (array) $request->get_json_params();
+
+		if ( ! current_user_can( 'manage_options' ) ) {
+			if ( empty( $body['customer_email'] ) || strtolower( trim( $body['customer_email'] ) ) !== strtolower( $booking['customer_email'] ) ) {
+				return new WP_Error( 'byzo_email_mismatch', __( 'customer_email does not match this booking.', 'bookyzo' ), array( 'status' => 403 ) );
+			}
+		}
+
+		$method = sanitize_key( (string) ( $body['payment_method'] ?? '' ) );
+		if ( ! in_array( $method, array( 'stripe', 'in_person' ), true ) ) {
+			return new WP_Error( 'byzo_invalid_payment_method', __( 'payment_method must be "stripe" or "in_person".', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		if ( 'in_person' === $method && empty( BYZO_Settings::get()['allow_pay_in_person'] ) ) {
+			return new WP_Error( 'byzo_pay_in_person_disabled', __( 'Paying in person is not available for this booking.', 'bookyzo' ), array( 'status' => 403 ) );
+		}
+
+		if ( 'unpaid' === $booking['payment_status'] && in_array( $booking['status'], array( 'pending', 'confirmed' ), true ) ) {
+			BYZO_Booking::set_payment_method( $booking['id'], $method );
+		}
+
+		return rest_ensure_response( array( 'payment_method' => BYZO_Booking::get( $booking['id'] )['payment_method'] ) );
 	}
 
 	/**
