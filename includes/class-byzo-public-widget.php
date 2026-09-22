@@ -182,6 +182,25 @@ class BYZO_Public_Widget {
 		// UI: absent when off, not a disabled/greyed-out control.
 		$accounts_enabled = class_exists( 'BYZO_Settings' ) ? (bool) BYZO_Settings::get()['customer_accounts_enabled'] : false;
 
+		// A logged-in visitor's own contact details, so StepDetails.vue
+		// can prefill them (DETAILED-SPEC.md §A11, built 2026-09-22 — QA
+		// report B12: promised but never wired, so a logged-in customer
+		// typed everything again and could book under a different email
+		// than their account's). Their customer record wins over the WP
+		// profile; null for guests. Only ever printed on a logged-in page
+		// view, which page caches don't serve to anyone else.
+		$current_customer = null;
+		if ( is_user_logged_in() ) {
+			$user     = wp_get_current_user();
+			$customer = class_exists( 'BYZO_Customer' ) ? BYZO_Customer::get_by_wp_user_id( $user->ID ) : null;
+
+			$current_customer = array(
+				'name'  => $customer && '' !== (string) $customer['name'] ? $customer['name'] : $user->display_name,
+				'email' => $customer && '' !== (string) $customer['email'] ? $customer['email'] : $user->user_email,
+				'phone' => $customer && ! empty( $customer['phone'] ) ? $customer['phone'] : '',
+			);
+		}
+
 		// taxRate lets StepDetails.vue show the same total the server will
 		// actually charge. BYZO_Booking::create() computes
 		// price × party_size + tax and is the only authority on the
@@ -209,7 +228,7 @@ class BYZO_Public_Widget {
 		wp_add_inline_script(
 			'byzo-widget',
 			sprintf(
-				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s, collectAttendeeDetailsEnabled: %s, payInPersonEnabled: %s, documents: %s };',
+				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s, collectAttendeeDetailsEnabled: %s, payInPersonEnabled: %s, documents: %s, currentCustomer: %s };',
 				wp_json_encode( esc_url_raw( rest_url( 'bookyzo/v1' ) ) ),
 				wp_json_encode( ! empty( $stripe['enabled'] ) && ! empty( $stripe['publishable_key'] ) ),
 				wp_json_encode( $stripe['publishable_key'] ?? '' ),
@@ -218,7 +237,8 @@ class BYZO_Public_Widget {
 				wp_json_encode( $tax_rate ),
 				wp_json_encode( $collect_attendee_details ),
 				wp_json_encode( $pay_in_person_enabled ),
-				wp_json_encode( $documents )
+				wp_json_encode( $documents ),
+				wp_json_encode( $current_customer )
 			),
 			'before'
 		);

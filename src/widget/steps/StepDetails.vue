@@ -220,13 +220,16 @@ const partySizeMax = computed(() => Math.max(1, props.slot.capacity_remaining ||
 
 // Phase 1.7 step 6 — window.byzoWidget.customerAccountsEnabled (added
 // alongside restUrl/stripeEnabled/etc. by BYZO_Public_Widget::enqueue_assets()).
-const accountsEnabled = Boolean(window.byzoWidget && window.byzoWidget.customerAccountsEnabled);
+// A logged-in visitor already has an account — no opt-in for them — and
+// their details come prefilled (BYZO_Public_Widget's currentCustomer).
+const currentCustomer = (window.byzoWidget && window.byzoWidget.currentCustomer) || null;
+const accountsEnabled = Boolean(window.byzoWidget && window.byzoWidget.customerAccountsEnabled) && !currentCustomer;
 
 const form = reactive({
   party_size: props.partySize || 1,
-  name: '',
-  email: '',
-  phone: '',
+  name: currentCustomer?.name || '',
+  email: currentCustomer?.email || '',
+  phone: currentCustomer?.phone || '',
   notes: '',
   website: '',
   create_account: false,

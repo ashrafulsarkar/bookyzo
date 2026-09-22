@@ -142,7 +142,7 @@ Self-service so a business stops fielding "can I reschedule?" calls/emails for e
 - `[bookyzo_account]` shortcode: a login/register form when logged out, the dashboard when logged in. Registering with an email that already has a guest customer record (A10) simply links to it — that customer's full existing booking history shows up immediately, no separate "claim your bookings" flow needed.
 - Dashboard: the logged-in customer's own upcoming + past bookings, reschedule (reuses A4's existing reschedule action) and cancel (reuses A4's existing single cancellation-policy window — the same `cancellation_hours` rule the guest token-link already respects) — scoped strictly to their own bookings, never another customer's.
 - **Booking-time opt-in**: a "Create an account" checkbox + password field on the widget's contact-details step (A5). Unchecked (default) books as a guest exactly as today; checked, the account is created in the same `POST /bookings` call, linked to the customer record that call already upserts (A10).
-- Saved details for faster repeat booking (moved here from the old B4) — a logged-in customer's next booking pre-fills name/email/phone from their account.
+- Saved details for faster repeat booking (moved here from the old B4) — a logged-in customer's next booking pre-fills name/email/phone from their account. **Built 2026-09-22** (QA report B12 found it listed but not wired): the widget prefills from the customer record (falling back to the WP profile) and hides the "Create an account" opt-in for anyone already logged in.
 
 ---
 
