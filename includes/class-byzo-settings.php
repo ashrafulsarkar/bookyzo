@@ -75,7 +75,16 @@ class BYZO_Settings {
 			'allow_pay_in_person'        => true,
 		);
 
-		return wp_parse_args( get_option( 'byzo_settings', array() ), $defaults );
+		$settings = wp_parse_args( get_option( 'byzo_settings', array() ), $defaults );
+
+		// Read-only mirror of WordPress's own timezone (Settings → General).
+		// Every date calculation already runs on wp_timezone(); a separate
+		// Bookyzo value was saved but never read, so changing it did nothing
+		// (QA report 2026-09-22 B8). Any value stored by an older version is
+		// ignored here and no longer writable through update().
+		$settings['timezone'] = wp_timezone_string();
+
+		return $settings;
 	}
 
 	/**
@@ -92,14 +101,6 @@ class BYZO_Settings {
 				return new WP_Error( 'byzo_invalid_business_name', __( 'business_name cannot be empty.', 'bookyzo' ), array( 'status' => 400 ) );
 			}
 			$patch['business_name'] = $name;
-		}
-
-		if ( isset( $data['timezone'] ) ) {
-			$timezone = sanitize_text_field( $data['timezone'] );
-			if ( ! self::is_valid_timezone( $timezone ) ) {
-				return new WP_Error( 'byzo_invalid_timezone', __( 'timezone must be a valid PHP timezone identifier (e.g. Asia/Dhaka) or UTC offset (e.g. +06:00).', 'bookyzo' ), array( 'status' => 400 ) );
-			}
-			$patch['timezone'] = $timezone;
 		}
 
 		if ( isset( $data['currency'] ) ) {
@@ -222,15 +223,6 @@ class BYZO_Settings {
 		}
 
 		return $validated;
-	}
-
-	private static function is_valid_timezone( $timezone ) {
-		if ( in_array( $timezone, timezone_identifiers_list(), true ) ) {
-			return true;
-		}
-
-		// wp_timezone_string() can also return a raw UTC offset like "+06:00" for sites without an Olson ID set.
-		return (bool) preg_match( '/^[+-]\d{2}:\d{2}$/', $timezone );
 	}
 
 	private static function sanitize_time( $value ) {

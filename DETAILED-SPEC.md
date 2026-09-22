@@ -67,7 +67,7 @@ Two sub-tables:
 | is_closed | TINYINT(1) | 1 = fully blocked that day |
 | start_time, end_time | TIME NULL | if not fully closed, override hours for that date |
 
-**Business-level settings** (options, not a table): `byzo_settings` option — business name, timezone, currency, default working hours, min advance notice (hours), max advance window (days), buffer time (minutes).
+**Business-level settings** (options, not a table): `byzo_settings` option — business name, currency, default working hours, min advance notice (hours), max advance window (days), buffer time (minutes). The site timezone is WordPress's own (`wp_timezone()`, Settings → General) — `byzo_settings["timezone"]` is only a read-only mirror of it (2026-09-22, QA report B8: a separately stored Bookyzo timezone was saved but never read).
 
 ### 1.3 `wp_byzo_slots` — generated bookable time slots (materialized, not computed on the fly)
 | Column | Type | Notes |

@@ -34,7 +34,7 @@ The free version should be genuinely usable for a small single-location business
 - **Review**: a plain summary card of everything just configured (e.g. "Appointment · 30 minutes · Mon–Fri 9:00–17:00 · $25") before the final create action.
 - **Create**: saves the settings and creates the first bookable item + its schedule in one action (already how `FirstBookableItemStep` works today — extended to also write availability/pricing/notification settings instead of just business-profile defaults).
 - **Success screen**: "Your booking is ready!" with next actions — View Dashboard, Manage Booking, View Booking Form (copies the bookable item's shortcode, A5), Add Another Booking Type (re-enters the type picker for a *different* type — a 2nd bookable item of the *same* type still needs Pro, per A9's cap).
-- Business profile (name, timezone, currency, working hours) collected once, upfront, before the type-specific steps — unchanged from the current wizard.
+- Business profile (name, currency, working hours; the timezone is WordPress's own) collected once, upfront, before the type-specific steps — unchanged from the current wizard.
 
 ### A2. Bookable Item Management (Core)
 - **Type-first creation flow (decided 2026-09-02):** "Add New" starts with a booking-type picker (Appointment / Table / Event / Slot), THEN shows the type-specific form — the fields shown depend on the chosen type (see A9 for what each type's form needs). Type is fixed after creation (changing type would orphan the bookable item's schedule/slots).

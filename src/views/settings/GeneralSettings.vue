@@ -31,9 +31,16 @@
                 <Input id="s-business-name" v-model="form.business_name" type="text" />
               </div>
               <div class="flex flex-col gap-1.5">
-                <Label for="s-timezone">Timezone</Label>
-                <Input id="s-timezone" v-model="form.timezone" type="text" placeholder="e.g. Asia/Dhaka" />
-                <p class="text-xs text-muted-foreground">A PHP timezone identifier, e.g. Asia/Dhaka, or a UTC offset like +06:00.</p>
+                <!-- Read-only: every time Bookyzo shows or stores uses
+                     WordPress's own timezone, so that's the one place to
+                     change it. (This used to be an editable field that was
+                     saved but never used.) -->
+                <Label>Timezone</Label>
+                <p id="s-timezone" class="flex h-9 items-center text-sm">{{ timezoneLabel }}</p>
+                <p class="text-xs text-muted-foreground">
+                  Bookyzo uses your site's timezone.
+                  <a href="options-general.php#timezone_string" class="text-primary underline-offset-2 hover:underline">Change it in Settings → General</a>.
+                </p>
               </div>
             </div>
             <div class="grid gap-4 sm:grid-cols-2">
@@ -172,7 +179,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -215,6 +222,8 @@ const form = ref({
   allow_pay_in_person: true,
   pending_booking_hold_hours: 24,
 });
+// WordPress reports a bare offset ("+06:00") when no named zone is set.
+const timezoneLabel = computed(() => (/^[+-]/.test(form.value.timezone) ? `UTC${form.value.timezone}` : form.value.timezone));
 const loading = ref(true);
 const saving = ref(false);
 const error = ref('');
