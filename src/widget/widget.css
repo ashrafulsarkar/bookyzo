@@ -336,6 +336,21 @@
   margin-top: 8px;
 }
 
+/* Group headings in a mixed list (Services / Tables / Classes / Events) —
+   same quiet label style as the time-of-day groups on the slot step. */
+.bookyzo-widget .group-label {
+  margin: 18px 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--byzo-text-muted);
+}
+
+.bookyzo-widget .group-label:first-of-type {
+  margin-top: 0;
+}
+
 .bookyzo-widget .slot-list {
   display: flex;
   flex-direction: row;

@@ -79,6 +79,22 @@ export function copyFor(type) {
  * "Choose a table" above a list containing an event.
  */
 export const MIXED_COPY = {
-  pickHeading: 'Choose a service',
-  pickSub: "Select what you'd like to book.",
+  // A list with tables and events in it can't be headed "Choose a service"
+  // (QA report 2026-09-22 §4.14).
+  pickHeading: 'What would you like to book?',
+  pickSub: 'Pick one to see available times.',
 };
+
+/**
+ * Headings for the groups a mixed list is split into, in the order they're
+ * shown — appointments first (the most common single-item site), then the
+ * rest. A list of one type doesn't use these at all: its own copy already
+ * says what it is.
+ */
+export const GROUP_LABELS = {
+  appointment: 'Services',
+  table: 'Tables',
+  slot: 'Classes & sessions',
+  event: 'Events',
+};
+export const GROUP_ORDER = ['appointment', 'table', 'slot', 'event'];

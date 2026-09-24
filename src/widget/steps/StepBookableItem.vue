@@ -8,6 +8,7 @@
     <!-- Pro services (QA report 2026-09-22 B9): picked by what, not by
          whom — the next step offers the staff who provide it, or "any
          available". Absent when there are none (always, without Pro). -->
+    <p v-if="services.length && items.length" class="group-label">Services</p>
     <div v-if="services.length" class="bookable-item-list">
       <button
         v-for="service in services"
@@ -26,31 +27,37 @@
         <span class="option-card-go" aria-hidden="true">&#8250;</span>
       </button>
     </div>
-    <div v-if="items.length" class="bookable-item-list" :class="{ 'bookable-item-list--after-services': services.length }">
-      <button
-        v-for="item in items"
-        :key="item.id"
-        type="button"
-        class="option-card"
-        @click="$emit('selected', item, false)"
-      >
-        <span class="option-card-body">
-          <span class="name">{{ item.name }}</span>
-          <span class="meta">
-            <span class="meta-item">{{ item.duration_minutes }} min</span>
-            <span v-if="item.price !== null" class="meta-price">{{ formatPrice(item.price) }}</span>
+    <!-- Grouped by type once there's more than one, so tables, classes and
+         events don't sit in one undifferentiated list (QA report §4.14). -->
+    <template v-for="(group, index) in groups" :key="group.type">
+      <p v-if="groups.length > 1 || services.length" class="group-label">{{ group.label }}</p>
+      <div class="bookable-item-list" :class="{ 'bookable-item-list--after-services': index === 0 && services.length && groups.length === 1 }">
+        <button
+          v-for="item in group.items"
+          :key="item.id"
+          type="button"
+          class="option-card"
+          @click="$emit('selected', item, false)"
+        >
+          <span class="option-card-body">
+            <span class="name">{{ item.name }}</span>
+            <span class="meta">
+              <span class="meta-item">{{ item.duration_minutes }} min</span>
+              <span v-if="item.capacity > 1" class="meta-item">{{ capacityLabel(item) }}</span>
+              <span v-if="item.price !== null" class="meta-price">{{ formatPrice(item.price) }}</span>
+            </span>
           </span>
-        </span>
-        <span class="option-card-go" aria-hidden="true">&#8250;</span>
-      </button>
-    </div>
+          <span class="option-card-go" aria-hidden="true">&#8250;</span>
+        </button>
+      </div>
+    </template>
   </div>
 </template>
 
 <script setup>
 import { ref, computed, onMounted } from 'vue';
 import { getPublicBookableItems, getPublicServices } from '../api';
-import { copyFor, MIXED_COPY } from '../copy';
+import { copyFor, MIXED_COPY, GROUP_LABELS, GROUP_ORDER } from '../copy';
 import WidgetLoading from '../WidgetLoading.vue';
 import { formatMoney } from '@/lib/money';
 
@@ -93,8 +100,31 @@ function servicePrice(service) {
 // that type's language; a genuinely mixed list can't, so it stays neutral.
 const copy = computed(() => {
   const types = new Set(items.value.map((i) => i.type));
-  return types.size === 1 ? copyFor(items.value[0].type) : MIXED_COPY;
+  return types.size === 1 && !services.value.length ? copyFor(items.value[0].type) : MIXED_COPY;
 });
+
+// One group per type, in a fixed order, each keeping the server's own
+// ordering inside it.
+const groups = computed(() =>
+  GROUP_ORDER.map((type) => ({
+    type,
+    // With Pro services listed above, "Services" twice would be two
+    // headings for two different things — the staff themselves come second.
+    label: 'appointment' === type && services.value.length ? 'Or book with' : GROUP_LABELS[type],
+    items: items.value.filter((item) => item.type === type),
+  })).filter((group) => group.items.length)
+);
+
+// How many a table seats, a class takes, an event sells — in that type's
+// own words rather than one generic "party size".
+function capacityLabel(item) {
+  const labels = {
+    table: `Seats ${item.capacity}`,
+    slot: `${item.capacity} spots`,
+    event: `${item.capacity} tickets`,
+  };
+  return labels[item.type] || '';
+}
 
 onMounted(async () => {
   try {
