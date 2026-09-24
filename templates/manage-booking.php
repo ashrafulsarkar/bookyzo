@@ -7,6 +7,12 @@
  * Overridable via a theme's own bookyzo/manage-booking.php (see
  * byzo_get_template() in includes/functions.php).
  *
+ * Rewritten 2026-09-22 (QA report §4.5): the page used to name the item
+ * and the time only on the "confirm" screen, never said whose site it
+ * was, and told people to "contact us directly" without giving them any
+ * way to. It now shows the booking in full on every state that has one,
+ * with the business's own name and contact details underneath.
+ *
  * @var string      $state      'confirm' | 'cancelled' | 'error'
  * @var string      $message    Shown for the 'error' state.
  * @var array|null  $booking    The booking row, if the token verified.
@@ -17,6 +23,28 @@
  */
 
 defined( 'ABSPATH' ) || exit;
+
+$settings      = BYZO_Settings::get();
+$business_name = $settings['business_name'];
+$contact_email = get_option( 'admin_email' );
+
+$details = array();
+if ( $booking ) {
+	if ( ! empty( $booking['slot_start'] ) ) {
+		$start = new DateTime( $booking['slot_start'], wp_timezone() );
+		$details[ __( 'When', 'bookyzo' ) ] = $start->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
+	}
+	if ( $item && ! empty( $item['location'] ) ) {
+		$details[ __( 'Where', 'bookyzo' ) ] = $item['location'];
+	}
+	if ( (int) $booking['party_size'] > 1 ) {
+		$details[ __( 'How many', 'bookyzo' ) ] = (string) (int) $booking['party_size'];
+	}
+	if ( null !== $booking['payment_amount'] ) {
+		$details[ __( 'Total', 'bookyzo' ) ] = $settings['currency'] . ' ' . number_format( (float) $booking['payment_amount'], 2 );
+	}
+	$details[ __( 'Booking', 'bookyzo' ) ] = '#' . (int) $booking['id'];
+}
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -27,18 +55,26 @@ defined( 'ABSPATH' ) || exit;
 	<title><?php esc_html_e( 'Manage your booking', 'bookyzo' ); ?></title>
 	<style>
 		body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; margin: 0; padding: 40px 20px; }
-		.byzo-manage-card { max-width: 420px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; text-align: center; }
+		.byzo-manage-card { max-width: 440px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; text-align: center; }
+		.byzo-manage-business { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #64748b; margin: 0 0 18px; }
 		.byzo-manage-card h1 { font-size: 18px; margin: 0 0 12px; }
 		.byzo-manage-card p { font-size: 14px; line-height: 1.5; color: #475569; margin: 0 0 20px; }
-		.byzo-manage-summary { background: #f1f5f9; border-radius: 8px; padding: 14px; font-size: 14px; text-align: left; margin-bottom: 20px; }
-		.byzo-manage-summary strong { display: block; margin-bottom: 2px; }
+		.byzo-manage-summary { background: #f1f5f9; border-radius: 8px; padding: 14px 16px; font-size: 14px; text-align: left; margin-bottom: 20px; }
+		.byzo-manage-summary strong { display: block; margin-bottom: 8px; font-size: 15px; }
+		.byzo-manage-row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
+		.byzo-manage-row span:first-child { color: #64748b; }
+		.byzo-manage-row span:last-child { text-align: right; }
 		.byzo-manage-btn { display: inline-block; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
 		.byzo-manage-btn--danger { background: #dc2626; color: #fff; }
 		.byzo-manage-icon { font-size: 32px; margin-bottom: 12px; }
+		.byzo-manage-contact { margin: 24px 0 0; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #64748b; }
+		.byzo-manage-contact a { color: #2563eb; }
 	</style>
 </head>
 <body>
 	<div class="byzo-manage-card">
+		<p class="byzo-manage-business"><?php echo esc_html( $business_name ); ?></p>
+
 		<?php if ( 'cancelled' === $state ) : ?>
 			<div class="byzo-manage-icon">✓</div>
 			<h1><?php esc_html_e( 'Booking cancelled', 'bookyzo' ); ?></h1>
@@ -46,27 +82,44 @@ defined( 'ABSPATH' ) || exit;
 
 		<?php elseif ( 'confirm' === $state ) : ?>
 			<h1><?php esc_html_e( 'Cancel this booking?', 'bookyzo' ); ?></h1>
+
+		<?php else : ?>
+			<h1><?php esc_html_e( 'Unable to cancel', 'bookyzo' ); ?></h1>
+			<p><?php echo esc_html( $message ); ?></p>
+		<?php endif; ?>
+
+		<?php if ( $details ) : ?>
 			<div class="byzo-manage-summary">
 				<strong><?php echo esc_html( $item['name'] ?? '' ); ?></strong>
-				<?php if ( ! empty( $booking['slot_start'] ) ) : ?>
-					<?php
-					$slot_start = new DateTime( $booking['slot_start'], wp_timezone() );
-					echo esc_html( $slot_start->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) ) );
-					?>
-				<?php endif; ?>
+				<?php foreach ( $details as $label => $value ) : ?>
+					<div class="byzo-manage-row">
+						<span><?php echo esc_html( $label ); ?></span>
+						<span><?php echo esc_html( $value ); ?></span>
+					</div>
+				<?php endforeach; ?>
 			</div>
-			<p><?php esc_html_e( "This can't be undone. If you just want to change the time, please contact us directly instead.", 'bookyzo' ); ?></p>
+		<?php endif; ?>
+
+		<?php if ( 'confirm' === $state ) : ?>
+			<p><?php esc_html_e( "This can't be undone. If you just want to change the time, get in touch instead.", 'bookyzo' ); ?></p>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="<?php echo esc_attr( $action ); ?>">
 				<input type="hidden" name="booking_id" value="<?php echo esc_attr( $booking_id ); ?>">
 				<input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
 				<button type="submit" class="byzo-manage-btn byzo-manage-btn--danger"><?php esc_html_e( 'Yes, cancel my booking', 'bookyzo' ); ?></button>
 			</form>
-
-		<?php else : ?>
-			<h1><?php esc_html_e( 'Unable to cancel', 'bookyzo' ); ?></h1>
-			<p><?php echo esc_html( $message ); ?></p>
 		<?php endif; ?>
+
+		<p class="byzo-manage-contact">
+			<?php
+			printf(
+				/* translators: 1: contact email link, 2: link to the site */
+				esc_html__( 'Questions? Email %1$s or visit %2$s.', 'bookyzo' ),
+				'<a href="mailto:' . esc_attr( $contact_email ) . '">' . esc_html( $contact_email ) . '</a>',
+				'<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html( $business_name ) . '</a>'
+			);
+			?>
+		</p>
 	</div>
 </body>
 </html>
