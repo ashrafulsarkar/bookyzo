@@ -31,6 +31,7 @@
     <ByzoCalendarAgenda
       v-else-if="viewMode === 'agenda'"
       :bookings="bookings"
+      :items="items"
       @select-booking="(b) => $emit('select-booking', b)"
     />
     <ByzoCalendarWeek
@@ -65,6 +66,8 @@ import { startOfWeek, addDays, formatDayLabel, formatMonthLabel } from '@/lib/da
 
 const props = defineProps({
   bookings: { type: Array, required: true },
+  // Passed through to the agenda view, which names each booking's item.
+  items: { type: Array, default: () => [] },
 });
 const emit = defineEmits(['range-change', 'select-booking', 'select-slot', 'reschedule-booking']);
 

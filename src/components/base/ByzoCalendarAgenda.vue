@@ -15,7 +15,13 @@
         @click="$emit('select-booking', booking)"
       >
         <span class="w-16 shrink-0 text-muted-foreground">{{ formatTime(new Date(booking.slot_start)) }}</span>
-        <span class="flex-1 truncate font-medium">{{ booking.customer_name }}</span>
+        <span class="flex-1 truncate">
+          <span class="font-medium">{{ booking.customer_name }}</span>
+          <!-- Which staff member, table or class — the one thing the list
+               was missing next to a name and a time (QA report §4.12). -->
+          <span v-if="itemName(booking)" class="text-muted-foreground"> · {{ itemName(booking) }}</span>
+          <span v-if="booking.party_size > 1" class="text-muted-foreground"> · {{ booking.party_size }}</span>
+        </span>
         <ByzoBadge :status="booking.status">{{ booking.status.replace('_', ' ') }}</ByzoBadge>
       </button>
     </div>
@@ -35,8 +41,16 @@ import { formatTime, toDateKey } from '@/lib/date';
 
 const props = defineProps({
   bookings: { type: Array, required: true },
+  // The active bookable items, so a booking can be labelled with the one
+  // it belongs to; an empty list just leaves that label off.
+  items: { type: Array, default: () => [] },
 });
 defineEmits(['select-booking']);
+
+function itemName(booking) {
+  const item = props.items.find((i) => i.id === booking.bookable_item_id);
+  return item ? item.name : '';
+}
 
 const groups = computed(() => {
   const withTime = props.bookings.filter((b) => b.slot_start);

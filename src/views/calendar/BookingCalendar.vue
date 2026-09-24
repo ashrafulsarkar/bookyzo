@@ -23,6 +23,7 @@
       <Card class="overflow-hidden">
         <ByzoCalendar
           :bookings="bookings"
+          :items="items"
           @range-change="onRangeChange"
           @select-booking="openDetail"
           @select-slot="onSelectSlot"
