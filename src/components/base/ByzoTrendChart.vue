@@ -1,5 +1,5 @@
 <template>
-  <div class="relative flex flex-col gap-1">
+  <div ref="rootEl" class="relative flex flex-col gap-1">
     <svg
       :viewBox="`0 0 ${width} ${height}`"
       class="w-full"
@@ -18,6 +18,20 @@
         stroke="var(--byzo-border)"
         stroke-width="1"
       />
+
+      <!-- y-axis ticks: clean whole numbers in muted text, so the gridlines
+           mean something without hovering (QA report 2026-09-22 U8) -->
+      <text
+        v-for="y in gridLines"
+        :key="'tick-' + y.value"
+        :x="padding.left - 8"
+        :y="y.pos"
+        text-anchor="end"
+        dominant-baseline="middle"
+        font-size="11"
+        fill="var(--byzo-text-muted)"
+        style="font-variant-numeric: tabular-nums"
+      >{{ y.value.toLocaleString() }}</text>
 
       <!-- area fill: series hue at ~10% opacity -->
       <path :d="areaPath" fill="var(--byzo-primary)" opacity="0.1" />
@@ -63,7 +77,7 @@
     </svg>
 
     <!-- x-axis labels: first, middle, last only — a label per day would be illegible at 14-90 points -->
-    <div class="flex justify-between px-1 text-[10px] text-muted-foreground">
+    <div class="flex justify-between pr-1 text-[10px] text-muted-foreground" :style="{ paddingLeft: `${(padding.left / width) * 100}%` }">
       <span>{{ axisLabel(0) }}</span>
       <span v-if="points.length > 2">{{ axisLabel(Math.floor((points.length - 1) / 2)) }}</span>
       <span>{{ axisLabel(points.length - 1) }}</span>
@@ -89,42 +103,67 @@
 // following the dataviz skill's mark specs (2px line, ~10% area wash,
 // hairline recessive gridlines, crosshair+tooltip hover, single series
 // needs no legend box since the card title already names the series).
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 
 const props = defineProps({
   // Array of { date: 'YYYY-MM-DD', total: number }, oldest first.
   points: { type: Array, required: true },
 });
 
-const width = 600;
+// The drawing is laid out in real pixels at the card's own width: a fixed
+// 600-unit viewBox under the default "meet" scaling sat centred in a wider
+// card with empty bands either side, and would have shrunk the tick labels
+// on a narrow one.
+const width = ref(600);
+const rootEl = ref(null);
+let resizeObserver = null;
+
+onMounted(() => {
+  if (!rootEl.value || typeof ResizeObserver === 'undefined') return;
+  resizeObserver = new ResizeObserver(([entry]) => {
+    width.value = Math.max(240, Math.round(entry.contentRect.width));
+  });
+  resizeObserver.observe(rootEl.value);
+});
+
+onBeforeUnmount(() => resizeObserver?.disconnect());
 const height = 160;
-const padding = { top: 12, right: 8, bottom: 4, left: 8 };
+// left: room for the y-axis tick labels.
+const padding = { top: 12, right: 8, bottom: 4, left: 36 };
 
 const activeIndex = ref(null);
 
+// A clean whole-number step (1, 2, 5 × 10ⁿ) giving at most four intervals,
+// and the axis ceiling rounded up to it — so every gridline, and now every
+// tick label, lands on a round number (marks-and-anatomy: "round to clean
+// numbers"). Bookings are counted, so the step never drops below 1.
+const step = computed(() => {
+  const max = Math.max(1, ...props.points.map((p) => p.total));
+  const raw = max / 4;
+  const magnitude = 10 ** Math.floor(Math.log10(raw));
+  const nice = [1, 2, 5, 10].map((m) => m * magnitude).find((candidate) => candidate >= raw);
+  return Math.max(1, nice);
+});
+
 const maxValue = computed(() => {
   const max = Math.max(1, ...props.points.map((p) => p.total));
-  // Round the axis ceiling up to a clean step so gridlines land on
-  // round numbers (marks-and-anatomy: "round to clean numbers").
-  if (max <= 5) return 5;
-  const magnitude = 10 ** Math.floor(Math.log10(max));
-  return Math.ceil(max / magnitude) * magnitude;
+  return Math.max(step.value * 2, Math.ceil(max / step.value) * step.value);
 });
 
 const gridLines = computed(() => {
-  const steps = 3;
-  return Array.from({ length: steps + 1 }, (_, i) => {
-    const value = Math.round((maxValue.value / steps) * i);
+  const count = Math.round(maxValue.value / step.value);
+  return Array.from({ length: count + 1 }, (_, i) => {
+    const value = step.value * i;
     return { value, pos: pointY(0, value) };
   });
 });
 
-const plotWidth = width - padding.left - padding.right;
+const plotWidth = computed(() => width.value - padding.left - padding.right);
 const plotHeight = height - padding.top - padding.bottom;
 
 function pointX(index) {
-  if (props.points.length <= 1) return padding.left + plotWidth / 2;
-  return padding.left + (index / (props.points.length - 1)) * plotWidth;
+  if (props.points.length <= 1) return padding.left + plotWidth.value / 2;
+  return padding.left + (index / (props.points.length - 1)) * plotWidth.value;
 }
 
 function pointY(index, overrideValue) {
@@ -132,7 +171,7 @@ function pointY(index, overrideValue) {
   return padding.top + plotHeight - (value / maxValue.value) * plotHeight;
 }
 
-const stripWidth = computed(() => (props.points.length ? plotWidth / props.points.length : 0));
+const stripWidth = computed(() => (props.points.length ? plotWidth.value / props.points.length : 0));
 
 function stripX(index) {
   return padding.left + index * stripWidth.value;
@@ -154,8 +193,8 @@ function onPointerMove(event) {
   if (!props.points.length) return;
   const svg = event.currentTarget;
   const rect = svg.getBoundingClientRect();
-  const x = ((event.clientX - rect.left) / rect.width) * width;
-  const ratio = Math.max(0, Math.min(1, (x - padding.left) / plotWidth));
+  const x = ((event.clientX - rect.left) / rect.width) * width.value;
+  const ratio = Math.max(0, Math.min(1, (x - padding.left) / plotWidth.value));
   activeIndex.value = Math.round(ratio * (props.points.length - 1));
 }
 
@@ -174,7 +213,7 @@ function fullLabel(index) {
 
 const tooltipStyle = computed(() => {
   if (activeIndex.value === null) return {};
-  const leftPct = (pointX(activeIndex.value) / width) * 100;
+  const leftPct = (pointX(activeIndex.value) / width.value) * 100;
   const clamped = Math.max(12, Math.min(88, leftPct));
   return { left: `${clamped}%`, top: '0px', transform: 'translate(-50%, -100%)' };
 });
