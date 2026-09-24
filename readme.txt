@@ -49,7 +49,7 @@ Every customer is saved automatically the first time they book — searchable by
 
 = Email notifications =
 
-Automatic emails when a booking is received, confirmed or cancelled, plus a reminder email sent the day before it's due, a self-service cancellation link the customer can use themselves right up to your cancellation cutoff, and an "add to calendar" link. Every email's subject and body is a plain-text template you can edit yourself, with placeholders for the customer's name, the bookable item, the booking time and your business name.
+Automatic emails when a booking is received, confirmed or cancelled, plus a reminder email the day before it's due. Every email carries the booking's own details — number, quantity, total and location — and a self-service link the customer can use themselves: from it they can move their booking to another open time or cancel it, right up to your cancellation cutoff. Every email's subject and body is a plain-text template you can edit yourself, with placeholders for the customer's name, the bookable item, the booking time, the total and your business name.
 
 = Payments =
 
@@ -63,9 +63,13 @@ See today's, this week's and this month's booking counts at a glance when you lo
 
 Actions and filters throughout (capability limits, REST controllers, rate limiting, notifications) and a REST API under `bookyzo/v1`. See **Other Notes** for the hook list.
 
-= Coming later (Pro) =
+= Customer accounts =
 
-The free plugin is genuinely usable on its own — one active bookable item per type (so up to four: one appointment staff member, one table, one event, one slot type) with no locked-out UI. A paid Pro add-on is planned for businesses that outgrow that: more bookable items per type, multiple daily shifts, deposits, SMS/WhatsApp reminders, a customer self-service dashboard, and booking analytics.
+Customers can optionally create an account (turn it on under **Bookyzo → Settings**) and manage their own bookings from a `[bookyzo_account]` page — upcoming and past bookings, rescheduling and cancelling within your cutoff. Off by default: guests can book, and manage that booking from the link in their email, without one.
+
+= Growing out of the free plugin (Pro) =
+
+The free plugin is genuinely usable on its own — one active bookable item per type (so up to four: one appointment staff member, one table, one event, one slot type) with no locked-out UI. Bookyzo Pro, a separate paid add-on, is for businesses that outgrow that: unlimited bookable items per type, multiple daily shifts, services with per-staff pricing and "any available staff" booking, deposits and PayPal, SMS/WhatsApp reminders on your own schedule, seasonal and dynamic pricing, add-ons and booking fees, custom form fields, a table floor plan, event ticket tiers with QR e-tickets and a check-in scanner, staff calendar sync, an analytics dashboard, and WooCommerce checkout.
 
 == Installation ==
 
