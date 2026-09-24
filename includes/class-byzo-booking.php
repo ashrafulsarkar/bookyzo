@@ -106,6 +106,7 @@ class BYZO_Booking {
 		$defaults = array(
 			'from'             => '',
 			'to'               => '',
+			'search'           => '',
 			'bookable_item_id' => 0,
 			'type'             => '',
 			'status'           => '',
@@ -171,6 +172,17 @@ class BYZO_Booking {
 			$params[] = ( new DateTime( $args['to'], wp_timezone() ) )->modify( '+1 day' )->format( 'Y-m-d' ) . ' 00:00:00';
 		}
 
+		// Free-text match across the customer's own details — the admin
+		// list's search box (added 2026-09-22, QA report §4.10; finding one
+		// booking meant paging through everything).
+		if ( '' !== trim( (string) $args['search'] ) ) {
+			$like     = '%' . $wpdb->esc_like( trim( $args['search'] ) ) . '%';
+			$where[]  = '(b.customer_name LIKE %s OR b.customer_email LIKE %s OR b.customer_phone LIKE %s)';
+			$params[] = $like;
+			$params[] = $like;
+			$params[] = $like;
+		}
+
 		$per_page = min( 100, max( 1, (int) $args['per_page'] ) );
 		$page     = max( 1, (int) $args['page'] );
 		$offset   = ( $page - 1 ) * $per_page;
@@ -179,14 +191,27 @@ class BYZO_Booking {
 		$select    = 'b.*, s.start_datetime AS slot_start, s.end_datetime AS slot_end';
 		$join      = "LEFT JOIN {$slots_table} s ON s.id = b.slot_id";
 
-		$sql = "SELECT {$select} FROM {$bookings_table} b {$join} WHERE {$where_sql} ORDER BY COALESCE(s.start_datetime, b.created_at) ASC LIMIT %d OFFSET %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// Soonest upcoming booking first, then the rest of the future, then
+		// the past most-recent-first — the order staff actually work in.
+		// Plain ascending put months-old bookings at the top of page 1
+		// (QA report §4.10). $now is a bound parameter, not NOW(), so the
+		// ordering matches the site's timezone like every other datetime here.
+		$now     = current_time( 'mysql' );
+		$order   = 'ORDER BY (COALESCE(s.start_datetime, b.created_at) >= %s) DESC,
+			CASE WHEN COALESCE(s.start_datetime, b.created_at) >= %s THEN COALESCE(s.start_datetime, b.created_at) END ASC,
+			COALESCE(s.start_datetime, b.created_at) DESC';
+		$params[] = $now;
+		$params[] = $now;
+
+		$sql = "SELECT {$select} FROM {$bookings_table} b {$join} WHERE {$where_sql} {$order} LIMIT %d OFFSET %d"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 		$params[] = $per_page;
 		$params[] = $offset;
 
 		$rows = $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 
-		$count_sql    = "SELECT COUNT(*) FROM {$bookings_table} b {$join} WHERE {$where_sql}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-		$count_params = array_slice( $params, 0, count( $params ) - 2 );
+		$count_sql = "SELECT COUNT(*) FROM {$bookings_table} b {$join} WHERE {$where_sql}"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// Drop the two ORDER BY timestamps and the LIMIT/OFFSET pair.
+		$count_params = array_slice( $params, 0, count( $params ) - 4 );
 		$total        = $count_params
 			? (int) $wpdb->get_var( $wpdb->prepare( $count_sql, $count_params ) ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 			: (int) $wpdb->get_var( $count_sql ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery

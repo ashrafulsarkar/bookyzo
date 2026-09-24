@@ -37,6 +37,8 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 						// active bookable item of this type at once.
 						'type'             => array( 'type' => 'string' ),
 						'status'           => array( 'type' => 'string' ),
+						// Free-text customer search (QA report 2026-09-22 §4.10).
+						'search'           => array( 'type' => 'string' ),
 						'per_page'         => array( 'type' => 'integer', 'default' => 20 ),
 						'page'             => array( 'type' => 'integer', 'default' => 1 ),
 					),
@@ -202,6 +204,7 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			'bookable_item_id' => $request->get_param( 'bookable_item_id' ),
 			'type'             => $request->get_param( 'type' ),
 			'status'           => $request->get_param( 'status' ),
+			'search'           => $request->get_param( 'search' ),
 			'per_page'         => $request->get_param( 'per_page' ),
 			'page'             => $request->get_param( 'page' ),
 		);

@@ -17,6 +17,11 @@
     <div class="px-6 pb-8">
       <div class="mb-4 flex flex-wrap items-end gap-4 rounded-lg border border-border bg-muted/30 p-4">
         <div class="flex flex-col gap-1.5">
+          <Label for="bookings-search" class="text-xs font-medium text-muted-foreground">Search</Label>
+          <Input id="bookings-search" v-model="filters.search" type="search" placeholder="Name, email or phone" class="h-9 w-56" />
+        </div>
+
+        <div class="flex flex-col gap-1.5">
           <Label class="text-xs font-medium text-muted-foreground">From</Label>
           <Popover>
             <PopoverTrigger as-child>
@@ -147,6 +152,7 @@ import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
@@ -170,6 +176,7 @@ const loading = ref(true);
 const activeBooking = ref(null);
 
 const filters = reactive({
+  search: '',
   from: '',
   to: '',
   bookable_item_id: '__all__',
@@ -195,6 +202,7 @@ async function loadBookings() {
     if (filters.to) params.set('to', filters.to);
     if (filters.bookable_item_id !== '__all__') params.set('bookable_item_id', filters.bookable_item_id);
     if (filters.status !== '__all__') params.set('status', filters.status);
+    if (filters.search.trim()) params.set('search', filters.search.trim());
     bookings.value = await api.get(`/bookings?${params.toString()}`);
   } catch (e) {
     toast.error(e.message || 'Could not load bookings.');
