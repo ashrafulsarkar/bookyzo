@@ -78,15 +78,33 @@
         <div v-if="canReschedule" class="rounded-lg border border-border p-3">
           <Button v-if="!rescheduling" type="button" variant="outline" size="sm" @click="startReschedule">Reschedule</Button>
           <div v-else class="flex flex-col gap-2">
-            <Label for="reschedule-slot" class="text-xs font-medium text-muted-foreground">Move to a different time</Label>
-            <Select v-model="newSlotId">
-              <SelectTrigger id="reschedule-slot" class="h-9">
-                <SelectValue :placeholder="loadingSlots ? 'Loading…' : (slots.length === 0 ? 'No other available slots' : 'Choose a time')" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem v-for="slot in slots" :key="slot.id" :value="slot.id">{{ formatSlot(slot) }}</SelectItem>
-              </SelectContent>
-            </Select>
+            <Label for="reschedule-date" class="text-xs font-medium text-muted-foreground">Move to a different time</Label>
+            <!-- A day first, then that day's times as chips — the same
+                 shape the customer widget uses. One flat dropdown of every
+                 open slot ran to 141 entries on the demo site (QA report
+                 §4.2). -->
+            <p v-if="loadingSlots" class="text-sm text-muted-foreground">Loading…</p>
+            <p v-else-if="slots.length === 0" class="text-sm text-muted-foreground">No other available times.</p>
+            <template v-else>
+              <Select v-model="rescheduleDate">
+                <SelectTrigger id="reschedule-date" class="h-9"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem v-for="day in slotDays" :key="day.key" :value="day.key">{{ day.label }} ({{ day.slots.length }})</SelectItem>
+                </SelectContent>
+              </Select>
+              <div class="flex flex-wrap gap-1.5">
+                <button
+                  v-for="slot in slotsForDate"
+                  :key="slot.id"
+                  type="button"
+                  class="rounded-md border px-2.5 py-1 text-xs transition-colors"
+                  :class="newSlotId === slot.id ? 'border-primary bg-primary text-primary-foreground' : 'border-border hover:border-primary hover:text-primary'"
+                  @click="newSlotId = slot.id"
+                >
+                  {{ formatSlotTime(slot) }}
+                </button>
+              </div>
+            </template>
             <div class="flex gap-2">
               <Button type="button" size="sm" :disabled="!newSlotId || rescheduleSaving" @click="confirmReschedule">
                 {{ rescheduleSaving ? 'Moving…' : 'Move booking' }}
@@ -141,7 +159,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -198,6 +216,32 @@ const rescheduling = ref(false);
 const slots = ref([]);
 const loadingSlots = ref(false);
 const newSlotId = ref(null);
+const rescheduleDate = ref('');
+
+// Open times grouped by day, oldest first — the dropdown picks the day,
+// the chips pick the time.
+const slotDays = computed(() => {
+  const byDay = new Map();
+  for (const slot of slots.value) {
+    const key = slot.start_datetime.slice(0, 10);
+    if (!byDay.has(key)) {
+      byDay.set(key, { key, label: new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }), slots: [] });
+    }
+    byDay.get(key).slots.push(slot);
+  }
+  return [...byDay.values()];
+});
+
+const slotsForDate = computed(() => slotDays.value.find((day) => day.key === rescheduleDate.value)?.slots || []);
+
+// Switching day drops a time picked on the previous one.
+watch(rescheduleDate, () => {
+  newSlotId.value = null;
+});
+
+function formatSlotTime(slot) {
+  return new Date(slot.start_datetime.replace(' ', 'T')).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+}
 const rescheduleSaving = ref(false);
 
 async function startReschedule() {
@@ -214,6 +258,8 @@ async function loadSlotsForReschedule() {
     // The booking's own current slot is still 'open'-adjacent in the admin's
     // eyes but isn't a real "different time" choice — exclude it.
     slots.value = all.filter((s) => s.id !== props.booking.slot_id);
+    // Open on the first day that has times, so the chips aren't empty.
+    rescheduleDate.value = slotDays.value[0]?.key || '';
   } catch (e) {
     slots.value = [];
   } finally {
