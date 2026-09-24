@@ -97,7 +97,7 @@
                theme authoring beyond these preset controls). Absent when
                nothing is registered, so Free renders exactly as before —
                see lib/admin-extensions.js. -->
-          <component :is="extraAppearanceSection" v-if="extraAppearanceSection" />
+          <component :is="extraAppearanceSection" v-if="extraAppearanceSection" ref="extraSection" />
 
           <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
         </div>
@@ -183,12 +183,21 @@ function resetToDefaults() {
   form.value = { ...DEFAULTS };
 }
 
+// An add-on section rendered on this screen (Pro's Custom CSS) is part of
+// the same screen, so this page's own Save saves it too — two Save buttons
+// on one screen made it unclear what each one covered (QA report §4.15).
+// A section that exposes no save() is simply skipped.
+const extraSection = ref(null);
+
 async function save() {
   error.value = '';
   saving.value = true;
   try {
     const appearance = await api.put('/appearance', form.value);
     form.value = { ...DEFAULTS, ...appearance };
+    if (typeof extraSection.value?.save === 'function') {
+      await extraSection.value.save();
+    }
     toast.success('Appearance saved.');
   } catch (e) {
     error.value = e.message || 'Could not save appearance settings.';
