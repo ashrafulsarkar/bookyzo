@@ -47,6 +47,60 @@
           <Input id="mb-party-size" v-model.number="form.party_size" type="number" min="1" :max="partySizeMax" />
         </div>
 
+        <!-- Ticket tiers, add-ons and custom fields, when the chosen item has
+             any — the widget collected all three but a booking taken over the
+             phone couldn't (QA report §4.3). Absent otherwise, including on
+             every site without Pro. -->
+        <div v-if="ticketTiers.length" class="flex flex-col gap-1.5">
+          <Label for="mb-tier">Ticket type</Label>
+          <Select v-model="form.ticket_tier_id">
+            <SelectTrigger id="mb-tier" class="h-9"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem v-for="tier in ticketTiers" :key="tier.id" :value="tier.id">{{ tier.name }} — {{ formatMoney(tier.price) }}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div v-if="addons.length" class="flex flex-col gap-1.5">
+          <Label>Add-ons</Label>
+          <label v-for="addon in addons" :key="addon.id" class="flex items-center justify-between gap-2 text-sm">
+            <span class="flex items-center gap-2">
+              <input v-model="form.addon_ids" type="checkbox" :value="addon.id" class="h-4 w-4" />
+              {{ addon.name }}
+            </span>
+            <span class="text-muted-foreground">{{ formatMoney(addon.price) }}</span>
+          </label>
+        </div>
+
+        <div v-for="field in customFields" :key="field.id" class="flex flex-col gap-1.5">
+          <label v-if="field.field_type === 'checkbox'" class="flex items-center gap-2 text-sm">
+            <input v-model="form.custom_fields[field.id]" type="checkbox" class="h-4 w-4" />
+            {{ field.label }}
+          </label>
+          <template v-else>
+            <Label :for="`mb-cf-${field.id}`">{{ field.label }}<span v-if="field.required"> *</span></Label>
+            <Select v-if="field.field_type === 'dropdown'" v-model="form.custom_fields[field.id]">
+              <SelectTrigger :id="`mb-cf-${field.id}`" class="h-9"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem v-for="choice in field.options?.choices || []" :key="choice" :value="choice">{{ choice }}</SelectItem>
+              </SelectContent>
+            </Select>
+            <Input
+              v-else
+              :id="`mb-cf-${field.id}`"
+              v-model="form.custom_fields[field.id]"
+              :type="{ date: 'date', number: 'number' }[field.field_type] || 'text'"
+            />
+          </template>
+        </div>
+
+        <!-- The same server-computed total the customer would see
+             (POST /bookings/quote), so staff quote the real price. -->
+        <div v-if="quote && quote.payment_amount !== null" class="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
+          <span class="text-muted-foreground">Total</span>
+          <span class="font-medium">{{ formatMoney(quote.payment_amount) }}</span>
+        </div>
+
         <div class="flex flex-col gap-1.5">
           <Label for="mb-name">Customer name</Label>
           <Input id="mb-name" v-model="form.customer_name" type="text" />
@@ -113,12 +167,20 @@ const loadingSlots = ref(false);
 const saving = ref(false);
 const error = ref('');
 
+const ticketTiers = ref([]);
+const addons = ref([]);
+const customFields = ref([]);
+const quote = ref(null);
+
 const form = ref({
   party_size: 1,
   customer_name: '',
   customer_email: '',
   customer_phone: '',
   customer_notes: '',
+  ticket_tier_id: null,
+  addon_ids: [],
+  custom_fields: {},
 });
 
 // Same party-size input as the public widget's StepDetails.vue — this
@@ -158,6 +220,55 @@ async function loadItems() {
   }
 }
 
+// Pro-defined extras for the chosen item; every one of these routes
+// returns an empty list without Pro, so this is simply nothing to render.
+async function loadExtras() {
+  ticketTiers.value = [];
+  addons.value = [];
+  customFields.value = [];
+  form.value.ticket_tier_id = null;
+  form.value.addon_ids = [];
+  form.value.custom_fields = {};
+
+  const id = selectedBookableItemId.value;
+  if (!id) {
+    return;
+  }
+
+  const [tiers, addonList, fields] = await Promise.all([
+    selectedItem.value?.type === 'event' ? api.get(`/ticket-tiers/public?bookable_item_id=${id}`).catch(() => []) : Promise.resolve([]),
+    api.get(`/addons/public?bookable_item_id=${id}`).catch(() => []),
+    api.get(`/custom-fields/public?bookable_item_id=${id}`).catch(() => []),
+  ]);
+  ticketTiers.value = tiers;
+  addons.value = addonList;
+  customFields.value = fields;
+  for (const field of fields) {
+    form.value.custom_fields[field.id] = field.field_type === 'checkbox' ? false : '';
+  }
+}
+
+// What this booking would cost, priced by the server exactly as it will be
+// charged — the modal used to show no price at all.
+let quoteTimer = null;
+async function refreshQuote() {
+  if (!selectedSlotId.value) {
+    quote.value = null;
+    return;
+  }
+  try {
+    quote.value = await api.post('/bookings/quote', {
+      slot_id: selectedSlotId.value,
+      party_size: form.value.party_size,
+      service_id: selectedServiceId.value || undefined,
+      ticket_tier_id: form.value.ticket_tier_id,
+      addon_ids: form.value.addon_ids,
+    });
+  } catch (e) {
+    quote.value = null;
+  }
+}
+
 async function loadSlots() {
   if (!selectedBookableItemId.value) {
     slots.value = [];
@@ -188,6 +299,7 @@ async function save() {
       service_id: selectedServiceId.value || undefined,
       ...form.value,
     });
+    quote.value = null;
     emit('created', booking);
   } catch (e) {
     error.value = e.message || 'Could not create this booking.';
@@ -199,7 +311,17 @@ async function save() {
 watch(selectedBookableItemId, () => {
   selectedServiceId.value = NO_SERVICE;
   loadSlots();
+  loadExtras();
 });
+
+// Anything that changes the price re-quotes, debounced like the widget's own.
+watch(
+  () => [selectedSlotId.value, selectedServiceId.value, form.value.party_size, form.value.ticket_tier_id, form.value.addon_ids.join(',')],
+  () => {
+    clearTimeout(quoteTimer);
+    quoteTimer = setTimeout(refreshQuote, 200);
+  }
+);
 // A newly picked slot may have less remaining capacity than whatever was
 // typed for the previous one — reset rather than silently clamp, so the
 // customer's actual pick decision isn't guessed at.
@@ -208,6 +330,6 @@ watch(selectedSlotId, () => {
 });
 onMounted(async () => {
   await Promise.all([loadItems(), loadServices()]);
-  await loadSlots();
+  await Promise.all([loadSlots(), loadExtras()]);
 });
 </script>
