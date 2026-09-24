@@ -70,23 +70,23 @@ class BYZO_Email_Templates {
 		return array(
 			'booking_created'   => array(
 				'subject' => __( 'Your booking request has been received', 'bookyzo' ),
-				'body'    => __( "Hi {customer_name},\n\nWe've received your booking request with {business_name} for {bookable_item_name} on {start_time}.\n\nYou'll receive another email once it's confirmed.\n\nAdd to calendar: {add_to_calendar_link}\n\nNeed to cancel? {cancel_link}\n\nThanks,\n{business_name}", 'bookyzo' ),
+				'body'    => __( "Hi {customer_name},\n\nWe've received your booking request with {business_name} for {bookable_item_name} on {start_time}.\n\nBooking #{booking_id}\nHow many: {party_size}\nTotal: {total}\n{location}\n\nYou'll receive another email once it's confirmed.\n\nAdd to calendar: {add_to_calendar_link}\n\nNeed to cancel? {cancel_link}\n\nThanks,\n{business_name}", 'bookyzo' ),
 			),
 			'booking_confirmed' => array(
 				'subject' => __( 'Your booking is confirmed', 'bookyzo' ),
-				'body'    => __( "Hi {customer_name},\n\nGood news — your booking with {business_name} for {bookable_item_name} on {start_time} is confirmed.\n\nAdd to calendar: {add_to_calendar_link}\n\nNeed to cancel? {cancel_link}\n\nSee you then!\n{business_name}", 'bookyzo' ),
+				'body'    => __( "Hi {customer_name},\n\nGood news — your booking with {business_name} for {bookable_item_name} on {start_time} is confirmed.\n\nBooking #{booking_id}\nHow many: {party_size}\nTotal: {total}\n{location}\n\nAdd to calendar: {add_to_calendar_link}\n\nNeed to cancel? {cancel_link}\n\nSee you then!\n{business_name}", 'bookyzo' ),
 			),
 			'booking_cancelled' => array(
 				'subject' => __( 'Your booking has been cancelled', 'bookyzo' ),
-				'body'    => __( "Hi {customer_name},\n\nYour booking with {business_name} for {bookable_item_name} on {start_time} has been cancelled.\n\nIf this wasn't expected, please get in touch.\n\n{business_name}", 'bookyzo' ),
+				'body'    => __( "Hi {customer_name},\n\nYour booking with {business_name} for {bookable_item_name} on {start_time} (booking #{booking_id}) has been cancelled.\n\nIf this wasn't expected, please get in touch.\n\n{business_name}", 'bookyzo' ),
 			),
 			'booking_reminder'  => array(
 				'subject' => __( 'Reminder: your upcoming booking', 'bookyzo' ),
-				'body'    => __( "Hi {customer_name},\n\nJust a reminder about your booking with {business_name} for {bookable_item_name} on {start_time}.\n\nSee you soon!\n{business_name}", 'bookyzo' ),
+				'body'    => __( "Hi {customer_name},\n\nJust a reminder about your booking with {business_name} for {bookable_item_name} on {start_time}.\n\nBooking #{booking_id}\n{location}\n\nSee you soon!\n{business_name}", 'bookyzo' ),
 			),
 			'admin_new_booking' => array(
 				'subject' => __( 'New booking received', 'bookyzo' ),
-				'body'    => __( "Hi,\n\n{customer_name} just booked {bookable_item_name} for {start_time}.\n\nLog in to {business_name}'s Bookyzo dashboard to review it.", 'bookyzo' ),
+				'body'    => __( "Hi,\n\n{customer_name} just booked {bookable_item_name} for {start_time}.\n\nBooking #{booking_id}\nHow many: {party_size}\nTotal: {total}\nEmail: {customer_email}\nPhone: {customer_phone}\n\nOpen it in Bookyzo: {admin_booking_link}", 'bookyzo' ),
 			),
 		);
 	}

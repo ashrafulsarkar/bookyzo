@@ -131,6 +131,15 @@ class BYZO_Notifications {
 		return array(
 			'{customer_name}'        => $booking['customer_name'],
 			'{bookable_item_name}'   => $item ? $item['name'] : '',
+			// Added 2026-09-22 (QA report §4.4) — the facts customers and
+			// staff kept having to look up elsewhere: which booking, how
+			// many, how much, and (for the admin) where to open it.
+			'{booking_id}'           => (string) $booking['id'],
+			'{party_size}'           => (string) $booking['party_size'],
+			'{customer_email}'       => $booking['customer_email'],
+			'{customer_phone}'       => (string) $booking['customer_phone'],
+			'{total}'                => self::format_total( $booking ),
+			'{admin_booking_link}'   => admin_url( 'admin.php?page=bookyzo-bookings' ),
 			'{start_time}'           => self::format_start_time( $booking['slot_start'] ),
 			'{business_name}'        => $settings['business_name'],
 			'{cancel_link}'          => $cancel_link,
@@ -146,6 +155,22 @@ class BYZO_Notifications {
 			'{ticket_link}'          => self::document_link( $booking, $item, 'ticket-qr' ),
 			'{invoice_link}'         => self::document_link( $booking, $item, 'invoice' ),
 		);
+	}
+
+	/**
+	 * The booking's own total, in the store currency — blank for a booking
+	 * with nothing to charge, so a template line reading "Total: {total}"
+	 * doesn't print "Total: $0.00" on a free booking.
+	 */
+	private static function format_total( $booking ) {
+		if ( null === $booking['payment_amount'] ) {
+			return '';
+		}
+
+		$currency = BYZO_Settings::get()['currency'];
+		$amount   = number_format( (float) $booking['payment_amount'], 2 );
+
+		return $currency . ' ' . $amount;
 	}
 
 	private static function document_link( $booking, $item, $document ) {
