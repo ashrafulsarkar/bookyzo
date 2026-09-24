@@ -66,6 +66,10 @@ if ( $booking ) {
 		.byzo-manage-row span:last-child { text-align: right; }
 		.byzo-manage-btn { display: inline-block; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
 		.byzo-manage-btn--danger { background: #dc2626; color: #fff; }
+		.byzo-manage-btn--primary { background: #2563eb; color: #fff; margin-bottom: 20px; }
+		.byzo-manage-times { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
+		.byzo-manage-time { border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer; }
+		.byzo-manage-time:hover { border-color: #2563eb; color: #2563eb; }
 		.byzo-manage-icon { font-size: 32px; margin-bottom: 12px; }
 		.byzo-manage-contact { margin: 24px 0 0; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #64748b; }
 		.byzo-manage-contact a { color: #2563eb; }
@@ -101,13 +105,97 @@ if ( $booking ) {
 		<?php endif; ?>
 
 		<?php if ( 'confirm' === $state ) : ?>
-			<p><?php esc_html_e( "This can't be undone. If you just want to change the time, get in touch instead.", 'bookyzo' ); ?></p>
+			<!-- Changing the time, not just cancelling (QA report §4.5/§6.2):
+			     the same booking, another open time for the same item. The
+			     REST route checks the token and the cancellation window again;
+			     nothing here is trusted. -->
+			<div id="byzo-reschedule">
+				<button type="button" class="byzo-manage-btn byzo-manage-btn--primary" id="byzo-reschedule-open"><?php esc_html_e( 'Change the time', 'bookyzo' ); ?></button>
+				<div id="byzo-reschedule-panel" hidden>
+					<p id="byzo-reschedule-status"><?php esc_html_e( 'Loading available times…', 'bookyzo' ); ?></p>
+					<div id="byzo-reschedule-times" class="byzo-manage-times"></div>
+				</div>
+			</div>
+
+			<p><?php esc_html_e( 'Or cancel it — that one can\'t be undone.', 'bookyzo' ); ?></p>
 			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
 				<input type="hidden" name="action" value="<?php echo esc_attr( $action ); ?>">
 				<input type="hidden" name="booking_id" value="<?php echo esc_attr( $booking_id ); ?>">
 				<input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
 				<button type="submit" class="byzo-manage-btn byzo-manage-btn--danger"><?php esc_html_e( 'Yes, cancel my booking', 'bookyzo' ); ?></button>
 			</form>
+
+			<script>
+			(function () {
+				var config = <?php echo wp_json_encode(
+					array(
+						'rest'      => esc_url_raw( rest_url( 'bookyzo/v1' ) ),
+						'bookingId' => (int) $booking_id,
+						'itemId'    => (int) $booking['bookable_item_id'],
+						'currentId' => (int) $booking['slot_id'],
+						'token'     => $token,
+						'i18n'      => array(
+							'none'    => __( 'No other times are open right now.', 'bookyzo' ),
+							'pick'    => __( 'Pick a new time:', 'bookyzo' ),
+							'failed'  => __( 'Could not load available times. Please get in touch.', 'bookyzo' ),
+							'saving'  => __( 'Moving your booking…', 'bookyzo' ),
+							'done'    => __( 'Your booking has been moved.', 'bookyzo' ),
+						),
+					)
+				); ?>;
+				var openBtn = document.getElementById('byzo-reschedule-open');
+				var panel = document.getElementById('byzo-reschedule-panel');
+				var status = document.getElementById('byzo-reschedule-status');
+				var times = document.getElementById('byzo-reschedule-times');
+				var loaded = false;
+
+				function label(slot) {
+					var date = new Date(slot.start_datetime.replace(' ', 'T'));
+					return date.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+				}
+
+				function move(slot) {
+					status.textContent = config.i18n.saving;
+					times.innerHTML = '';
+					fetch(config.rest + '/bookings/' + config.bookingId + '/reschedule', {
+						method: 'PUT',
+						headers: { 'Content-Type': 'application/json' },
+						body: JSON.stringify({ slot_id: slot.id, token: config.token })
+					}).then(function (response) {
+						return response.json().then(function (data) { return { ok: response.ok, data: data }; });
+					}).then(function (result) {
+						if (!result.ok) { throw new Error(result.data && result.data.message); }
+						status.textContent = config.i18n.done;
+						window.location.reload();
+					}).catch(function (error) {
+						status.textContent = error.message || config.i18n.failed;
+					});
+				}
+
+				openBtn.addEventListener('click', function () {
+					panel.hidden = false;
+					openBtn.hidden = true;
+					if (loaded) { return; }
+					loaded = true;
+					fetch(config.rest + '/slots?bookable_item_id=' + config.itemId)
+						.then(function (response) { return response.json(); })
+						.then(function (slots) {
+							var open = (slots || []).filter(function (slot) { return slot.id !== config.currentId; }).slice(0, 30);
+							if (!open.length) { status.textContent = config.i18n.none; return; }
+							status.textContent = config.i18n.pick;
+							open.forEach(function (slot) {
+								var button = document.createElement('button');
+								button.type = 'button';
+								button.className = 'byzo-manage-time';
+								button.textContent = label(slot);
+								button.addEventListener('click', function () { move(slot); });
+								times.appendChild(button);
+							});
+						})
+						.catch(function () { status.textContent = config.i18n.failed; });
+				});
+			})();
+			</script>
 		<?php endif; ?>
 
 		<p class="byzo-manage-contact">

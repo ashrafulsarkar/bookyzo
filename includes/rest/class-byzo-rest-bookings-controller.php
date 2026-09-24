@@ -83,7 +83,11 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 				array(
 					'methods'             => WP_REST_Server::EDITABLE,
 					'callback'            => array( $this, 'reschedule_item' ),
-					'permission_callback' => array( $this, 'admin_or_own_customer_permissions_check' ),
+					// A guest holding the booking's own signed token counts
+					// too (added 2026-09-22, QA report §4.5/§6.2): the
+					// manage-booking link could only cancel, so "I'd like a
+					// different time" meant cancel and rebook, or a phone call.
+					'permission_callback' => array( $this, 'reschedule_permissions_check' ),
 				),
 			)
 		);
@@ -379,6 +383,25 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 	 * to know which specific booking is being asked for, so the ownership
 	 * check has to happen here once $id is known.
 	 */
+	/**
+	 * Admins and the booking's own logged-in customer as before, plus a
+	 * guest carrying the booking's signed manage-booking token.
+	 */
+	public function reschedule_permissions_check( WP_REST_Request $request ) {
+		if ( $this->has_booking_token( $request ) ) {
+			return true;
+		}
+
+		return $this->admin_or_own_customer_permissions_check( $request );
+	}
+
+	private function has_booking_token( WP_REST_Request $request ) {
+		$body  = (array) $request->get_json_params();
+		$token = (string) ( $body['token'] ?? $request->get_param( 'token' ) );
+
+		return '' !== $token && BYZO_Booking_Token::verify_for_booking( (int) $request->get_param( 'id' ), $token );
+	}
+
 	public function reschedule_item( WP_REST_Request $request ) {
 		$id   = (int) $request->get_param( 'id' );
 		$body = $request->get_json_params();
@@ -387,9 +410,24 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return new WP_Error( 'byzo_missing_slot_id', __( 'slot_id is required.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
-		$ownership_check = $this->require_owns_booking_if_customer( $id );
-		if ( is_wp_error( $ownership_check ) ) {
-			return $ownership_check;
+		$by_token = $this->has_booking_token( $request );
+
+		if ( ! $by_token ) {
+			$ownership_check = $this->require_owns_booking_if_customer( $id );
+			if ( is_wp_error( $ownership_check ) ) {
+				return $ownership_check;
+			}
+		}
+
+		// A guest may move their booking to another time for the SAME thing,
+		// and only while they could still cancel it — rescheduling into a
+		// different bookable item, or the hour before the appointment, isn't
+		// theirs to decide. Admins keep the unrestricted move.
+		if ( $by_token && ! current_user_can( 'manage_options' ) ) {
+			$guest_check = $this->guest_reschedule_allowed( $id, absint( $body['slot_id'] ) );
+			if ( is_wp_error( $guest_check ) ) {
+				return $guest_check;
+			}
 		}
 
 		$result = BYZO_Booking::reschedule( $id, absint( $body['slot_id'] ) );
@@ -399,6 +437,38 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 		}
 
 		return rest_ensure_response( BYZO_Booking::get( $id ) );
+	}
+
+	/**
+	 * The same window BYZO_Booking::cancel_within_policy() enforces for a
+	 * guest cancellation, plus "same bookable item" — a guest may move
+	 * their booking to another time for the same thing, while they could
+	 * still have cancelled it. Admins keep the unrestricted move.
+	 *
+	 * @return true|WP_Error
+	 */
+	private function guest_reschedule_allowed( $booking_id, $new_slot_id ) {
+		$booking  = BYZO_Booking::get( $booking_id );
+		$new_slot = BYZO_Slot::get( $new_slot_id );
+
+		if ( ! $booking || ! $new_slot ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		if ( (int) $new_slot['bookable_item_id'] !== (int) $booking['bookable_item_id'] ) {
+			return new WP_Error( 'byzo_slot_unavailable', __( 'That time is for something else. Please pick one of the times listed.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$hours = (int) BYZO_Settings::get()['cancellation_hours'];
+		$until = $booking['slot_start']
+			? ( ( new DateTime( $booking['slot_start'], wp_timezone() ) )->getTimestamp() - time() ) / HOUR_IN_SECONDS
+			: -1;
+
+		if ( $hours <= 0 || $until <= $hours ) {
+			return new WP_Error( 'byzo_too_late_to_change', __( 'This booking is too close to change online — please get in touch.', 'bookyzo' ), array( 'status' => 403 ) );
+		}
+
+		return true;
 	}
 
 	/**
