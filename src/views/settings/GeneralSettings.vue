@@ -46,23 +46,21 @@
             <div class="grid gap-4 sm:grid-cols-2">
               <div class="flex flex-col gap-1.5">
                 <Label for="s-currency">Currency</Label>
-                <Input id="s-currency" v-model="form.currency" type="text" maxlength="3" class="uppercase" />
-                <p class="text-xs text-muted-foreground">A 3-letter ISO code, e.g. USD, EUR, BDT.</p>
+                <!-- A picker rather than free text (QA report §4.7): a typo
+                     here mislabels every price on the site. A code saved
+                     before this list existed stays selectable. -->
+                <select
+                  id="s-currency"
+                  v-model="form.currency"
+                  class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option v-for="code in currencyOptions" :key="code" :value="code">{{ currencyLabel(code) }}</option>
+                </select>
               </div>
               <div class="flex flex-col gap-1.5">
                 <Label for="s-tax-rate">Tax rate (%)</Label>
                 <Input id="s-tax-rate" v-model.number="form.tax_rate" type="number" min="0" max="100" step="0.01" />
                 <p class="text-xs text-muted-foreground">Added to every paid booking's total. Leave at 0 if you don't charge tax.</p>
-              </div>
-            </div>
-            <div class="grid gap-4 sm:grid-cols-2">
-              <div class="flex flex-col gap-1.5">
-                <Label for="s-start-time">Default opening time</Label>
-                <Input id="s-start-time" v-model="form.default_start_time" type="time" />
-              </div>
-              <div class="flex flex-col gap-1.5">
-                <Label for="s-end-time">Default closing time</Label>
-                <Input id="s-end-time" v-model="form.default_end_time" type="time" />
               </div>
             </div>
           </CardContent>
@@ -76,7 +74,7 @@
         <Card>
           <CardHeader>
             <CardTitle>Business hours</CardTitle>
-            <CardDescription>The default weekly hours a bookable item can follow instead of setting its own.</CardDescription>
+            <CardDescription>Your opening hours: what a new bookable item starts with, and what an item can follow instead of setting its own.</CardDescription>
           </CardHeader>
           <CardContent>
             <ByzoWeeklyScheduleGrid v-model="form.business_hours" />
@@ -222,6 +220,24 @@ const form = ref({
   allow_pay_in_person: true,
   pending_booking_hold_hours: 24,
 });
+// The currencies most sites use, plus whatever this site already saved —
+// the field was free text, so an existing value must never disappear.
+const COMMON_CURRENCIES = ['USD', 'EUR', 'GBP', 'AUD', 'CAD', 'NZD', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'JPY', 'CNY', 'HKD', 'SGD', 'INR', 'BDT', 'PKR', 'LKR', 'NPR', 'IDR', 'MYR', 'THB', 'PHP', 'VND', 'AED', 'SAR', 'QAR', 'TRY', 'ILS', 'EGP', 'NGN', 'KES', 'ZAR', 'GHS', 'MAD', 'BRL', 'MXN', 'ARS', 'CLP', 'COP', 'RUB', 'UAH', 'KRW'];
+const currencyOptions = computed(() => {
+  const current = (form.value.currency || '').toUpperCase();
+  return current && !COMMON_CURRENCIES.includes(current) ? [current, ...COMMON_CURRENCIES] : COMMON_CURRENCIES;
+});
+
+// "USD — US Dollar" where the browser knows the name, just the code otherwise.
+function currencyLabel(code) {
+  try {
+    const name = new Intl.DisplayNames(undefined, { type: 'currency' }).of(code);
+    return name && name !== code ? `${code} — ${name}` : code;
+  } catch {
+    return code;
+  }
+}
+
 // WordPress reports a bare offset ("+06:00") when no named zone is set.
 const timezoneLabel = computed(() => (/^[+-]/.test(form.value.timezone) ? `UTC${form.value.timezone}` : form.value.timezone));
 const loading = ref(true);

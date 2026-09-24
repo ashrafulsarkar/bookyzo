@@ -224,6 +224,10 @@ async function createEverything() {
       auto_confirm: wizardData.auto_confirm,
       send_confirmation_email: wizardData.send_confirmation_email,
       send_admin_notification: wizardData.send_admin_notification,
+      // The weekly hours picked here become the site's business hours, so
+      // Settings has one place showing opening hours rather than a pair of
+      // default times beside a separate grid (QA report §4.7 / §5.3).
+      ...(wizardData.schedules && wizardData.schedules.length ? { business_hours: wizardData.schedules } : {}),
     });
 
     const payload = {

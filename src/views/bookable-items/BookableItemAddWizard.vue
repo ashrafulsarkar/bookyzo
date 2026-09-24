@@ -180,8 +180,12 @@ async function loadDefaults() {
   try {
     const settings = await api.get('/settings');
     currency.value = settings.currency || 'USD';
-    defaultStartTime.value = settings.default_start_time || '09:00';
-    defaultEndTime.value = settings.default_end_time || '17:00';
+    // Business hours are the site's opening hours (Settings), so a new
+    // item starts from them; the older default_start_time/default_end_time
+    // pair is the fallback for a site that never set any (QA report §4.7).
+    const hours = Array.isArray(settings.business_hours) ? settings.business_hours : [];
+    defaultStartTime.value = hours[0]?.start_time || settings.default_start_time || '09:00';
+    defaultEndTime.value = hours[0]?.end_time || settings.default_end_time || '17:00';
   } catch (e) {
     // Keep the sane fallback defaults above — a failed settings fetch
     // shouldn't block adding a bookable item.
