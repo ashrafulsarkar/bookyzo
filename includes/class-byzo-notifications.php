@@ -11,6 +11,9 @@ defined( 'ABSPATH' ) || exit;
  */
 class BYZO_Notifications {
 
+	/** How long before a booking the built-in reminder email goes out. */
+	const REMINDER_HOURS_BEFORE = 24;
+
 	public static function init() {
 		add_action( 'byzo_booking_created', array( __CLASS__, 'on_booking_created' ) );
 		add_action( 'byzo_booking_status_changed', array( __CLASS__, 'on_status_changed' ), 10, 3 );
@@ -72,14 +75,11 @@ class BYZO_Notifications {
 	}
 
 	/**
-	 * Hourly cron: finds bookings whose slot starts in exactly 24h,
-	 * matched to the hour (so each booking is only ever picked up once,
-	 * during the single hourly run whose window its 24h-before mark
-	 * falls into) rather than a loose ">=24h and <25h from right now"
-	 * check that would re-match on every subsequent run within that
-	 * hour. reminder_sent_at is still the actual duplicate-send guard —
-	 * the hour-matching is what keeps that column from ever needing to
-	 * catch a real duplicate in normal operation.
+	 * Hourly cron: every booking whose 24-hours-before mark has passed and
+	 * that hasn't been reminded yet (BYZO_Booking::get_due_for_reminder()).
+	 * A late cron run catches up rather than skipping those bookings, which
+	 * an exact one-hour window used to do on any site whose WP-Cron only
+	 * fires when someone visits. reminder_sent_at is the duplicate guard.
 	 */
 	public static function send_reminders() {
 		/**
@@ -93,13 +93,7 @@ class BYZO_Notifications {
 			return;
 		}
 
-		$now = new DateTime( 'now', wp_timezone() );
-		$target = ( clone $now )->modify( '+24 hours' );
-		$target->setTime( (int) $target->format( 'H' ), 0, 0 );
-
-		$window_end = ( clone $target )->modify( '+1 hour' );
-
-		$due = BYZO_Booking::get_due_for_reminder( $target, $window_end );
+		$due = BYZO_Booking::get_due_for_reminder( new DateTime( 'now', wp_timezone() ), self::REMINDER_HOURS_BEFORE );
 
 		foreach ( $due as $booking ) {
 			self::send( 'booking_reminder', $booking['id'] );

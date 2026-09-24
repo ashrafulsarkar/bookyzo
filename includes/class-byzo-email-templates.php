@@ -81,7 +81,7 @@ class BYZO_Email_Templates {
 				'body'    => __( "Hi {customer_name},\n\nYour booking with {business_name} for {bookable_item_name} on {start_time} has been cancelled.\n\nIf this wasn't expected, please get in touch.\n\n{business_name}", 'bookyzo' ),
 			),
 			'booking_reminder'  => array(
-				'subject' => __( 'Reminder: your booking is tomorrow', 'bookyzo' ),
+				'subject' => __( 'Reminder: your upcoming booking', 'bookyzo' ),
 				'body'    => __( "Hi {customer_name},\n\nJust a reminder about your booking with {business_name} for {bookable_item_name} on {start_time}.\n\nSee you soon!\n{business_name}", 'bookyzo' ),
 			),
 			'admin_new_booking' => array(

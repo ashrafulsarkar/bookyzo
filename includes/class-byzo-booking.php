@@ -1783,32 +1783,53 @@ class BYZO_Booking {
 	}
 
 	/**
-	 * Bookings whose slot starts within [$window_start, $window_end) that
-	 * haven't been reminded yet — the query behind the 24h reminder cron
-	 * (DETAILED-SPEC.md §A6). Only pending/confirmed bookings are
-	 * reminder-eligible; a cancelled/completed/no_show booking has
-	 * nothing upcoming to remind about.
+	 * Bookings whose reminder is due and still worth sending: the slot is
+	 * still ahead, its "$hours_before hours before" mark has passed, the
+	 * booking existed by then (a one-hour grace, so a booking made just
+	 * after its own mark still gets one — but a booking made well inside
+	 * the window never gets a reminder for a moment that had already gone
+	 * by), and the booking is at least an hour old, so no reminder lands
+	 * right behind its own confirmation email.
 	 *
+	 * Rewritten 2026-09-22 (QA report §4.1). It used to take an exact
+	 * one-hour window, so a WP-Cron run that slipped past that hour —
+	 * routine on a low-traffic site — dropped those bookings' reminders
+	 * for good. "Due and not yet sent" catches up on the next run instead;
+	 * `reminder_sent_at` (or Pro's own per-rule log) is still what stops a
+	 * second send.
+	 *
+	 * @param DateTime $now
+	 * @param int      $hours_before    How long before the slot the reminder is due.
+	 * @param bool     $only_unreminded Skip bookings with reminder_sent_at set — true for Free's own
+	 *                                  single reminder, false for Pro's rules, which track each
+	 *                                  (booking, rule, channel) send separately.
 	 * @return array Cast booking rows (same shape as get()/query()).
 	 */
-	public static function get_due_for_reminder( DateTime $window_start, DateTime $window_end ) {
+	public static function get_due_for_reminder( DateTime $now, $hours_before = 24, $only_unreminded = true ) {
 		global $wpdb;
 
 		$bookings_table = self::table();
 		$slots_table    = $wpdb->prefix . 'byzo_slots';
+		$hours_before   = max( 0, (int) $hours_before );
+		$reminded_sql   = $only_unreminded ? 'AND b.reminder_sent_at IS NULL' : '';
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names and a fixed clause, not user input.
 		$rows = $wpdb->get_results(
 			$wpdb->prepare(
 				"SELECT b.*, s.start_datetime AS slot_start, s.end_datetime AS slot_end
 				 FROM {$bookings_table} b
 				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
 				 WHERE b.status IN ('pending','confirmed')
-				   AND b.reminder_sent_at IS NULL
-				   AND s.start_datetime >= %s
-				   AND s.start_datetime < %s",
-				$window_start->format( 'Y-m-d H:i:s' ),
-				$window_end->format( 'Y-m-d H:i:s' )
+				   {$reminded_sql}
+				   AND s.start_datetime > %s
+				   AND s.start_datetime <= DATE_ADD(%s, INTERVAL %d HOUR)
+				   AND b.created_at <= DATE_ADD(DATE_SUB(s.start_datetime, INTERVAL %d HOUR), INTERVAL 1 HOUR)
+				   AND b.created_at <= DATE_SUB(%s, INTERVAL 1 HOUR)",
+				$now->format( 'Y-m-d H:i:s' ),
+				$now->format( 'Y-m-d H:i:s' ),
+				$hours_before,
+				$hours_before,
+				$now->format( 'Y-m-d H:i:s' )
 			),
 			ARRAY_A
 		);
