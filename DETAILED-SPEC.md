@@ -508,6 +508,26 @@ The last of Appointment Pro's four `FEATURES.md` bullets — the other three (st
 
 **New Pro table** `wp_byzo_custom_fields` (§1.6) — the originally-speced columns (`id`, `bookable_item_id NULL`, `label`, `field_type`, `options` JSON NULL, `required`, `sort_order`) plus one addition not in the original plan: a `status VARCHAR(20)` column (`active`/`inactive`), for parity with every other Pro CRUD table this phase (pricing_rules, webhooks, services) — lets an admin temporarily disable a field without losing its configuration or deleting real submitted data's meaning. **New Pro REST routes**: `GET/POST /custom-fields` (admin-only list-all/create) and `PUT/DELETE /custom-fields/{id}` (admin-only update/delete) — plain CRUD on the Pro-owned table, hooking the Free filter above to expose only `status = 'active'` rows to the public route. **Admin UI**: new "Form Fields" screen (per-bookable-item or global scope picker, field list with type/required/status, add/edit modal with type-specific config — options list for `dropdown`).
 
+### B6. Refunds on cancellation — BUILT 2026-09-25 (QA report §6.2.7)
+
+- **Free schema (`BYZO_DB_VERSION` 2.9→3.0), on bookings:**
+  - `payment_reference`: Stripe PaymentIntent id, PayPal capture id, or `wc_order_{id}`.
+  - `amount_paid`: what was charged online, i.e. the deposit if only that was taken.
+  - `refund_status`: `requested` / `refunded` / `declined` / `failed`.
+  - `refund_amount`, `refunded_at`.
+- **Free methods and hooks:**
+  - `BYZO_Booking::record_payment()` is called from the Stripe webhook (the intent's `amount_received`; each cart booking gets its own share) and the Stripe confirm route. Pro calls it from the PayPal capture (the capture's id and amount) and the WooCommerce order sync. It also adds `set_refund()`, `online_charge_amount()` and `BYZO_Stripe::refund()`/`from_minor_units()`.
+  - `cancel_within_policy()` (manage link and account cancellations) now fires `byzo_booking_cancelled_by_customer`. Admin cancellations and the unpaid-hold cleanup don't.
+  - The Bookings list shows "Refund requested".
+- **Pro `BYZOP_Refunds`:**
+  - On that action, a `paid_online` booking with `amount_paid` > 0 becomes `requested`, and the admin and customer are emailed. Nothing is refunded automatically, by user decision.
+  - `options()` offers `none` (full), `deposit` (paid − deposit, only when that leaves something) and `fee` (paid − booking fee).
+  - `issue()` only works on cancelled/rejected bookings. It routes by reference: `pi_` → Stripe `/v1/refunds`, `wc_order_` → `wc_create_refund(refund_payment)`, PayPal → `/v2/payments/captures/{id}/refund`. Success sets `refunded` plus the amount and date, `payment_status = refunded`, and emails the customer. Failure sets `failed` and returns the gateway's message.
+  - `decline()` emails the customer. `mark_refunded()` records a refund done elsewhere, never more than was paid.
+- **REST (admin, licensed):** `GET/POST /bookings/{id}/refund`, `/refund/decline`, `/refund/manual`.
+- **UI:** the booking popup's Pro section shows the panel for a paid cancelled/rejected booking.
+- **Tests:** `bookyzo-pro/scratchpad/smoke-qa-refunds.php` (24 checks, gateways mocked); `smoke-payments.php` checks the webhook records the reference.
+
 ### B6. Add-ons/extra services + flat booking fee — DESIGNED + BUILT 2026-09-12, ROADMAP.md Phase 2 step 17
 
 **Add-ons reuse step 16's "Free supplies the filter/route, Pro supplies the data" widget-reach shape exactly** — same pattern, but this time the resolved data has a real PRICE consequence, so the read side alone isn't enough; the price itself must never be trusted from the client (the exact class of bug this project already found and fixed once, in Phase 1 step 8's payment-amount tampering gap). **New Free filter** `byzo_resolve_addons( array $resolved, array $addon_ids, int $bookable_item_id )` — default `array()`. A booking request submits only `addon_ids` (an array of ints, no prices); Pro's hook looks up its own `wp_byzo_addons` table, keeping only rows that are `status = 'active'` AND actually requested AND scoped correctly (`bookable_item_id IS NULL` or matches this item) — an id that doesn't resolve (wrong item, inactive, made up) is silently dropped, not an error, same "the real wall answers honestly" shape as every other capacity/availability check in this project. **New Free public route** `GET /addons/public?bookable_item_id=` (widget's own read, same `/public`-suffix convention as `/custom-fields/public`).

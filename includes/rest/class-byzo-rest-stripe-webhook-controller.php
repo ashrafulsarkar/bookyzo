@@ -68,6 +68,9 @@ class BYZO_REST_Stripe_Webhook_Controller extends BYZO_REST_Controller {
 		// without Pro.
 		if ( ! empty( $metadata['cart_id'] ) ) {
 			foreach ( BYZO_Booking::get_by_cart_id( $metadata['cart_id'] ) as $booking ) {
+				// One intent paid for the whole cart; each booking keeps the
+				// intent id and its own share, so it can be refunded alone.
+				BYZO_Booking::record_payment( $booking['id'], $event['data']['object']['id'] ?? '', BYZO_Booking::online_charge_amount( $booking ) );
 				$this->mark_booking_paid( $booking );
 			}
 			return;
@@ -83,6 +86,8 @@ class BYZO_REST_Stripe_Webhook_Controller extends BYZO_REST_Controller {
 			return;
 		}
 
+		$object = $event['data']['object'];
+		BYZO_Booking::record_payment( $booking['id'], $object['id'] ?? '', isset( $object['amount_received'] ) ? BYZO_Stripe::from_minor_units( (int) $object['amount_received'] ) : BYZO_Booking::online_charge_amount( $booking ) );
 		$this->mark_booking_paid( $booking );
 	}
 

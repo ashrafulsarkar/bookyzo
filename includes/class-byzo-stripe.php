@@ -190,4 +190,57 @@ class BYZO_Stripe {
 	private static function to_minor_units( $amount ) {
 		return (int) round( $amount * 100 );
 	}
+
+	/**
+	 * The inverse of to_minor_units(), for amounts Stripe reports back.
+	 */
+	public static function from_minor_units( $minor ) {
+		return round( (int) $minor / 100, 2 );
+	}
+
+	/**
+	 * Refunds all or part of a PaymentIntent (QA report 2026-09-22 §6.2.7).
+	 * Free never calls this; a refund add-on does, once the admin approves.
+	 *
+	 * @param string $payment_intent_id
+	 * @param float  $amount In the site currency.
+	 * @return array|WP_Error The Stripe Refund object.
+	 */
+	public static function refund( $payment_intent_id, $amount ) {
+		if ( ! BYZO_Payment_Settings::is_stripe_ready() ) {
+			return new WP_Error( 'byzo_stripe_not_configured', __( 'Stripe is not configured, so this refund cannot be issued here.', 'bookyzo' ), array( 'status' => 503 ) );
+		}
+		if ( 0 !== strpos( (string) $payment_intent_id, 'pi_' ) ) {
+			return new WP_Error( 'byzo_no_payment_reference', __( 'This booking has no Stripe payment on record to refund.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$stripe   = BYZO_Payment_Settings::get()['gateways']['stripe'];
+		$response = wp_remote_post(
+			self::API_BASE . '/refunds',
+			array(
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $stripe['secret_key'],
+					'Content-Type'  => 'application/x-www-form-urlencoded',
+				),
+				'body'    => array(
+					'payment_intent' => $payment_intent_id,
+					'amount'         => self::to_minor_units( $amount ),
+				),
+				'timeout' => 20,
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return new WP_Error( 'byzo_stripe_request_failed', __( 'Could not reach the payment provider. Please try again.', 'bookyzo' ), array( 'status' => 502 ) );
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( $code < 200 || $code >= 300 || empty( $body['id'] ) ) {
+			return new WP_Error( 'byzo_stripe_error', $body['error']['message'] ?? __( 'The payment provider refused this refund.', 'bookyzo' ), array( 'status' => 502 ) );
+		}
+
+		return $body;
+	}
 }

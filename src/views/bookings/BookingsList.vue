@@ -171,7 +171,12 @@
               <TableCell class="text-muted-foreground">{{ itemName(booking.bookable_item_id) }}</TableCell>
               <TableCell class="text-muted-foreground">{{ booking.party_size }}</TableCell>
               <TableCell class="text-muted-foreground">{{ whenLabel(booking) }}</TableCell>
-              <TableCell><ByzoBadge :status="booking.status">{{ booking.status.replace('_', ' ') }}</ByzoBadge></TableCell>
+              <TableCell>
+                <ByzoBadge :status="booking.status">{{ booking.status.replace('_', ' ') }}</ByzoBadge>
+                <!-- Set by a refund add-on when the customer cancels a paid
+                     booking (QA report §6.2.7); Free never sets it. -->
+                <span v-if="booking.refund_status === 'requested'" class="mt-1 block text-[11px] font-medium text-amber-700">Refund requested</span>
+              </TableCell>
             </TableRow>
           </TableBody>
         </Table>

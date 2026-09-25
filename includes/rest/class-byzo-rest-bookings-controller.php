@@ -728,6 +728,7 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return new WP_Error( 'byzo_payment_not_succeeded', __( 'That payment has not completed.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
+		BYZO_Booking::record_payment( $booking['id'], $intent['id'] ?? '', isset( $intent['amount_received'] ) ? BYZO_Stripe::from_minor_units( (int) $intent['amount_received'] ) : BYZO_Booking::online_charge_amount( $booking ) );
 		BYZO_Booking::set_payment_status( $booking['id'], 'paid_online' );
 
 		// Same transition guard the webhook uses — a booking already moved

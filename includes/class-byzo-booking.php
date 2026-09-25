@@ -1381,7 +1381,21 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_cancellation_window_passed', __( 'This booking is too close to cancel online — please contact us directly.', 'bookyzo' ), array( 'status' => 403 ) );
 		}
 
-		return self::update_status( $booking['id'], 'cancelled' );
+		$result = self::update_status( $booking['id'], 'cancelled' );
+
+		if ( true === $result ) {
+			/**
+			 * The customer cancelled this themselves (manage link or their
+			 * account), as opposed to the business or the unpaid-hold
+			 * cleanup. A refund add-on asks the admin to approve a refund on
+			 * this (QA report 2026-09-22 §6.2.7).
+			 *
+			 * @param int $booking_id
+			 */
+			do_action( 'byzo_booking_cancelled_by_customer', $booking['id'] );
+		}
+
+		return $result;
 	}
 
 	/**
@@ -1393,6 +1407,57 @@ class BYZO_Booking {
 	 *
 	 * @return true|WP_Error
 	 */
+	/**
+	 * Records what a gateway actually took (QA report §6.2.7), so it can be
+	 * refunded later: its own transaction id (a Stripe PaymentIntent, a
+	 * PayPal capture) and the amount charged — the deposit when only the
+	 * deposit was taken online. Free only ever writes it; refunds are an
+	 * add-on's.
+	 *
+	 * @param int        $id
+	 * @param string     $reference
+	 * @param float|null $amount
+	 */
+	public static function record_payment( $id, $reference, $amount ) {
+		global $wpdb;
+
+		$wpdb->update(
+			self::table(),
+			array(
+				'payment_reference' => substr( (string) $reference, 0, 100 ),
+				'amount_paid'       => null === $amount ? null : round( (float) $amount, 2 ),
+				'updated_at'        => current_time( 'mysql' ),
+			),
+			array( 'id' => (int) $id )
+		);
+	}
+
+	/**
+	 * The refund fields, written by a refund add-on: refund_status
+	 * (requested / refunded / declined / failed), refund_amount, refunded_at.
+	 *
+	 * @param int   $id
+	 * @param array $fields Any of those three keys.
+	 */
+	public static function set_refund( $id, $fields ) {
+		global $wpdb;
+
+		$data = array_intersect_key( (array) $fields, array_flip( array( 'refund_status', 'refund_amount', 'refunded_at' ) ) );
+		if ( ! $data ) {
+			return;
+		}
+		$data['updated_at'] = current_time( 'mysql' );
+		$wpdb->update( self::table(), $data, array( 'id' => (int) $id ) );
+	}
+
+	/**
+	 * What was charged online for this booking: the deposit when one was
+	 * set, the full amount otherwise — the same rule the gateways charge by.
+	 */
+	public static function online_charge_amount( $booking ) {
+		return null !== $booking['deposit_amount'] ? (float) $booking['deposit_amount'] : (float) $booking['payment_amount'];
+	}
+
 	public static function set_payment_status( $id, $payment_status ) {
 		global $wpdb;
 
@@ -1953,6 +2018,8 @@ class BYZO_Booking {
 
 	private static function cast( $row ) {
 		$row['id']             = (int) $row['id'];
+		$row['amount_paid']    = isset( $row['amount_paid'] ) && null !== $row['amount_paid'] ? (float) $row['amount_paid'] : null;
+		$row['refund_amount']  = isset( $row['refund_amount'] ) && null !== $row['refund_amount'] ? (float) $row['refund_amount'] : null;
 		$row['slot_id']        = $row['slot_id'] ? (int) $row['slot_id'] : null;
 		$row['bookable_item_id'] = (int) $row['bookable_item_id'];
 		$row['service_id']     = isset( $row['service_id'] ) && $row['service_id'] ? (int) $row['service_id'] : null;

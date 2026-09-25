@@ -198,7 +198,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - **WooCommerce is NOT a gateway in this list** — routing checkout through WooCommerce's own configured gateways is the separate WooCommerce bridge (Part C launch step 6 / `ROADMAP.md` Phase 5), not another entry here
 - Coupon/discount codes
 - Package/membership pre-purchase (buy 10 sessions, redeem over time)
-- Automated refund handling on cancellation
+- **Automated refund handling on cancellation — DONE 2026-09-25 (QA report §6.2.7, admin-approved by user decision):** when a customer cancels a booking they paid for online, it's marked "Refund requested" (also shown on the Bookings list) and both the business and the customer are emailed. No money moves until the admin decides in the booking popup: a full refund, keep the deposit, keep the booking fee, or decline. Approving refunds through the gateway that took the payment (Stripe, PayPal or WooCommerce) and emails the customer. An admin can refund a booking they cancelled themselves the same way. Payments taken in person, or from before payment references were recorded, can be marked refunded by hand.
 - Seasonal/dynamic pricing — different price by date range, day of week, or booking lead time (early-bird and last-minute rate adjustments)
 - Cart checkout — book multiple bookable items, services, or event tickets in one transaction and pay once
 - Per-service or per-region tax/VAT rules, with the rate broken out on the invoice (Free covers one flat site-wide rate, see A7)
