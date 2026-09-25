@@ -228,7 +228,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Seating chart (optional, for smaller venues) — deferred, reuses Table Pro's floor-plan mechanism once there's concrete demand.
 
 #### Slot/Class Pro
-- **Recurring class series (e.g. weekly yoga class with a fixed roster) — DONE 2026-09-12, Phase 2 step 12:** `wp_byzo_class_series` — a series is just N already-generated weekly slots claimed by the same customer, grouped afterward. New "Class Series" admin screen.
+- **Recurring class series (e.g. weekly yoga class with a fixed roster) — DONE 2026-09-12, Phase 2 step 12:** `wp_byzo_class_series` — a series is just N already-generated weekly slots claimed by the same customer, grouped afterward. New "Class Series" admin screen. **Widened 2026-09-25 into "Recurring Bookings" (QA report §6.2.7, admin-created only by user decision):** any non-event item, so recurring appointments and standing table reservations too. Choose a day and time, repeat every 1–4 weeks, a start date, how many bookings (up to 52) and a party size where it applies. The exact dates are booked even past the advance-booking window (their slots are generated for them; customers still only see the window). A date that's taken or closed is listed back rather than swapped for another week. New `interval_weeks` column (`BYZOP_DB_VERSION` 2.1→2.2). No day/time ever offered → 400; offered but every date taken → 409. Test: `bookyzo-pro/scratchpad/smoke-qa-recurring.php` (13 checks).
 - Class package redemption (use credits from a pre-purchased pack) — deferred, needs its own payment mode.
 - Instructor/bookable item rotation for recurring series — deferred, needs concrete demand.
 
