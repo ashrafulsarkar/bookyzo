@@ -3,7 +3,8 @@ import * as VueRouterLib from 'vue-router';
 import { createApp } from 'vue';
 import App from './App.vue';
 import { router } from './router';
-import { registerExtension } from './lib/admin-extensions';
+import { toast } from 'vue-sonner';
+import { registerExtension, setNavBadge } from './lib/admin-extensions';
 
 const mountEl = document.getElementById('byzo-admin-app');
 
@@ -26,6 +27,12 @@ if (mountEl) {
   // has actually mounted.
   window.byzoAdmin = window.byzoAdmin || {};
   window.byzoAdmin.registerExtension = registerExtension;
+  // Live bits an add-on can use after it has registered (QA report
+  // 2026-09-22 §6.2.8 — Pro's new-booking alerts): the app's own toasts,
+  // a count badge on a nav item, and the router (to react to navigation).
+  window.byzoAdmin.toast = toast;
+  window.byzoAdmin.setNavBadge = setNavBadge;
+  window.byzoAdmin.router = router;
 
   createApp(App).use(router).mount(mountEl);
 }

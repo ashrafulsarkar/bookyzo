@@ -73,6 +73,19 @@ export const extraBookingDetailSection = ref(null);
 // add-on's customer export.
 export const extraCustomerListActions = reactive([]);
 
+// Count badges on sidebar items, keyed by the item's `to` (e.g.
+// '/bookings' → 3). Set through window.byzoAdmin.setNavBadge; 0 removes it.
+export const navBadges = reactive({});
+
+export function setNavBadge(to, count) {
+  const n = Math.max(0, Number(count) || 0);
+  if (n) {
+    navBadges[to] = n;
+  } else {
+    delete navBadges[to];
+  }
+}
+
 export function registerExtension(extension = {}) {
   (extension.routes || []).forEach((route) => router.addRoute(route));
   extraNavItems.push(...(extension.navItems || []));

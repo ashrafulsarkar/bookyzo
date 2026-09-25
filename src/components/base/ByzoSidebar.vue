@@ -43,6 +43,7 @@
         >
           <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center" v-html="item.icon"></span>
           {{ item.label }}
+          <span v-if="navBadges[item.to]" class="byzo-sidebar-badge" :aria-label="`${navBadges[item.to]} new`">{{ navBadges[item.to] > 99 ? '99+' : navBadges[item.to] }}</span>
         </router-link>
       </template>
 
@@ -85,7 +86,7 @@ const icon = (paths) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="n
 // than a JS event we could subscribe to.
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
-import { extraNavItems } from '../../lib/admin-extensions';
+import { extraNavItems, navBadges } from '../../lib/admin-extensions';
 
 // Collapsible sections (QA report 2026-09-22 §4.11 — with Pro on, the rail
 // was ~28 rows, longer than most screens). Overview is always open; any
@@ -296,6 +297,20 @@ const groupedSections = computed(() =>
 
 .byzo-sidebar-item {
   color: var(--byzo-text-muted);
+}
+
+/* An add-on's count on a nav item (setNavBadge), e.g. new bookings. */
+.byzo-sidebar-badge {
+  margin-left: auto;
+  min-width: 1.25rem;
+  padding: 0 0.375rem;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  line-height: 1.25rem;
+  text-align: center;
+  color: #fff;
+  background: var(--byzo-danger);
+  border-radius: 999px;
 }
 .byzo-sidebar-item:hover {
   background: var(--byzo-surface-alt);
