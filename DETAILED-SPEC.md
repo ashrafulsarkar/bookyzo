@@ -508,6 +508,26 @@ The last of Appointment Pro's four `FEATURES.md` bullets — the other three (st
 
 **New Pro table** `wp_byzo_custom_fields` (§1.6) — the originally-speced columns (`id`, `bookable_item_id NULL`, `label`, `field_type`, `options` JSON NULL, `required`, `sort_order`) plus one addition not in the original plan: a `status VARCHAR(20)` column (`active`/`inactive`), for parity with every other Pro CRUD table this phase (pricing_rules, webhooks, services) — lets an admin temporarily disable a field without losing its configuration or deleting real submitted data's meaning. **New Pro REST routes**: `GET/POST /custom-fields` (admin-only list-all/create) and `PUT/DELETE /custom-fields/{id}` (admin-only update/delete) — plain CRUD on the Pro-owned table, hooking the Free filter above to expose only `status = 'active'` rows to the public route. **Admin UI**: new "Form Fields" screen (per-bookable-item or global scope picker, field list with type/required/status, add/edit modal with type-specific config — options list for `dropdown`).
 
+### B6. Discount codes — BUILT 2026-09-25 (QA report §6.1 A2)
+
+- **Free:**
+  - `price_breakdown()` takes an optional `$discount_code` and `$customer_email`. It asks `byzo_booking_discount` (context: code, item, slot, party, service, unit price, subtotal, add-ons, `discountable` = subtotal + add-ons, email). The add-on answers `null` (not its code → "That code is not valid."), a `WP_Error` (the reason), or `{ code, amount, package_purchase_id? }`.
+  - The amount is clamped to [0, discountable] and taken off before tax. The booking fee isn't discountable.
+  - New booking columns `discount_code`, `discount_amount`, `package_purchase_id` (`BYZO_DB_VERSION` 3.0→3.1).
+  - `create()` checks the code **before claiming capacity**, so a refused code never holds a place (`byzo_invalid_code`, 400).
+  - `POST /bookings/quote` takes `discount_code` + `customer_email` and returns `discount_code/_amount/_error` and `package`.
+  - `BYZO_Capabilities::codes_enabled()` (filter `byzo_codes_enabled`) turns on the widget's code field (`window.byzoWidget.codesEnabled`). StepDetails applies a code through the quote and shows a "Discount (CODE)" row. It drops the code with the reason if a later change (party size) makes it invalid, and sends `discount_code` with the booking.
+- **Pro:**
+  - `wp_byzo_coupons` (`BYZOP_DB_VERSION` 2.2→2.3) and `BYZOP_Coupons` (resolver at priority 10, passing through anything it doesn't recognise).
+  - Codes are unique, uppercase, 3–40 characters, and can't clash with a package code.
+  - Validity uses today's date, not the booked date.
+  - Uses are counted live from non-cancelled/rejected bookings carrying the code; per customer, by lower-cased email.
+  - `byzo_codes_enabled` is on once any active code exists.
+  - REST `/coupons` (admin CRUD, list includes `uses`) and the "Discount Codes" screen.
+  - The invoice PDF gets a "Discount (CODE)" line.
+  - The lapsed-license guard refuses `POST /coupons`.
+- **Test:** `bookyzo-pro/scratchpad/smoke-qa-coupons.php` (25 checks).
+
 ### B6. Refunds on cancellation — BUILT 2026-09-25 (QA report §6.2.7)
 
 - **Free schema (`BYZO_DB_VERSION` 2.9→3.0), on bookings:**

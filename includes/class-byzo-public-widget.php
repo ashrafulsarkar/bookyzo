@@ -257,11 +257,12 @@ class BYZO_Public_Widget {
 		// report §4.6).
 		$marketing_enabled = (bool) BYZO_Capabilities::marketing_enabled();
 		$waitlist_enabled  = (bool) BYZO_Capabilities::waitlist_enabled();
+		$codes_enabled     = (bool) BYZO_Capabilities::codes_enabled();
 
 		wp_add_inline_script(
 			'byzo-widget',
 			sprintf(
-				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s, collectAttendeeDetailsEnabled: %s, payInPersonEnabled: %s, documents: %s, currentCustomer: %s, marketingEnabled: %s, waitlistEnabled: %s };',
+				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s, collectAttendeeDetailsEnabled: %s, payInPersonEnabled: %s, documents: %s, currentCustomer: %s, marketingEnabled: %s, waitlistEnabled: %s, codesEnabled: %s };',
 				wp_json_encode( esc_url_raw( rest_url( 'bookyzo/v1' ) ) ),
 				wp_json_encode( ! empty( $stripe['enabled'] ) && ! empty( $stripe['publishable_key'] ) ),
 				wp_json_encode( $stripe['publishable_key'] ?? '' ),
@@ -273,7 +274,8 @@ class BYZO_Public_Widget {
 				wp_json_encode( $documents ),
 				wp_json_encode( $current_customer ),
 				wp_json_encode( $marketing_enabled ),
-				wp_json_encode( $waitlist_enabled )
+				wp_json_encode( $waitlist_enabled ),
+				wp_json_encode( $codes_enabled )
 			),
 			'before'
 		);

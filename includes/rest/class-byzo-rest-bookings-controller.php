@@ -616,7 +616,9 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			max( 1, absint( $body['party_size'] ?? 1 ) ),
 			absint( $body['ticket_tier_id'] ?? 0 ) ?: null,
 			$service_id ?: null,
-			array_filter( array_map( 'absint', (array) ( $body['addon_ids'] ?? array() ) ) )
+			array_filter( array_map( 'absint', (array) ( $body['addon_ids'] ?? array() ) ) ),
+			strtoupper( substr( sanitize_text_field( (string) ( $body['discount_code'] ?? '' ) ), 0, 40 ) ),
+			sanitize_email( (string) ( $body['customer_email'] ?? '' ) )
 		);
 
 		return rest_ensure_response(
@@ -628,6 +630,11 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 				'tax_amount'         => $price['tax_amount'],
 				'payment_amount'     => $price['payment_amount'],
 				'deposit_amount'     => $price['deposit_amount'],
+				// A code checked here says what it takes off, or why not.
+				'discount_code'      => $price['discount_code'],
+				'discount_amount'    => $price['discount_amount'],
+				'discount_error'     => $price['discount_error'],
+				'package'            => (bool) $price['package_purchase_id'],
 			)
 		);
 	}

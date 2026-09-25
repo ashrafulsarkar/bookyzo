@@ -775,7 +775,7 @@ class BYZO_Booking {
 	 * @param int[]    $addon_ids      Requested add-on ids (unvalidated; resolved server-side).
 	 * @return array Keys: unit_price, subtotal, addons, addons_total, booking_fee_amount, tax_rate, tax_amount, payment_amount, deposit_amount. Money fields are null when there's nothing to charge.
 	 */
-	public static function price_breakdown( $slot, $party_size, $ticket_tier_id = null, $service_id = null, $addon_ids = array() ) {
+	public static function price_breakdown( $slot, $party_size, $ticket_tier_id = null, $service_id = null, $addon_ids = array(), $discount_code = '', $customer_email = '' ) {
 		$party_size = max( 1, (int) $party_size );
 
 		// payment_amount is ALWAYS server-computed, never taken from client
@@ -845,8 +845,46 @@ class BYZO_Booking {
 		// multiplied by party_size, unlike unit_price above.
 		$booking_fee_amount = ( null !== $item && null !== $item['booking_fee'] ) ? (float) $item['booking_fee'] : null;
 
+		// Discount / package codes (QA report 2026-09-22 §6.1 A2). The code
+		// comes from the customer; what it's worth never does. An add-on
+		// resolves it through byzo_booking_discount and answers null (no
+		// code system here), a WP_Error (not valid for this booking), or
+		// { code, amount, package_purchase_id? }. It comes off the price and
+		// add-ons, before tax, and never off the booking fee.
+		$discount_code        = strtoupper( trim( (string) $discount_code ) );
+		$discount_amount      = null;
+		$discount_error       = null;
+		$package_purchase_id  = null;
+		if ( '' !== $discount_code ) {
+			$discountable = ( null !== $subtotal ? $subtotal : 0 ) + $addons_total;
+			$discount     = apply_filters(
+				'byzo_booking_discount',
+				null,
+				array(
+					'code'           => $discount_code,
+					'item'           => $item,
+					'slot'           => $slot,
+					'party_size'     => $party_size,
+					'service_id'     => $service_id,
+					'unit_price'     => $unit_price,
+					'subtotal'       => $subtotal,
+					'addons_total'   => $addons_total,
+					'discountable'   => $discountable,
+					'customer_email' => strtolower( trim( (string) $customer_email ) ),
+				)
+			);
+			if ( is_wp_error( $discount ) ) {
+				$discount_error = $discount->get_error_message();
+			} elseif ( ! is_array( $discount ) ) {
+				$discount_error = __( 'That code is not valid.', 'bookyzo' );
+			} else {
+				$discount_amount     = round( max( 0, min( (float) $discount['amount'], $discountable ) ), 2 );
+				$package_purchase_id = ! empty( $discount['package_purchase_id'] ) ? (int) $discount['package_purchase_id'] : null;
+			}
+		}
+
 		$has_charge    = null !== $subtotal || $addons_total > 0 || null !== $booking_fee_amount;
-		$taxable_total = ( null !== $subtotal ? $subtotal : 0 ) + $addons_total + (float) $booking_fee_amount;
+		$taxable_total = ( null !== $subtotal ? $subtotal : 0 ) + $addons_total - (float) $discount_amount + (float) $booking_fee_amount;
 
 		// Flat site-wide tax rate (added 2026-09-05, Phase 1.5 step 9,
 		// DETAILED-SPEC.md §A7) — tax_amount is broken out from
@@ -892,6 +930,10 @@ class BYZO_Booking {
 			'tax_amount'         => $tax_amount,
 			'payment_amount'     => $payment_amount,
 			'deposit_amount'     => $deposit_amount,
+			'discount_code'      => null !== $discount_amount ? $discount_code : null,
+			'discount_amount'    => $discount_amount,
+			'discount_error'     => $discount_error,
+			'package_purchase_id' => $package_purchase_id,
 		);
 	}
 
@@ -1046,6 +1088,15 @@ class BYZO_Booking {
 
 		$party_size = $validated['party_size'];
 
+		// A code that can't be used stops the booking before any place is
+		// taken, with the reason (QA report §6.1 A2).
+		if ( ! empty( $validated['discount_code'] ) ) {
+			$check = self::price_breakdown( $slot, $party_size, $validated['ticket_tier_id'] ?? null, $service_id, $validated['addon_ids'] ?? array(), $validated['discount_code'], $validated['customer_email'] );
+			if ( $check['discount_error'] ) {
+				return new WP_Error( 'byzo_invalid_code', $check['discount_error'], array( 'status' => 400 ) );
+			}
+		}
+
 		if ( ! self::claim_slot_capacity( $slot['id'], $party_size, $slot_item ) ) {
 			return new WP_Error( 'byzo_slot_full', __( 'This time slot was just booked by someone else. Please pick another time.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
@@ -1072,7 +1123,7 @@ class BYZO_Booking {
 
 		$now = current_time( 'mysql' );
 
-		$price = self::price_breakdown( $slot, $party_size, $ticket_tier_id, $service_id, $validated['addon_ids'] ?? array() );
+		$price = self::price_breakdown( $slot, $party_size, $ticket_tier_id, $service_id, $validated['addon_ids'] ?? array(), $validated['discount_code'] ?? '', $validated['customer_email'] );
 
 		$resolved_addons    = $price['addons'];
 		$booking_fee_amount = $price['booking_fee_amount'];
@@ -1111,6 +1162,9 @@ class BYZO_Booking {
 			'deposit_amount'   => $deposit_amount,
 			'tax_amount'       => $tax_amount,
 			'booking_fee_amount' => $booking_fee_amount,
+			'discount_code'    => $price['discount_code'],
+			'discount_amount'  => $price['discount_amount'],
+			'package_purchase_id' => $price['package_purchase_id'],
 			'custom_fields'    => wp_json_encode( $validated['custom_fields'] ),
 			'addons'           => wp_json_encode( $resolved_addons ),
 			'attendees'        => wp_json_encode( $validated['attendees'] ),
@@ -1805,6 +1859,9 @@ class BYZO_Booking {
 			// ids, never prices; attempt_create_on_slot() resolves the
 			// real price server-side via byzo_resolve_addons.
 			'addon_ids'      => isset( $data['addon_ids'] ) && is_array( $data['addon_ids'] ) ? array_values( array_filter( array_map( 'absint', $data['addon_ids'] ) ) ) : array(),
+			// A discount or package code (QA report §6.1 A2) — only the code;
+			// price_breakdown() asks an add-on what it's worth.
+			'discount_code'  => isset( $data['discount_code'] ) ? strtoupper( substr( sanitize_text_field( (string) $data['discount_code'] ), 0, 40 ) ) : '',
 			// attendees (Phase 2 step 20, DETAILED-SPEC.md §3 B4) — per-
 			// ticket name (required)/email (optional) pairs; an entry with
 			// no name is dropped rather than stored blank. No capability
@@ -2019,6 +2076,8 @@ class BYZO_Booking {
 	private static function cast( $row ) {
 		$row['id']             = (int) $row['id'];
 		$row['amount_paid']    = isset( $row['amount_paid'] ) && null !== $row['amount_paid'] ? (float) $row['amount_paid'] : null;
+		$row['discount_amount'] = isset( $row['discount_amount'] ) && null !== $row['discount_amount'] ? (float) $row['discount_amount'] : null;
+		$row['package_purchase_id'] = ! empty( $row['package_purchase_id'] ) ? (int) $row['package_purchase_id'] : null;
 		$row['refund_amount']  = isset( $row['refund_amount'] ) && null !== $row['refund_amount'] ? (float) $row['refund_amount'] : null;
 		$row['slot_id']        = $row['slot_id'] ? (int) $row['slot_id'] : null;
 		$row['bookable_item_id'] = (int) $row['bookable_item_id'];

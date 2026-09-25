@@ -143,6 +143,7 @@ async function onDetailsSubmit(form) {
       // customer ticked the box; the server records it on their customer
       // row, never on the booking.
       marketing_opt_in: form.marketing_opt_in,
+      discount_code: form.discount_code || undefined,
       // Honeypot — see BYZO_Public_Guard. Always empty for a real
       // visitor (the field is visually hidden in StepDetails.vue).
       website: form.website,

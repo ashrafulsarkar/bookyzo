@@ -789,6 +789,51 @@
   color: var(--byzo-text-muted);
 }
 
+/* Discount / package code (QA report §6.1 A2). */
+.bookyzo-widget .code-row {
+  display: flex;
+  gap: 8px;
+}
+
+.bookyzo-widget .code-row input {
+  flex: 1;
+  text-transform: uppercase;
+}
+
+.bookyzo-widget .code-applied {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  color: #15803d;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: var(--byzo-radius-sm);
+}
+
+.bookyzo-widget .link-button {
+  padding: 0;
+  font: inherit;
+  font-size: 13px;
+  color: var(--byzo-text-muted);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.bookyzo-widget .field-error {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--byzo-danger);
+}
+
+.bookyzo-widget .summary-row-discount .summary-value {
+  color: #15803d;
+}
+
 .bookyzo-widget .error {
   color: var(--byzo-danger);
   background: var(--byzo-danger-bg);

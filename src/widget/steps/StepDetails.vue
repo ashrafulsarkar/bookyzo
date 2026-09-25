@@ -25,6 +25,10 @@
            "Confirm booking" with no amount anywhere on screen. Shown for
            free items too ("Free"), since silence about the price is
            exactly what makes people hesitate here. -->
+      <div v-if="quote && quote.discount_amount" class="summary-row summary-row-discount">
+        <span class="summary-label">{{ quote.package ? 'Package credit' : 'Discount' }} ({{ quote.discount_code }})</span>
+        <span class="summary-value">−{{ formatMoney(quote.discount_amount) }}</span>
+      </div>
       <div v-if="quote && quote.booking_fee_amount" class="summary-row">
         <span class="summary-label">Booking fee</span>
         <span class="summary-value">{{ formatMoney(quote.booking_fee_amount) }}</span>
@@ -171,6 +175,22 @@
       </template>
     </div>
 
+    <!-- Discount or package code (QA report §6.1 A2) — only when the site
+         has codes (window.byzoWidget.codesEnabled, an add-on's). The
+         server says what it's worth; nothing is taken on trust here. -->
+    <div v-if="codesEnabled" class="field">
+      <label for="bw-code">Discount or package code <span class="optional">(optional)</span></label>
+      <div v-if="!form.discount_code" class="code-row">
+        <input id="bw-code" v-model="codeInput" type="text" autocomplete="off" @keydown.enter.prevent="applyCode" />
+        <button type="button" class="btn btn-outline" :disabled="!codeInput.trim() || checkingCode" @click="applyCode">{{ checkingCode ? 'Checking…' : 'Apply' }}</button>
+      </div>
+      <div v-else class="code-applied">
+        <span>{{ form.discount_code }} applied</span>
+        <button type="button" class="link-button" @click="removeCode">Remove</button>
+      </div>
+      <p v-if="codeError" class="field-error">{{ codeError }}</p>
+    </div>
+
     <!-- Honeypot (BYZO_Public_Guard) — visually hidden, never seen or
          filled by a real visitor, tabindex/autocomplete off so
          keyboard/autofill users can't stumble into it either. Bots that
@@ -247,6 +267,7 @@ const form = reactive({
   create_account: false,
   password: '',
   marketing_opt_in: false,
+  discount_code: '',
   custom_fields: {},
   addon_ids: [],
   attendees: [],
@@ -372,16 +393,47 @@ async function refreshQuote() {
       party_size: quantity.value,
       ticket_tier_id: form.ticket_tier_id,
       addon_ids: form.addon_ids,
+      discount_code: form.discount_code || undefined,
+      customer_email: form.email || undefined,
     });
     // A slower, older response must not overwrite a newer one.
-    if (requestId === quoteRequest) quote.value = result;
+    if (requestId !== quoteRequest) return;
+    // A code that no longer fits (party size changed, say) comes off, with why.
+    if (form.discount_code && result.discount_error) {
+      codeError.value = result.discount_error;
+      form.discount_code = '';
+      return;
+    }
+    quote.value = result;
   } catch {
     if (requestId === quoteRequest) quote.value = null;
   }
 }
 
+// --- Discount / package code ----------------------------------------------
+const codesEnabled = Boolean(window.byzoWidget && window.byzoWidget.codesEnabled);
+const codeInput = ref('');
+const codeError = ref('');
+const checkingCode = ref(false);
+
+async function applyCode() {
+  const code = codeInput.value.trim().toUpperCase();
+  if (!code) return;
+  checkingCode.value = true;
+  codeError.value = '';
+  form.discount_code = code;
+  await refreshQuote();
+  checkingCode.value = false;
+}
+
+function removeCode() {
+  form.discount_code = '';
+  codeInput.value = '';
+  codeError.value = '';
+}
+
 watch(
-  () => [quantity.value, form.ticket_tier_id, form.addon_ids.join(',')],
+  () => [quantity.value, form.ticket_tier_id, form.addon_ids.join(','), form.discount_code],
   () => {
     clearTimeout(quoteTimer);
     quoteTimer = setTimeout(refreshQuote, 200);
@@ -408,7 +460,7 @@ const totalAmount = computed(() => (quote.value ? quote.value.payment_amount : e
 // single unpriced-by-quantity booking it's just the price.
 const totalLabel = computed(() => {
   const taxRate = Number((window.byzoWidget && window.byzoWidget.taxRate) || 0);
-  const hasExtras = quote.value && (quote.value.booking_fee_amount || quote.value.tax_amount || quote.value.addons_total);
+  const hasExtras = quote.value && (quote.value.booking_fee_amount || quote.value.tax_amount || quote.value.addons_total || quote.value.discount_amount);
 
   return quantity.value > 1 || taxRate > 0 || hasExtras ? 'Total' : 'Price';
 });

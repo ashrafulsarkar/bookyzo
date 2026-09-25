@@ -120,4 +120,14 @@ class BYZO_Capabilities {
 	public static function waitlist_enabled() {
 		return (bool) apply_filters( 'byzo_waitlist_enabled', false );
 	}
+
+	/**
+	 * Whether the booking form asks for a discount or package code (QA
+	 * report §6.1 A2). Free has no codes; an add-on hooks this.
+	 *
+	 * @return bool
+	 */
+	public static function codes_enabled() {
+		return (bool) apply_filters( 'byzo_codes_enabled', false );
+	}
 }
