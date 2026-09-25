@@ -290,6 +290,13 @@ class BYZO_Activator {
 		// §1.5) — links to a real byzo_customer-role WP account once they
 		// register; NULL for guest-only customers. UNIQUE permits multiple
 		// NULLs in MySQL, so guest rows are unaffected.
+		// `marketing_opt_in`/`marketing_unsubscribed` added 2026-09-24
+		// (BYZO_DB_VERSION 2.8->2.9, QA report §4.6) — consent for marketing
+		// email, and the one-click unsubscribe every such email has to carry.
+		// Free itself only writes them (the widget's opt-in checkbox and
+		// BYZO_Marketing's unsubscribe page); who sends campaigns is an
+		// add-on's business, but whether someone agreed to receive them is
+		// the customer's own record either way.
 		$sql[] = "CREATE TABLE {$prefix}byzo_customers (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			name VARCHAR(255) NOT NULL,
@@ -299,6 +306,8 @@ class BYZO_Activator {
 			tags VARCHAR(255) NULL,
 			source VARCHAR(20) NOT NULL DEFAULT 'booking',
 			wp_user_id BIGINT UNSIGNED NULL,
+			marketing_opt_in TINYINT(1) NOT NULL DEFAULT 0,
+			marketing_unsubscribed TINYINT(1) NOT NULL DEFAULT 0,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),

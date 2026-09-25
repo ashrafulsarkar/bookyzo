@@ -139,6 +139,10 @@ async function onDetailsSubmit(form) {
       // and atomically claims the tier's own capacity, never trusts a
       // client-supplied price. null when no tiers are configured.
       ticket_tier_id: form.ticket_tier_id,
+      // Marketing consent (QA report §4.6) — only ever true when the
+      // customer ticked the box; the server records it on their customer
+      // row, never on the booking.
+      marketing_opt_in: form.marketing_opt_in,
       // Honeypot — see BYZO_Public_Guard. Always empty for a real
       // visitor (the field is visually hidden in StepDetails.vue).
       website: form.website,

@@ -252,10 +252,15 @@ class BYZO_Public_Widget {
 			'invoice' => (bool) BYZO_Capabilities::pdf_invoice_enabled(),
 		);
 
+		// Whether anything on this site sends marketing email — the widget
+		// only asks for consent when there is something to opt into (QA
+		// report §4.6).
+		$marketing_enabled = (bool) BYZO_Capabilities::marketing_enabled();
+
 		wp_add_inline_script(
 			'byzo-widget',
 			sprintf(
-				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s, collectAttendeeDetailsEnabled: %s, payInPersonEnabled: %s, documents: %s, currentCustomer: %s };',
+				'window.byzoWidget = { restUrl: %s, stripeEnabled: %s, stripePublishableKey: %s, currency: %s, customerAccountsEnabled: %s, taxRate: %s, collectAttendeeDetailsEnabled: %s, payInPersonEnabled: %s, documents: %s, currentCustomer: %s, marketingEnabled: %s };',
 				wp_json_encode( esc_url_raw( rest_url( 'bookyzo/v1' ) ) ),
 				wp_json_encode( ! empty( $stripe['enabled'] ) && ! empty( $stripe['publishable_key'] ) ),
 				wp_json_encode( $stripe['publishable_key'] ?? '' ),
@@ -265,7 +270,8 @@ class BYZO_Public_Widget {
 				wp_json_encode( $collect_attendee_details ),
 				wp_json_encode( $pay_in_person_enabled ),
 				wp_json_encode( $documents ),
-				wp_json_encode( $current_customer )
+				wp_json_encode( $current_customer ),
+				wp_json_encode( $marketing_enabled )
 			),
 			'before'
 		);

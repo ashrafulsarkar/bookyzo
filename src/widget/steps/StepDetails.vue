@@ -135,6 +135,17 @@
       />
     </div>
 
+    <!-- Marketing consent (QA report 2026-09-22 §4.6) — unticked by
+         default and absent entirely on a site that sends no marketing
+         email. Booking confirmations and reminders are unaffected either
+         way; this is only about offers and news. -->
+    <div v-if="marketingEnabled" class="field">
+      <label class="checkbox-label">
+        <input v-model="form.marketing_opt_in" type="checkbox" />
+        Email me about news and offers
+      </label>
+    </div>
+
     <!-- Custom form fields (Phase 2 step 16, DETAILED-SPEC.md §3 B11) —
          Pro-defined, fetched by bookable item; entirely absent when Pro is
          off or nothing's configured (customFields is then just []). -->
@@ -224,6 +235,7 @@ const partySizeMax = computed(() => Math.max(1, props.slot.capacity_remaining ||
 // their details come prefilled (BYZO_Public_Widget's currentCustomer).
 const currentCustomer = (window.byzoWidget && window.byzoWidget.currentCustomer) || null;
 const accountsEnabled = Boolean(window.byzoWidget && window.byzoWidget.customerAccountsEnabled) && !currentCustomer;
+const marketingEnabled = Boolean(window.byzoWidget && window.byzoWidget.marketingEnabled);
 
 const form = reactive({
   party_size: props.partySize || 1,
@@ -234,6 +246,7 @@ const form = reactive({
   website: '',
   create_account: false,
   password: '',
+  marketing_opt_in: false,
   custom_fields: {},
   addon_ids: [],
   attendees: [],

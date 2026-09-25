@@ -98,4 +98,15 @@ class BYZO_Capabilities {
 	public static function qr_ticket_enabled() {
 		return (bool) apply_filters( 'byzo_qr_ticket_enabled', false );
 	}
+
+	/**
+	 * Whether anything on this site sends marketing email — the widget only
+	 * asks for consent when there's something to consent to (QA report
+	 * §4.6). Free never sends any; an add-on with campaigns hooks this.
+	 *
+	 * @return bool
+	 */
+	public static function marketing_enabled() {
+		return (bool) apply_filters( 'byzo_marketing_enabled', false );
+	}
 }

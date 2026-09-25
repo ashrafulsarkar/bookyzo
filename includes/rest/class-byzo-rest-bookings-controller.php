@@ -273,6 +273,15 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 		// matched to its actual use today.
 		$booking['manage_token'] = BYZO_Booking_Token::generate( $booking['id'], $booking['customer_email'] );
 
+		// Marketing consent (QA report 2026-09-22 §4.6) — stored on the
+		// customer row the booking just upserted, so it survives this
+		// booking and one unsubscribe covers every future campaign. Only
+		// ever set here, never cleared: taking someone off the list is the
+		// unsubscribe link's job.
+		if ( ! empty( $body['marketing_opt_in'] ) && $booking['customer_id'] ) {
+			BYZO_Customer::set_marketing( $booking['customer_id'], array( 'opt_in' => true ) );
+		}
+
 		// Phase 1.7 step 6 (DETAILED-SPEC.md §A11) — booking-time account
 		// opt-in. Deliberately never fails the booking itself: the booking
 		// is the primary action the guest came here for, account creation

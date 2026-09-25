@@ -92,6 +92,12 @@ class BYZO_Customer {
 			'tag'                 => '',
 			'last_booking_before' => '',
 			'min_no_show_count'   => 0,
+			// Added 2026-09-24 (QA report §4.6) — an unsubscribed customer is
+			// never in a campaign segment, and a site that asks for consent
+			// can require it here.
+			'opted_in_only'       => false,
+			'after_id'            => 0,
+			'limit'               => 0,
 		);
 		$args = wp_parse_args( $args, $defaults );
 
@@ -99,8 +105,19 @@ class BYZO_Customer {
 		$bookings_table  = $wpdb->prefix . 'byzo_bookings';
 		$slots_table     = $wpdb->prefix . 'byzo_slots';
 
-		$where  = array( '1=1' );
+		$where  = array( 'c.marketing_unsubscribed = 0' );
 		$params = array();
+
+		if ( ! empty( $args['opted_in_only'] ) ) {
+			$where[] = 'c.marketing_opt_in = 1';
+		}
+
+		// Cursor + limit, so a big list can be sent in batches rather than
+		// in one request (QA report §4.6).
+		if ( $args['after_id'] ) {
+			$where[]  = 'c.id > %d';
+			$params[] = (int) $args['after_id'];
+		}
 
 		if ( $args['tag'] ) {
 			$where[]  = 'c.tags LIKE %s';
@@ -128,13 +145,50 @@ class BYZO_Customer {
 		}
 
 		$where_sql = implode( ' AND ', $where );
-		$sql       = "SELECT c.* FROM {$customers_table} c WHERE {$where_sql} ORDER BY c.name ASC"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		// Ordered by id, not name, so the batch cursor above is stable.
+		$sql       = "SELECT c.* FROM {$customers_table} c WHERE {$where_sql} ORDER BY c.id ASC"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+		if ( $args['limit'] ) {
+			$sql     .= ' LIMIT %d';
+			$params[] = max( 1, (int) $args['limit'] );
+		}
 
 		$rows = $params
 			? $wpdb->get_results( $wpdb->prepare( $sql, $params ), ARRAY_A ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
 			: $wpdb->get_results( $sql, ARRAY_A ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery -- no $params means none of the three optional filters added a WHERE clause, so $where_sql is guaranteed to be the hardcoded '1=1' literal from line 102 with zero interpolated user data; nothing here needs $wpdb->prepare().
 
 		return array_map( array( __CLASS__, 'cast' ), $rows ?: array() );
+	}
+
+	/**
+	 * Sets the marketing flags (QA report §4.6). Partial: pass only the one
+	 * being changed.
+	 *
+	 * @param array $flags { @type bool $opt_in, @type bool $unsubscribed }
+	 * @return true|WP_Error
+	 */
+	public static function set_marketing( $id, $flags ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Customer not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		$data = array( 'updated_at' => current_time( 'mysql' ) );
+		if ( array_key_exists( 'opt_in', $flags ) ) {
+			$data['marketing_opt_in'] = $flags['opt_in'] ? 1 : 0;
+		}
+		if ( array_key_exists( 'unsubscribed', $flags ) ) {
+			$data['marketing_unsubscribed'] = $flags['unsubscribed'] ? 1 : 0;
+			// Unsubscribing withdraws the consent too, so a later "opted-in
+			// only" send can't reach them through the other flag.
+			if ( $flags['unsubscribed'] ) {
+				$data['marketing_opt_in'] = 0;
+			}
+		}
+
+		$wpdb->update( self::table(), $data, array( 'id' => $id ) );
+
+		return true;
 	}
 
 	public static function get_by_email( $email ) {
@@ -401,6 +455,8 @@ class BYZO_Customer {
 	}
 
 	private static function cast( $row ) {
+		$row['marketing_opt_in']       = ! empty( $row['marketing_opt_in'] );
+		$row['marketing_unsubscribed'] = ! empty( $row['marketing_unsubscribed'] );
 		$row['id'] = (int) $row['id'];
 
 		return $row;
