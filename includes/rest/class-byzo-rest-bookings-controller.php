@@ -206,6 +206,7 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			'from'             => $request->get_param( 'from' ),
 			'to'               => $request->get_param( 'to' ),
 			'bookable_item_id' => $request->get_param( 'bookable_item_id' ),
+			'location_id'      => $request->get_param( 'location_id' ),
 			'type'             => $request->get_param( 'type' ),
 			'status'           => $request->get_param( 'status' ),
 			'search'           => $request->get_param( 'search' ),

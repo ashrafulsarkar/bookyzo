@@ -214,6 +214,9 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 					// same as every other guest-visible field here.
 					'location'          => $item['location'],
 					'meeting_link'      => $item['meeting_link'],
+					// Which location it's at (QA report §6.1 A1) — null
+					// unless a locations add-on placed it.
+					'location_id'       => $item['location_id'],
 					// Added 2026-09-13 (Phase 5 step 2, DETAILED-SPEC.md §3
 					// B9) — a derived boolean, never the raw wc_product_id
 					// itself (no reason for the public widget to know a WC

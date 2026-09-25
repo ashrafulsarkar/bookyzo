@@ -51,8 +51,10 @@ class BYZO_Slot_Generator {
 		// byzo_settings.business_hours instead. Exceptions (blackouts/
 		// one-off hours) stay per-item either way — a linked staff member
 		// can still take an individual day off.
+		// Per-location opening hours (QA report §6.1 A1) come through the
+		// same filter a locations add-on answers; Free passes the site's.
 		$schedule_rows = ! empty( $item['uses_business_hours'] )
-			? BYZO_Settings::get()['business_hours']
+			? (array) apply_filters( 'byzo_item_business_hours', BYZO_Settings::get()['business_hours'], $item )
 			: $availability['schedules'];
 
 		$schedules_by_weekday = array();
@@ -69,7 +71,10 @@ class BYZO_Slot_Generator {
 		$buffer_minutes   = max( 0, (int) $settings['buffer_minutes'] );
 		$min_advance      = new DateTime( '+' . max( 0, (int) $settings['min_advance_hours'] ) . ' hours', wp_timezone() );
 
-		$today         = new DateTime( 'today', wp_timezone() );
+		// Days and opening hours are the item's own (its location's
+		// timezone); what's stored is converted to site time.
+		$item_tz       = BYZO_Bookable_Item::timezone( $item );
+		$today         = new DateTime( 'today', $item_tz );
 		$slots         = array();
 		$blocked_dates = array();
 
@@ -108,13 +113,13 @@ class BYZO_Slot_Generator {
 			foreach ( $windows as list( $start_time, $end_time ) ) {
 				$slots = array_merge(
 					$slots,
-					self::build_day_slots( $item, $date_str, $start_time, $end_time, $duration_minutes, $buffer_minutes, $min_advance )
+					self::build_day_slots( $item, $date_str, $start_time, $end_time, $duration_minutes, $buffer_minutes, $min_advance, $item_tz )
 				);
 			}
 		}
 
 		if ( $blocked_dates ) {
-			self::block_slots_on_dates( $bookable_item_id, $blocked_dates );
+			self::block_slots_on_dates( $bookable_item_id, $blocked_dates, $item_tz );
 		}
 
 		return self::upsert_slots( $bookable_item_id, $slots );
@@ -128,26 +133,44 @@ class BYZO_Slot_Generator {
 	 * cancellation decision for a human, not something the generator
 	 * should do implicitly.
 	 */
-	private static function block_slots_on_dates( $bookable_item_id, $dates ) {
+	private static function block_slots_on_dates( $bookable_item_id, $dates, $tz = null ) {
 		global $wpdb;
 
-		$table        = $wpdb->prefix . 'byzo_slots';
-		$placeholders = implode( ',', array_fill( 0, count( $dates ), '%s' ) );
+		$table = $wpdb->prefix . 'byzo_slots';
+		$tz    = $tz ?: wp_timezone();
 
-		$sql = $wpdb->prepare(
-			"UPDATE {$table} SET status = 'blocked' WHERE bookable_item_id = %d AND status = 'open' AND DATE(start_datetime) IN ({$placeholders})", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-			array_merge( array( $bookable_item_id ), $dates )
-		);
+		// A closed day is the item's own local day, which in site time is
+		// a range that may cross midnight — so match by range, not DATE().
+		foreach ( $dates as $date ) {
+			$from = ( new DateTime( "{$date} 00:00:00", $tz ) )->setTimezone( wp_timezone() )->format( 'Y-m-d H:i:s' );
+			$to   = ( new DateTime( "{$date} 00:00:00", $tz ) )->modify( '+1 day' )->setTimezone( wp_timezone() )->format( 'Y-m-d H:i:s' );
+			$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = 'blocked' WHERE bookable_item_id = %d AND status = 'open' AND start_datetime >= %s AND start_datetime < %s", $bookable_item_id, $from, $to ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
+		}
+	}
 
-		$wpdb->query( $sql ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
+	/**
+	 * Throws away future slots nobody has booked and generates them again —
+	 * for when what an item's hours mean has changed (it moved to a
+	 * location in another timezone). Booked slots are never touched.
+	 */
+	public static function regenerate_future( $bookable_item_id, $days_ahead = null ) {
+		global $wpdb;
+
+		$slots    = $wpdb->prefix . 'byzo_slots';
+		$bookings = $wpdb->prefix . 'byzo_bookings';
+		$wpdb->query( $wpdb->prepare( "DELETE s FROM {$slots} s LEFT JOIN {$bookings} b ON b.slot_id = s.id WHERE s.bookable_item_id = %d AND s.status IN ('open','blocked') AND s.start_datetime > %s AND b.id IS NULL", $bookable_item_id, current_time( 'mysql' ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery.DirectQuery
+
+		BYZO_Bookable_Item::flush_timezone_cache();
+		return self::generate_for_bookable_item( $bookable_item_id, $days_ahead );
 	}
 
 	/**
 	 * Builds slot rows for one open window on one date, honoring the
 	 * minimum-advance-notice cutoff.
 	 */
-	private static function build_day_slots( $item, $date_str, $start_time, $end_time, $duration_minutes, $buffer_minutes, DateTime $min_advance ) {
-		$tz = wp_timezone();
+	private static function build_day_slots( $item, $date_str, $start_time, $end_time, $duration_minutes, $buffer_minutes, DateTime $min_advance, $tz = null ) {
+		$tz   = $tz ?: wp_timezone();
+		$site = wp_timezone();
 
 		$cursor = new DateTime( "{$date_str} {$start_time}", $tz );
 		$end    = new DateTime( "{$date_str} {$end_time}", $tz );
@@ -164,8 +187,8 @@ class BYZO_Slot_Generator {
 			if ( $cursor >= $min_advance ) {
 				$slots[] = array(
 					'bookable_item_id'    => $item['id'],
-					'start_datetime'      => $cursor->format( 'Y-m-d H:i:s' ),
-					'end_datetime'        => $slot_end->format( 'Y-m-d H:i:s' ),
+					'start_datetime'      => ( clone $cursor )->setTimezone( $site )->format( 'Y-m-d H:i:s' ),
+					'end_datetime'        => ( clone $slot_end )->setTimezone( $site )->format( 'Y-m-d H:i:s' ),
 					'capacity_remaining'  => max( 1, (int) $item['capacity'] ),
 					'status'              => 'open',
 				);

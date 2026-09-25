@@ -2,20 +2,38 @@
   <WidgetLoading v-if="loading" />
   <div v-else-if="error" class="error">{{ error }}</div>
   <div v-else-if="items.length === 0 && services.length === 0" class="empty">No bookable services are available right now.</div>
+  <!-- Several locations (QA report §6.1 A1): where first, then what. -->
+  <div v-else-if="needsLocation && !autoSkipping">
+    <h2>Choose a location</h2>
+    <div class="bookable-item-list">
+      <button v-for="location in locations" :key="`location-${location.id}`" type="button" class="option-card" @click="chosenLocation = location">
+        <span class="option-card-body">
+          <span class="name">{{ location.name }}</span>
+          <span v-if="location.address" class="meta"><span class="meta-item">{{ location.address }}</span></span>
+        </span>
+        <span class="option-card-go" aria-hidden="true">&#8250;</span>
+      </button>
+    </div>
+  </div>
   <div v-else-if="!autoSkipping">
     <h2>{{ copy.pickHeading }}</h2>
-    <p class="step-sub">{{ copy.pickSub }}</p>
+    <p class="step-sub">
+      {{ copy.pickSub }}
+      <template v-if="chosenLocation">
+        <br />{{ chosenLocation.name }} · <button type="button" class="link-button" @click="chosenLocation = null">Change location</button>
+      </template>
+    </p>
     <!-- Pro services (QA report 2026-09-22 B9): picked by what, not by
          whom — the next step offers the staff who provide it, or "any
          available". Absent when there are none (always, without Pro). -->
-    <p v-if="services.length && items.length" class="group-label">Services</p>
-    <div v-if="services.length" class="bookable-item-list">
+    <p v-if="visibleServices.length && visibleItems.length" class="group-label">Services</p>
+    <div v-if="visibleServices.length" class="bookable-item-list">
       <button
-        v-for="service in services"
+        v-for="service in visibleServices"
         :key="`service-${service.id}`"
         type="button"
         class="option-card"
-        @click="$emit('selected-service', service, items)"
+        @click="$emit('selected-service', service, visibleItems)"
       >
         <span class="option-card-body">
           <span class="name">{{ service.name }}</span>
@@ -98,9 +116,23 @@ function servicePrice(service) {
 
 // A picker filtered to one type (or a site that only sells one) can speak
 // that type's language; a genuinely mixed list can't, so it stays neutral.
+// Locations (QA report §6.1 A1) — only when an add-on lists more than one.
+// Items not placed at any location are offered at all of them.
+const locations = (window.byzoWidget && window.byzoWidget.locations) || [];
+const chosenLocation = ref(null);
+const needsLocation = computed(() => locations.length > 1 && !chosenLocation.value && !props.config.bookableItemId);
+const visibleItems = computed(() =>
+  chosenLocation.value ? items.value.filter((i) => !i.location_id || i.location_id === chosenLocation.value.id) : items.value
+);
+const visibleServices = computed(() => {
+  if (!chosenLocation.value) return services.value;
+  const ids = new Set(visibleItems.value.map((i) => i.id));
+  return services.value.map((s) => ({ ...s, staff: s.staff.filter((m) => ids.has(m.id)) })).filter((s) => s.staff.length);
+});
+
 const copy = computed(() => {
-  const types = new Set(items.value.map((i) => i.type));
-  return types.size === 1 && !services.value.length ? copyFor(items.value[0].type) : MIXED_COPY;
+  const types = new Set(visibleItems.value.map((i) => i.type));
+  return types.size === 1 && !visibleServices.value.length ? copyFor(visibleItems.value[0].type) : MIXED_COPY;
 });
 
 // One group per type, in a fixed order, each keeping the server's own
@@ -110,8 +142,8 @@ const groups = computed(() =>
     type,
     // With Pro services listed above, "Services" twice would be two
     // headings for two different things — the staff themselves come second.
-    label: 'appointment' === type && services.value.length ? 'Or book with' : GROUP_LABELS[type],
-    items: items.value.filter((item) => item.type === type),
+    label: 'appointment' === type && visibleServices.value.length ? 'Or book with' : GROUP_LABELS[type],
+    items: visibleItems.value.filter((item) => item.type === type),
   })).filter((group) => group.items.length)
 );
 
@@ -140,7 +172,7 @@ onMounted(async () => {
     let target = null;
     if (props.config.bookableItemId) {
       target = items.value.find((i) => i.id === props.config.bookableItemId) || null;
-    } else if (items.value.length === 1 && services.value.length === 0) {
+    } else if (items.value.length === 1 && services.value.length === 0 && locations.length <= 1) {
       target = items.value[0];
     }
 

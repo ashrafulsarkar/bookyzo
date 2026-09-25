@@ -373,8 +373,9 @@ class BYZO_Slot {
 			self::table(),
 			array(
 				'bookable_item_id'   => $bookable_item_id,
-				'start_datetime'     => "{$date} {$start_time}",
-				'end_datetime'       => "{$date} {$end_time}",
+				// Entered in the item's own (location) time; stored in site time.
+				'start_datetime'     => BYZO_Bookable_Item::from_local( "{$date} {$start_time}", $item ),
+				'end_datetime'       => BYZO_Bookable_Item::from_local( "{$date} {$end_time}", $item ),
 				'capacity_remaining' => max( 1, (int) $item['capacity'] ),
 				'status'             => 'open',
 			)
@@ -443,6 +444,10 @@ class BYZO_Slot {
 		$row['id']                  = (int) $row['id'];
 		$row['bookable_item_id']    = (int) $row['bookable_item_id'];
 		$row['capacity_remaining']  = (int) $row['capacity_remaining'];
+		// The item's own local time, for display (QA report §6.1 A1).
+		$row['timezone']             = BYZO_Bookable_Item::timezone( $row['bookable_item_id'] )->getName();
+		$row['local_start_datetime'] = BYZO_Bookable_Item::to_local( $row['start_datetime'], $row['bookable_item_id'] );
+		$row['local_end_datetime']   = BYZO_Bookable_Item::to_local( $row['end_datetime'], $row['bookable_item_id'] );
 		return $row;
 	}
 }

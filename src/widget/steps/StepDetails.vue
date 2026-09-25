@@ -388,7 +388,7 @@ async function refreshQuote() {
     const result = await getQuote({
       // "Any available staff" is priced like create_for_service() books it:
       // by service and start time, not by one staff member's slot.
-      ...(anyStaff ? { start_datetime: props.slot.start_datetime } : { slot_id: props.slot.id }),
+      ...(anyStaff ? { start_datetime: props.slot.site_start_datetime || props.slot.start_datetime } : { slot_id: props.slot.id }),
       service_id: props.item.service_id || undefined,
       party_size: quantity.value,
       ticket_tier_id: form.ticket_tier_id,

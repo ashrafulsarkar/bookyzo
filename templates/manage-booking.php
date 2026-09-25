@@ -31,7 +31,8 @@ $contact_email = get_option( 'admin_email' );
 $details = array();
 if ( $booking ) {
 	if ( ! empty( $booking['slot_start'] ) ) {
-		$start = new DateTime( $booking['slot_start'], wp_timezone() );
+		// On the booked item's own clock (QA report §6.1 A1).
+		$start = ( new DateTime( $booking['slot_start'], wp_timezone() ) )->setTimezone( BYZO_Bookable_Item::timezone( (int) $booking['bookable_item_id'] ) );
 		$details[ __( 'When', 'bookyzo' ) ] = $start->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
 	}
 	if ( $item && ! empty( $item['location'] ) ) {
@@ -150,7 +151,7 @@ if ( $booking ) {
 				var loaded = false;
 
 				function label(slot) {
-					var date = new Date(slot.start_datetime.replace(' ', 'T'));
+					var date = new Date((slot.local_start_datetime || slot.start_datetime).replace(' ', 'T'));
 					return date.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 				}
 

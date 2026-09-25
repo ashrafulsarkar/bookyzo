@@ -289,6 +289,84 @@ class BYZO_Bookable_Item {
 		return true;
 	}
 
+	/**
+	 * Per-location time (QA report 2026-09-22 §6.1 A1, user decision
+	 * 2026-09-25: each location keeps its own timezone).
+	 *
+	 * Every stored time stays in the site's timezone — one timeline, so
+	 * every "is it past / how long until" comparison keeps working as is.
+	 * An item's own timezone (a location add-on answers byzo_item_timezone;
+	 * Free has none, so it's always the site's) is only what its opening
+	 * hours mean and what customers are shown: slots are generated in it
+	 * and converted to site time for storage, and converted back for
+	 * display (local_* fields on slots and bookings).
+	 *
+	 * @param array|int $item
+	 * @return DateTimeZone
+	 */
+	public static function timezone( $item ) {
+		if ( ! is_array( $item ) ) {
+			$item = self::get( (int) $item );
+		}
+		$key = $item ? (int) $item['id'] : 0;
+		if ( isset( self::$tz_cache[ $key ] ) ) {
+			return self::$tz_cache[ $key ];
+		}
+		$name = $item ? (string) apply_filters( 'byzo_item_timezone', '', $item ) : '';
+		try {
+			$tz = '' !== $name ? new DateTimeZone( $name ) : wp_timezone();
+		} catch ( Exception $e ) {
+			$tz = wp_timezone();
+		}
+		self::$tz_cache[ $key ] = $tz;
+		return $tz;
+	}
+
+	private static $tz_cache = array();
+
+	public static function flush_timezone_cache() {
+		self::$tz_cache = array();
+	}
+
+	/**
+	 * A stored (site-time) 'Y-m-d H:i:s' as the item's local wall time.
+	 */
+	public static function to_local( $site_datetime, $item ) {
+		if ( ! $site_datetime ) {
+			return $site_datetime;
+		}
+		$tz = self::timezone( $item );
+		if ( $tz->getName() === wp_timezone()->getName() ) {
+			return $site_datetime;
+		}
+		return ( new DateTime( $site_datetime, wp_timezone() ) )->setTimezone( $tz )->format( 'Y-m-d H:i:s' );
+	}
+
+	/**
+	 * The item's local wall time as the site time it's stored in.
+	 */
+	public static function from_local( $local_datetime, $item ) {
+		$tz = self::timezone( $item );
+		if ( $tz->getName() === wp_timezone()->getName() ) {
+			return $local_datetime;
+		}
+		return ( new DateTime( $local_datetime, $tz ) )->setTimezone( wp_timezone() )->format( 'Y-m-d H:i:s' );
+	}
+
+	/**
+	 * Sets location_id — written by a locations add-on; Free never shows it.
+	 * Plain field update, like update_booking_fee().
+	 */
+	public static function update_location( $id, $location_id ) {
+		global $wpdb;
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+		$wpdb->update( self::table(), array( 'location_id' => $location_id ? (int) $location_id : null, 'updated_at' => current_time( 'mysql' ) ), array( 'id' => (int) $id ) );
+		self::flush_timezone_cache();
+		return true;
+	}
+
 	public static function update_booking_fee( $id, $fee ) {
 		global $wpdb;
 

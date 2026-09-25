@@ -15,6 +15,13 @@
             <SelectItem v-for="item in items" :key="item.id" :value="String(item.id)">{{ item.name }}</SelectItem>
           </SelectContent>
         </Select>
+        <Select v-if="locations.length" v-model="locationFilter">
+          <SelectTrigger class="h-9 w-44"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All locations</SelectItem>
+            <SelectItem v-for="location in locations" :key="location.id" :value="String(location.id)">{{ location.name }}</SelectItem>
+          </SelectContent>
+        </Select>
         <Button @click="showManualBooking = true">+ New booking</Button>
       </template>
     </ByzoPageHeader>
@@ -50,7 +57,8 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, watch, onMounted } from 'vue';
+import { extraLocations as locations } from '@/lib/admin-extensions';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -64,6 +72,9 @@ import { toast } from 'vue-sonner';
 
 const items = ref([]);
 const itemFilter = ref('__all__');
+// Location filter (QA report §6.1 A1) — only when an add-on has locations.
+const locationFilter = ref('__all__');
+watch([itemFilter, locationFilter], () => loadBookings());
 const bookings = ref([]);
 const error = ref('');
 const activeBooking = ref(null);
@@ -92,6 +103,9 @@ async function loadBookings() {
     });
     if (itemFilter.value !== '__all__') {
       params.set('bookable_item_id', itemFilter.value);
+    }
+    if (locationFilter.value !== '__all__') {
+      params.set('location_id', locationFilter.value);
     }
     bookings.value = await api.get(`/bookings?${params.toString()}`);
   } catch (e) {

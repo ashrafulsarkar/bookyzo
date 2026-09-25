@@ -270,8 +270,10 @@ async function loadDefaults() {
 // 'YYYY-MM-DD HH:MM:SS' slot rows → the { date, start_time, end_time }
 // shape AvailabilityStep.vue's occurrence list edits.
 function toOccurrence(slot) {
-  const [date, start = ''] = String(slot.start_datetime).split(' ');
-  const end = String(slot.end_datetime).split(' ')[1] || '';
+  // Dates are entered and shown on the item's own clock (its location's
+  // timezone, QA report §6.1 A1); the server stores site time.
+  const [date, start = ''] = String(slot.local_start_datetime || slot.start_datetime).split(' ');
+  const end = String(slot.local_end_datetime || slot.end_datetime).split(' ')[1] || '';
   return {
     id: slot.id,
     date,

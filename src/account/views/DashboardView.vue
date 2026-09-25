@@ -8,7 +8,7 @@
     <li v-for="booking in bookings" :key="booking.id" class="bookyzo-account__booking">
       <div class="bookyzo-account__booking-title">{{ booking.customer_name }}</div>
       <div class="bookyzo-account__booking-meta">
-        <template v-if="booking.slot_start">{{ formatDate(booking.slot_start) }} · </template>{{ booking.status }}
+        <template v-if="booking.slot_start">{{ formatDate(booking.local_slot_start || booking.slot_start) }} · </template>{{ booking.status }}
       </div>
       <button
         v-if="canCancel(booking)"

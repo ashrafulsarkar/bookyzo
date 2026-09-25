@@ -69,6 +69,16 @@
             </SelectContent>
           </Select>
         </div>
+        <div v-if="locations.length" class="flex flex-col gap-1.5">
+          <Label class="text-xs font-medium text-muted-foreground">Location</Label>
+          <Select v-model="filters.location_id">
+            <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">All</SelectItem>
+              <SelectItem v-for="location in locations" :key="location.id" :value="String(location.id)">{{ location.name }}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <div class="flex flex-col gap-1.5">
           <Label class="text-xs font-medium text-muted-foreground">Status</Label>
           <Select v-model="filters.status">
@@ -218,7 +228,7 @@ import { Calendar as CalendarIcon, X } from 'lucide-vue-next';
 import { parseDate } from '@internationalized/date';
 import { api } from '@/api/client';
 import { useClientPagination } from '@/composables/useClientPagination';
-import { extraBookingBulkActions as bulkActions } from '@/lib/admin-extensions';
+import { extraBookingBulkActions as bulkActions, extraLocations as locations } from '@/lib/admin-extensions';
 
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show', 'rejected'];
 
@@ -232,6 +242,7 @@ const filters = reactive({
   from: '',
   to: '',
   bookable_item_id: '__all__',
+  location_id: '__all__',
   status: '__all__',
 });
 
@@ -293,6 +304,7 @@ async function loadBookings() {
     if (filters.from) params.set('from', filters.from);
     if (filters.to) params.set('to', filters.to);
     if (filters.bookable_item_id !== '__all__') params.set('bookable_item_id', filters.bookable_item_id);
+    if (filters.location_id !== '__all__') params.set('location_id', filters.location_id);
     if (filters.status !== '__all__') params.set('status', filters.status);
     if (filters.search.trim()) params.set('search', filters.search.trim());
     bookings.value = await api.get(`/bookings?${params.toString()}`);
@@ -304,13 +316,14 @@ async function loadBookings() {
 }
 
 const hasActiveFilters = computed(() =>
-  Boolean(filters.from || filters.to || filters.bookable_item_id !== '__all__' || filters.status !== '__all__')
+  Boolean(filters.from || filters.to || filters.bookable_item_id !== '__all__' || filters.location_id !== '__all__' || filters.status !== '__all__')
 );
 
 function clearFilters() {
   filters.from = '';
   filters.to = '';
   filters.bookable_item_id = '__all__';
+  filters.location_id = '__all__';
   filters.status = '__all__';
 }
 

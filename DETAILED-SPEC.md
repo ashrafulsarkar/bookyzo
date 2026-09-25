@@ -508,6 +508,31 @@ The last of Appointment Pro's four `FEATURES.md` bullets — the other three (st
 
 **New Pro table** `wp_byzo_custom_fields` (§1.6) — the originally-speced columns (`id`, `bookable_item_id NULL`, `label`, `field_type`, `options` JSON NULL, `required`, `sort_order`) plus one addition not in the original plan: a `status VARCHAR(20)` column (`active`/`inactive`), for parity with every other Pro CRUD table this phase (pricing_rules, webhooks, services) — lets an admin temporarily disable a field without losing its configuration or deleting real submitted data's meaning. **New Pro REST routes**: `GET/POST /custom-fields` (admin-only list-all/create) and `PUT/DELETE /custom-fields/{id}` (admin-only update/delete) — plain CRUD on the Pro-owned table, hooking the Free filter above to expose only `status = 'active'` rows to the public route. **Admin UI**: new "Form Fields" screen (per-bookable-item or global scope picker, field list with type/required/status, add/edit modal with type-specific config — options list for `dropdown`).
 
+### B1. Locations, each on its own timezone — BUILT 2026-09-25 (QA report §6.1 A1)
+
+**The one rule:** every stored time stays in the site's timezone (one timeline). So every existing comparison with "now" (lead time, cancellation window, reminders, waitlist expiry, auto-cancel, activity feed) is untouched. A location's timezone only changes **what an item's hours mean** (generation) and **what people are shown** (display).
+- **Free:**
+  - `BYZO_Bookable_Item::timezone( $item )` (filter `byzo_item_timezone`, default the site's; cached per request, `flush_timezone_cache()`), plus `to_local()` / `from_local()` and `update_location()` (Free's existing `location_id` column).
+  - `BYZO_Slot_Generator` walks days and builds slots in the item's zone and stores them converted to site time. It closes an exception day by its **local** day's site-time range instead of `DATE()`. Business-hours items read `byzo_item_business_hours`. New `regenerate_future()` deletes future open/blocked slots with no booking and regenerates.
+  - `create_occurrence()` takes the event date/time in local time.
+  - Slots gain `timezone`, `local_start_datetime`, `local_end_datetime`; bookings gain `timezone`, `local_slot_start`, `local_slot_end`. `slot_start_gmt` was already right.
+  - The widget (StepSlot maps slots onto the local clock, keeping `site_start_datetime` for "any staff" requests), confirmation, account page, manage-booking page and its reschedule picker, and the item wizard's event dates all use the local fields.
+  - `{start_time}` is formatted in the item's zone with its abbreviation when that differs from the site's. `byzo_notification_placeholders` filters the whole placeholder map.
+  - Public items expose `location_id`; `window.byzoWidget.locations` comes from `byzo_widget_locations`. StepBookableItem asks "Choose a location" when there are two or more, then shows items at that location (or at none) and services whose staff are there.
+  - `GET /bookings?location_id=`. The admin-extensions `locations` key turns on a Location filter on Bookings and Calendar. The calendar now also reloads when its item filter changes.
+- **Pro:**
+  - `wp_byzo_locations` (`BYZOP_DB_VERSION` 2.4→2.5: name, address, phone, `timezone` (IANA or the site's offset), `business_hours` JSON, status) and `BYZOP_Locations`, which answers the four filters (`{location_name}` / `{location_address}` among them).
+  - Saving a changed timezone or hours regenerates the location's active items. `assign()` regenerates on a zone change (or for business-hours items). Deleting a location moves its items back to the site's zone.
+  - REST `/locations` (admin CRUD, with `site_timezone`), `PUT /bookable-items/{id}/location`.
+  - The "Locations" screen (Settings section; timezone list from `Intl.supportedValuesOf`).
+  - The item step becomes "Location & fees" once locations exist (`window.byzopAdmin.hasLocations`).
+  - The lapsed-license guard refuses `POST /locations`.
+- **Known limits:**
+  - Analytics has no location filter yet.
+  - The admin calendar grid is still drawn on site time; the popup and emails use local time.
+  - A location zone is fixed per location, not per staff member.
+- **Test:** `bookyzo-pro/scratchpad/smoke-qa-locations.php` (24 checks, Asia/Dhaka against the site's zone).
+
 ### B6. Packages bought online — BUILT 2026-09-25 (QA report §6.1 A2)
 
 - **Tables** (`BYZOP_DB_VERSION` 2.3→2.4):

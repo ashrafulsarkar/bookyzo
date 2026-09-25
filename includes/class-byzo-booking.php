@@ -108,6 +108,9 @@ class BYZO_Booking {
 			'to'               => '',
 			'search'           => '',
 			'bookable_item_id' => 0,
+			// Bookings for one location's items (QA report §6.1 A1) —
+			// items.location_id is Free's column, set by a locations add-on.
+			'location_id'      => 0,
 			'type'             => '',
 			'status'           => '',
 			'customer_id'      => 0,
@@ -122,6 +125,11 @@ class BYZO_Booking {
 
 		$where  = array( '1=1' );
 		$params = array();
+
+		if ( ! empty( $args['location_id'] ) ) {
+			$where[]  = "b.bookable_item_id IN (SELECT id FROM {$items_table} WHERE location_id = %d)"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+			$params[] = (int) $args['location_id'];
+		}
 
 		if ( $args['bookable_item_id'] ) {
 			$where[]  = 'b.bookable_item_id = %d';
@@ -2111,6 +2119,13 @@ class BYZO_Booking {
 		// a zone and used the visitor's (QA report 2026-09-22 B7).
 		$row['slot_start_gmt'] = self::local_to_gmt_iso( $row['slot_start'] );
 		$row['slot_end_gmt']   = self::local_to_gmt_iso( $row['slot_end'] );
+
+		// The same times on the booked item's own clock — its location's
+		// timezone — for showing to people (QA report §6.1 A1). Identical
+		// to slot_start/slot_end when the item uses the site's timezone.
+		$row['timezone']         = BYZO_Bookable_Item::timezone( $row['bookable_item_id'] )->getName();
+		$row['local_slot_start'] = BYZO_Bookable_Item::to_local( $row['slot_start'], $row['bookable_item_id'] );
+		$row['local_slot_end']   = BYZO_Bookable_Item::to_local( $row['slot_end'], $row['bookable_item_id'] );
 
 		return $row;
 	}

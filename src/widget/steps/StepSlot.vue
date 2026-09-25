@@ -419,11 +419,26 @@ function onePerStartTime(list) {
   return list.filter((slot) => (seen.has(slot.start_datetime) ? false : seen.add(slot.start_datetime)));
 }
 
+// Times are shown on the item's own clock — its location's timezone (QA
+// report §6.1 A1) — so start_datetime becomes the local time here, and the
+// stored site time rides along as site_start_datetime for anything sent
+// back to the server by time rather than by slot id.
+function onLocalClock(list) {
+  return list.map((slot) => ({
+    ...slot,
+    site_start_datetime: slot.start_datetime,
+    start_datetime: slot.local_start_datetime || slot.start_datetime,
+    end_datetime: slot.local_end_datetime || slot.end_datetime,
+  }));
+}
+
 onMounted(async () => {
   try {
-    allSlots.value = props.item.service_id && !props.item.staff_id
-      ? onePerStartTime(await getSlotsForService(props.item.service_id))
-      : await getSlots(props.item.id, waitlistOn.value);
+    allSlots.value = onLocalClock(
+      props.item.service_id && !props.item.staff_id
+        ? onePerStartTime(await getSlotsForService(props.item.service_id))
+        : await getSlots(props.item.id, waitlistOn.value)
+    );
   } catch (e) {
     error.value = e.message;
   } finally {

@@ -13,8 +13,9 @@
         <span class="summary-value">{{ item?.name }}</span>
       </div>
       <div v-if="booking?.slot_start" class="summary-row">
+        <!-- On the booked item's own clock (QA report §6.1 A1). -->
         <span class="summary-label">When</span>
-        <span class="summary-value">{{ formatDate(booking.slot_start) }} at {{ formatTime(booking.slot_start) }}</span>
+        <span class="summary-value">{{ formatDate(booking.local_slot_start || booking.slot_start) }} at {{ formatTime(booking.local_slot_start || booking.slot_start) }}</span>
       </div>
       <div v-if="item?.location" class="summary-row">
         <span class="summary-label">Where</span>

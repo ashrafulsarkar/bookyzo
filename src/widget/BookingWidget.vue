@@ -117,7 +117,7 @@ async function onDetailsSubmit(form) {
       // service's price; "any available" sends the service and time and the
       // server assigns whoever is free (BYZO_Booking::create()).
       ...(selectedItem.value.service_id && !selectedItem.value.staff_id
-        ? { service_id: selectedItem.value.service_id, start_datetime: selectedSlot.value.start_datetime }
+        ? { service_id: selectedItem.value.service_id, start_datetime: selectedSlot.value.site_start_datetime || selectedSlot.value.start_datetime }
         : { slot_id: selectedSlot.value.id, service_id: selectedItem.value.service_id || undefined }),
       party_size: form.party_size,
       customer_name: form.name,

@@ -73,6 +73,11 @@ export const extraBookingDetailSection = ref(null);
 // add-on's customer export.
 export const extraCustomerListActions = reactive([]);
 
+// Locations an add-on keeps (QA report §6.1 A1): [{ id, name }]. When there
+// are any, Bookings and Calendar get a Location filter (GET /bookings takes
+// location_id). Empty = no filter shown.
+export const extraLocations = reactive([]);
+
 // Count badges on sidebar items, keyed by the item's `to` (e.g.
 // '/bookings' → 3). Set through window.byzoAdmin.setNavBadge; 0 removes it.
 export const navBadges = reactive({});
@@ -101,4 +106,7 @@ export function registerExtension(extension = {}) {
     extraBookingDetailSection.value = extension.bookingDetailSection;
   }
   extraCustomerListActions.push(...(extension.customerListActions || []));
+  if (Array.isArray(extension.locations)) {
+    extraLocations.splice(0, extraLocations.length, ...extension.locations);
+  }
 }

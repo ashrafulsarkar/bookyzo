@@ -128,7 +128,15 @@ class BYZO_Notifications {
 			$cancel_link = BYZO_Booking_Cancel::build_link( $booking['id'], $booking['customer_email'] );
 		}
 
-		return array(
+		/**
+		 * Email/SMS placeholders — an add-on adds its own (a location's
+		 * name and address, QA report §6.1 A1).
+		 *
+		 * @param array      $placeholders
+		 * @param array      $booking
+		 * @param array|null $item
+		 */
+		return apply_filters( 'byzo_notification_placeholders', array(
 			'{customer_name}'        => $booking['customer_name'],
 			'{bookable_item_name}'   => $item ? $item['name'] : '',
 			// Added 2026-09-22 (QA report §4.4) — the facts customers and
@@ -140,7 +148,7 @@ class BYZO_Notifications {
 			'{customer_phone}'       => (string) $booking['customer_phone'],
 			'{total}'                => self::format_total( $booking ),
 			'{admin_booking_link}'   => admin_url( 'admin.php?page=bookyzo-bookings' ),
-			'{start_time}'           => self::format_start_time( $booking['slot_start'] ),
+			'{start_time}'           => self::format_start_time( $booking['slot_start'], $item ),
 			'{business_name}'        => $settings['business_name'],
 			'{cancel_link}'          => $cancel_link,
 			'{add_to_calendar_link}' => self::google_calendar_link( $booking, $item ),
@@ -154,7 +162,7 @@ class BYZO_Notifications {
 			// event booking, an invoice for anything with a price).
 			'{ticket_link}'          => self::document_link( $booking, $item, 'ticket-qr' ),
 			'{invoice_link}'         => self::document_link( $booking, $item, 'invoice' ),
-		);
+		), $booking, $item );
 	}
 
 	/**
@@ -272,14 +280,18 @@ class BYZO_Notifications {
 		do_action( 'byzo_notification_channels', $event, $booking, $placeholders );
 	}
 
-	private static function format_start_time( $slot_start ) {
+	private static function format_start_time( $slot_start, $item = null ) {
 		if ( ! $slot_start ) {
 			return '';
 		}
 
-		$date = new DateTime( $slot_start, wp_timezone() );
+		// On the booked item's own clock (its location's timezone), with
+		// the zone named when that isn't the site's (QA report §6.1 A1).
+		$tz   = $item ? BYZO_Bookable_Item::timezone( $item ) : wp_timezone();
+		$date = ( new DateTime( $slot_start, wp_timezone() ) )->setTimezone( $tz );
+		$text = $date->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
 
-		return $date->format( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ) );
+		return $tz->getName() === wp_timezone()->getName() ? $text : $text . ' (' . $date->format( 'T' ) . ')';
 	}
 
 	/**
