@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader title="Dashboard" subtitle="Your booking activity at a glance.">
+    <ByzoPageHeader :title="__('Dashboard', 'bookyzo')" :subtitle="__('Your booking activity at a glance.', 'bookyzo')">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="3" width="7" height="9" rx="1" />
@@ -10,7 +10,7 @@
         </svg>
       </template>
       <template #actions>
-        <Button variant="outline" @click="router.push({ name: 'bookings' })">View all bookings</Button>
+        <Button variant="outline" @click="router.push({ name: 'bookings' })">{{ __('View all bookings', 'bookyzo') }}</Button>
       </template>
     </ByzoPageHeader>
 
@@ -23,25 +23,25 @@
            (step 5), not duplicated here. -->
       <template v-else>
         <ByzoStatGrid>
-          <ByzoStatCard label="Today" :value="summary.today.total" :hint="statusHint(summary.today)" />
-          <ByzoStatCard label="This week" :value="summary.this_week.total" :hint="statusHint(summary.this_week)" />
-          <ByzoStatCard label="This month" :value="summary.this_month.total" :hint="statusHint(summary.this_month)" />
+          <ByzoStatCard :label="__('Today', 'bookyzo')" :value="summary.today.total" :hint="statusHint(summary.today)" />
+          <ByzoStatCard :label="__('This week', 'bookyzo')" :value="summary.this_week.total" :hint="statusHint(summary.this_week)" />
+          <ByzoStatCard :label="__('This month', 'bookyzo')" :value="summary.this_month.total" :hint="statusHint(summary.this_month)" />
           <!-- Revenue (Phase 1.5 step 10, DETAILED-SPEC.md §A8) — one
                summed total for the month, no bookable item/type
                breakdown (that stays Pro, B8). -->
-          <ByzoStatCard label="Revenue (this month)" :value="formatRevenue(summary.this_month.revenue)" hint="Paid bookings only" />
+          <ByzoStatCard :label="__('Revenue (this month)', 'bookyzo')" :value="formatRevenue(summary.this_month.revenue)" :hint="__('Paid bookings only', 'bookyzo')" />
         </ByzoStatGrid>
 
         <Card class="p-5">
           <div class="mb-4 flex items-start justify-between gap-4">
             <div>
-              <h3 class="text-sm font-semibold">Bookings, last 14 days</h3>
-              <p class="text-xs text-muted-foreground">Every confirmed booking, by day.</p>
+              <h3 class="text-sm font-semibold">{{ __('Bookings, last 14 days', 'bookyzo') }}</h3>
+              <p class="text-xs text-muted-foreground">{{ __('Every confirmed booking, by day.', 'bookyzo') }}</p>
             </div>
-            <span v-if="!trendLoading && trendTotal" class="text-sm font-medium tabular-nums text-muted-foreground">{{ trendTotal }} total</span>
+            <span v-if="!trendLoading && trendTotal" class="text-sm font-medium tabular-nums text-muted-foreground">{{ sprintf(__('%s total', 'bookyzo'), trendTotal) }}</span>
           </div>
           <ByzoLoading v-if="trendLoading" size="compact" />
-          <div v-else-if="!trendTotal" class="py-10 text-center text-sm text-muted-foreground">No bookings in this period yet.</div>
+          <div v-else-if="!trendTotal" class="py-10 text-center text-sm text-muted-foreground">{{ __('No bookings in this period yet.', 'bookyzo') }}</div>
           <ByzoTrendChart v-else :points="trend" />
         </Card>
 
@@ -51,18 +51,18 @@
              replacement for the full Bookings list/calendar. -->
         <Card class="p-5">
           <div class="mb-4 flex items-center justify-between gap-4">
-            <h3 class="text-sm font-semibold">Upcoming bookings</h3>
-            <Button variant="ghost" size="sm" @click="router.push({ name: 'bookings' })">View all</Button>
+            <h3 class="text-sm font-semibold">{{ __('Upcoming bookings', 'bookyzo') }}</h3>
+            <Button variant="ghost" size="sm" @click="router.push({ name: 'bookings' })">{{ __('View all', 'bookyzo') }}</Button>
           </div>
           <ByzoLoading v-if="upcomingLoading" size="compact" />
-          <div v-else-if="!upcoming.length" class="py-10 text-center text-sm text-muted-foreground">Nothing pending or confirmed coming up.</div>
+          <div v-else-if="!upcoming.length" class="py-10 text-center text-sm text-muted-foreground">{{ __('Nothing pending or confirmed coming up.', 'bookyzo') }}</div>
           <div v-else class="flex flex-col divide-y">
             <div v-for="booking in upcoming" :key="booking.id" class="flex items-center justify-between gap-4 py-2.5 first:pt-0 last:pb-0">
               <div class="min-w-0">
                 <span class="block truncate font-medium">{{ booking.customer_name }}</span>
                 <span class="block truncate text-xs text-muted-foreground">{{ itemName(booking.bookable_item_id) }} · {{ whenLabel(booking) }}</span>
               </div>
-              <ByzoBadge :status="booking.status">{{ booking.status.replace('_', ' ') }}</ByzoBadge>
+              <ByzoBadge :status="booking.status">{{ statusLabel(booking.status) }}</ByzoBadge>
             </div>
           </div>
         </Card>
@@ -72,6 +72,8 @@
 </template>
 
 <script setup>
+import { statusLabel } from '@/lib/status';
+import { i18n, locale } from '@/lib/i18n';
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { Button } from '@/components/ui/button';
@@ -106,8 +108,8 @@ const upcomingLoading = ref(true);
 
 function statusHint(period) {
   const parts = [];
-  if (period.pending) parts.push(`${period.pending} pending`);
-  if (period.confirmed) parts.push(`${period.confirmed} confirmed`);
+  if (period.pending) parts.push(i18n.sprintf(i18n.__('%s pending', 'bookyzo'), period.pending));
+  if (period.confirmed) parts.push(i18n.sprintf(i18n.__('%s confirmed', 'bookyzo'), period.confirmed));
 
   if (parts.length) {
     return parts.join(', ');
@@ -118,7 +120,7 @@ function statusHint(period) {
   // "1" over "No pending or confirmed bookings" — a caption that flatly
   // contradicts the number above it. Say what those bookings actually
   // are instead, and keep the "nothing at all" wording for a real zero.
-  return period.total ? 'Nothing still open' : 'No bookings';
+  return period.total ? i18n.__('Nothing still open', 'bookyzo') : i18n.__('No bookings', 'bookyzo');
 }
 
 function formatRevenue(amount) {
@@ -133,7 +135,7 @@ function whenLabel(booking) {
   if (!booking.slot_start) {
     return '—';
   }
-  return new Date(booking.slot_start.replace(' ', 'T')).toLocaleString(undefined, {
+  return new Date(booking.slot_start.replace(' ', 'T')).toLocaleString(locale, {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',
@@ -145,7 +147,7 @@ onMounted(async () => {
   try {
     summary.value = await api.get('/reports/summary');
   } catch (e) {
-    error.value = e.message || 'Could not load your booking summary.';
+    error.value = e.message || i18n.__('Could not load your booking summary.', 'bookyzo');
   } finally {
     loading.value = false;
   }

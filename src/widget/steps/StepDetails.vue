@@ -11,7 +11,7 @@
         <span class="summary-value">{{ item.name }}</span>
       </div>
       <div class="summary-row">
-        <span class="summary-label">When</span>
+        <span class="summary-label">{{ __('When', 'bookyzo') }}</span>
         <span class="summary-value">{{ whenLabel }}</span>
       </div>
       <!-- Only when an earlier step collected it — otherwise it's an
@@ -26,15 +26,15 @@
            free items too ("Free"), since silence about the price is
            exactly what makes people hesitate here. -->
       <div v-if="quote && quote.discount_amount" class="summary-row summary-row-discount">
-        <span class="summary-label">{{ quote.package ? 'Package credit' : 'Discount' }} ({{ quote.discount_code }})</span>
+        <span class="summary-label">{{ quote.package ? __('Package credit', 'bookyzo') : __('Discount', 'bookyzo') }} ({{ quote.discount_code }})</span>
         <span class="summary-value">−{{ formatMoney(quote.discount_amount) }}</span>
       </div>
       <div v-if="quote && quote.booking_fee_amount" class="summary-row">
-        <span class="summary-label">Booking fee</span>
+        <span class="summary-label">{{ __('Booking fee', 'bookyzo') }}</span>
         <span class="summary-value">{{ formatMoney(quote.booking_fee_amount) }}</span>
       </div>
       <div v-if="quote && quote.tax_amount" class="summary-row">
-        <span class="summary-label">Tax</span>
+        <span class="summary-label">{{ __('Tax', 'bookyzo') }}</span>
         <span class="summary-value">{{ formatMoney(quote.tax_amount) }}</span>
       </div>
       <div class="summary-row summary-row-total">
@@ -57,11 +57,11 @@
          follows. The main Name/Email fields below still collect the
          PURCHASER's own contact info regardless — this is additive. -->
     <div v-if="showAttendeeDetails" class="field">
-      <label>Attendee details</label>
+      <label>{{ __('Attendee details', 'bookyzo') }}</label>
       <div v-for="(attendee, index) in form.attendees" :key="index" class="attendee-row">
         <span class="attendee-index">#{{ index + 1 }}</span>
-        <input v-model="attendee.name" type="text" :placeholder="`Attendee ${index + 1} name`" />
-        <input v-model="attendee.email" type="email" placeholder="Email (optional)" />
+        <input v-model="attendee.name" type="text" :placeholder="sprintf(__('Attendee %s name', 'bookyzo'), index + 1)" />
+        <input v-model="attendee.email" type="email" :placeholder="__('Email (optional)', 'bookyzo')" />
       </div>
     </div>
 
@@ -71,7 +71,7 @@
          plain flat-price booking then, unchanged). Radio, not checkbox —
          exactly one tier per booking, unlike add-ons below. -->
     <div v-if="ticketTiers.length" class="field">
-      <label>Ticket type</label>
+      <label>{{ __('Ticket type', 'bookyzo') }}</label>
       <label v-for="tier in ticketTiers" :key="tier.id" class="checkbox-label addon-row">
         <span>
           <input v-model.number="form.ticket_tier_id" type="radio" :value="tier.id" />
@@ -87,7 +87,7 @@
          sole authority on the actual charge either way — this list is
          only a UX preview so the total shown doesn't undersell it. -->
     <div v-if="addons.length" class="field">
-      <label>Add-ons <span class="optional">optional</span></label>
+      <label>{{ __('Add-ons', 'bookyzo') }} <span class="optional">{{ __('optional', 'bookyzo') }}</span></label>
       <label v-for="addon in addons" :key="addon.id" class="checkbox-label addon-row">
         <span>
           <input v-model="form.addon_ids" type="checkbox" :value="addon.id" />
@@ -98,23 +98,23 @@
     </div>
 
     <div class="field">
-      <label for="bw-name">Name</label>
-      <input id="bw-name" v-model="form.name" type="text" autocomplete="name" placeholder="Your full name" />
+      <label for="bw-name">{{ __('Name', 'bookyzo') }}</label>
+      <input id="bw-name" v-model="form.name" type="text" autocomplete="name" :placeholder="__('Your full name', 'bookyzo')" />
     </div>
 
     <div class="field">
-      <label for="bw-email">Email</label>
+      <label for="bw-email">{{ __('Email', 'bookyzo') }}</label>
       <input id="bw-email" v-model="form.email" type="email" autocomplete="email" placeholder="you@example.com" />
     </div>
 
     <div class="field">
-      <label for="bw-phone">Phone <span class="optional">optional</span></label>
+      <label for="bw-phone">{{ __('Phone', 'bookyzo') }} <span class="optional">{{ __('optional', 'bookyzo') }}</span></label>
       <input id="bw-phone" v-model="form.phone" type="tel" autocomplete="tel" />
     </div>
 
     <div class="field">
-      <label for="bw-notes">Notes <span class="optional">optional</span></label>
-      <textarea id="bw-notes" v-model="form.notes" rows="2" placeholder="Anything we should know?" />
+      <label for="bw-notes">{{ __('Notes', 'bookyzo') }} <span class="optional">{{ __('optional', 'bookyzo') }}</span></label>
+      <textarea id="bw-notes" v-model="form.notes" rows="2" :placeholder="__('Anything we should know?', 'bookyzo')" />
     </div>
 
     <!-- Booking-time account opt-in (Phase 1.7 step 6, DETAILED-SPEC.md
@@ -127,13 +127,13 @@
     <div v-if="accountsEnabled" class="field field-account-optin">
       <label class="checkbox-label">
         <input v-model="form.create_account" type="checkbox" />
-        Create an account to manage this booking later
+        {{ __('Create an account to manage this booking later', 'bookyzo') }}
       </label>
       <input
         v-if="form.create_account"
         v-model="form.password"
         type="password"
-        placeholder="Choose a password"
+        :placeholder="__('Choose a password', 'bookyzo')"
         autocomplete="new-password"
         minlength="8"
       />
@@ -146,7 +146,7 @@
     <div v-if="marketingEnabled" class="field">
       <label class="checkbox-label">
         <input v-model="form.marketing_opt_in" type="checkbox" />
-        Email me about news and offers
+        {{ __('Email me about news and offers', 'bookyzo') }}
       </label>
     </div>
 
@@ -156,14 +156,14 @@
     <div v-for="field in customFields" :key="field.id" class="field">
       <label v-if="field.field_type === 'checkbox'" class="checkbox-label">
         <input v-model="form.custom_fields[field.id]" type="checkbox" />
-        {{ field.label }} <span v-if="!field.required" class="optional">optional</span>
+        {{ field.label }} <span v-if="!field.required" class="optional">{{ __('optional', 'bookyzo') }}</span>
       </label>
       <template v-else>
         <label :for="`bw-cf-${field.id}`">
-          {{ field.label }} <span v-if="!field.required" class="optional">optional</span>
+          {{ field.label }} <span v-if="!field.required" class="optional">{{ __('optional', 'bookyzo') }}</span>
         </label>
         <select v-if="field.field_type === 'dropdown'" :id="`bw-cf-${field.id}`" v-model="form.custom_fields[field.id]">
-          <option value="" disabled>Select…</option>
+          <option value="" disabled>{{ __('Select…', 'bookyzo') }}</option>
           <option v-for="choice in field.options?.choices || []" :key="choice" :value="choice">{{ choice }}</option>
         </select>
         <input
@@ -179,14 +179,14 @@
          has codes (window.byzoWidget.codesEnabled, an add-on's). The
          server says what it's worth; nothing is taken on trust here. -->
     <div v-if="codesEnabled" class="field">
-      <label for="bw-code">Discount or package code <span class="optional">(optional)</span></label>
+      <label for="bw-code">{{ __('Discount or package code', 'bookyzo') }} <span class="optional">{{ __('(optional)', 'bookyzo') }}</span></label>
       <div v-if="!form.discount_code" class="code-row">
         <input id="bw-code" v-model="codeInput" type="text" autocomplete="off" @keydown.enter.prevent="applyCode" />
-        <button type="button" class="btn btn-outline" :disabled="!codeInput.trim() || checkingCode" @click="applyCode">{{ checkingCode ? 'Checking…' : 'Apply' }}</button>
+        <button type="button" class="btn btn-outline" :disabled="!codeInput.trim() || checkingCode" @click="applyCode">{{ checkingCode ? __('Checking…', 'bookyzo') : __('Apply', 'bookyzo') }}</button>
       </div>
       <div v-else class="code-applied">
-        <span>{{ form.discount_code }} applied</span>
-        <button type="button" class="link-button" @click="removeCode">Remove</button>
+        <span>{{ sprintf(__('%s applied', 'bookyzo'), form.discount_code) }}</span>
+        <button type="button" class="link-button" @click="removeCode">{{ __('Remove', 'bookyzo') }}</button>
       </div>
       <p v-if="codeError" class="field-error">{{ codeError }}</p>
     </div>
@@ -196,14 +196,14 @@
          keyboard/autofill users can't stumble into it either. Bots that
          blanket-fill every input on a form trip this. -->
     <div class="honeypot" aria-hidden="true">
-      <label for="bw-website">Website</label>
+      <label for="bw-website">{{ __('Website', 'bookyzo') }}</label>
       <input id="bw-website" v-model="form.website" type="text" tabindex="-1" autocomplete="off" />
     </div>
 
     <p v-if="error" class="error">{{ error }}</p>
 
     <div class="actions">
-      <button type="button" class="btn btn-outline" @click="$emit('back')">Back</button>
+      <button type="button" class="btn btn-outline" @click="$emit('back')">{{ __('Back', 'bookyzo') }}</button>
       <button type="button" class="btn btn-primary" :disabled="!canSubmit || submitting" @click="$emit('submit', form)">
         {{ submitting ? copy.submitting : copy.submit }}
       </button>
@@ -212,6 +212,7 @@
 </template>
 
 <script setup>
+import { i18n, locale } from '@/lib/i18n';
 import { reactive, computed, ref, onMounted, watch } from 'vue';
 import { copyFor } from '../copy';
 import { formatMoney } from '@/lib/money';
@@ -240,13 +241,13 @@ const whenLabel = computed(() => {
   const start = props.slot?.start_datetime;
   if (!start) return '';
   const date = new Date(start.replace(' ', 'T'));
-  return `${date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })} at ${date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}`;
+  return i18n.sprintf(i18n.__('%1$s at %2$s', 'bookyzo'), date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }), date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' }));
 });
 
 // Hidden when the type has no quantity concept (appointment, whose
 // quantityLabel is null) or when an earlier step already asked (Table).
 const showPartySize = computed(() => copy.value.quantityLabel !== null && props.partySize === null);
-const partySizeLabel = computed(() => copy.value.quantityLabel || 'Party size');
+const partySizeLabel = computed(() => copy.value.quantityLabel || i18n.__('Party size', 'bookyzo'));
 const partySizeMax = computed(() => Math.max(1, props.slot.capacity_remaining || 1));
 
 // Phase 1.7 step 6 — window.byzoWidget.customerAccountsEnabled (added
@@ -462,10 +463,10 @@ const totalLabel = computed(() => {
   const taxRate = Number((window.byzoWidget && window.byzoWidget.taxRate) || 0);
   const hasExtras = quote.value && (quote.value.booking_fee_amount || quote.value.tax_amount || quote.value.addons_total || quote.value.discount_amount);
 
-  return quantity.value > 1 || taxRate > 0 || hasExtras ? 'Total' : 'Price';
+  return quantity.value > 1 || taxRate > 0 || hasExtras ? i18n.__('Total', 'bookyzo') : i18n.__('Price', 'bookyzo');
 });
 
-const totalValue = computed(() => formatMoney(totalAmount.value, { emptyLabel: 'Free' }));
+const totalValue = computed(() => formatMoney(totalAmount.value, { emptyLabel: i18n.__('Free', 'bookyzo') }));
 
 const requiredCustomFieldsFilled = computed(() =>
   customFields.value.every((field) => {

@@ -14,6 +14,7 @@
  * which currencies have no minor units (JPY renders `¥65`, not `¥65.00`),
  * neither of which a hand-rolled symbol map gets right.
  */
+import { i18n, locale } from './i18n';
 
 /**
  * The site's configured ISO code, read from whichever bundle's bootstrap
@@ -38,7 +39,7 @@ export function siteCurrency() {
  * @returns {string}
  */
 export function formatMoney(amount, options = {}) {
-  const { currency = siteCurrency(), emptyLabel = '—', zeroLabel = 'Free' } = options;
+  const { currency = siteCurrency(), emptyLabel = '—', zeroLabel = i18n.__('Free', 'bookyzo') } = options;
 
   if (amount === null || amount === undefined || amount === '') {
     return emptyLabel;
@@ -60,7 +61,7 @@ export function formatMoney(amount, options = {}) {
   }
 
   try {
-    return new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value);
+    return new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value);
   } catch (error) {
     // An invalid/unknown ISO code makes Intl throw rather than degrade.
     // The settings screen validates the shape (3 letters) but not that

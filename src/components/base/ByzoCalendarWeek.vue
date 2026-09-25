@@ -85,6 +85,7 @@
 </template>
 
 <script setup>
+import { locale } from '@/lib/i18n';
 import { ref, computed } from 'vue';
 import { addDays, toDateKey, isSameDay, formatTime, formatHourLabel } from '@/lib/date';
 
@@ -210,7 +211,7 @@ const dayList = computed(() => {
       key,
       date,
       isToday: isSameDay(date, today),
-      dowLabel: date.toLocaleDateString(undefined, { weekday: 'short' }),
+      dowLabel: date.toLocaleDateString(locale, { weekday: 'short' }),
       dateLabel: date.getDate(),
       bookings: dayBookings,
     };

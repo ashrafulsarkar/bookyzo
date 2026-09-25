@@ -1,16 +1,16 @@
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>Your booking is ready!</CardTitle>
-      <CardDescription>You can start taking bookings as soon as you add the widget to a page.</CardDescription>
+      <CardTitle>{{ __('Your booking is ready!', 'bookyzo') }}</CardTitle>
+      <CardDescription>{{ __('You can start taking bookings as soon as you add the widget to a page.', 'bookyzo') }}</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-2">
-      <Button class="justify-start" @click="$emit('go-dashboard')">View Dashboard</Button>
-      <Button variant="outline" class="justify-start" @click="$emit('go-manage')">Manage Booking</Button>
+      <Button class="justify-start" @click="$emit('go-dashboard')">{{ __('View Dashboard', 'bookyzo') }}</Button>
+      <Button variant="outline" class="justify-start" @click="$emit('go-manage')">{{ __('Manage Booking', 'bookyzo') }}</Button>
       <Button variant="outline" class="justify-start" @click="copyShortcode">
-        {{ copied ? 'Copied!' : 'View Booking Form (copy shortcode)' }}
+        {{ copied ? __('Copied!', 'bookyzo') : __('View Booking Form (copy shortcode)', 'bookyzo') }}
       </Button>
-      <Button variant="ghost" class="justify-start" @click="$emit('add-another')">+ Add Another Booking Type</Button>
+      <Button variant="ghost" class="justify-start" @click="$emit('add-another')">{{ __('+ Add Another Booking Type', 'bookyzo') }}</Button>
     </CardContent>
   </Card>
 </template>

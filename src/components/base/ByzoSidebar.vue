@@ -13,13 +13,13 @@
       </div>
       <div class="min-w-0">
         <strong class="block truncate text-sm font-bold leading-tight">Bookyzo</strong>
-        <span class="block text-xs" style="color: var(--byzo-text-muted)">Bookings</span>
+        <span class="block text-xs" style="color: var(--byzo-text-muted)">{{ __('Bookings', 'bookyzo') }}</span>
       </div>
     </div>
 
     <nav class="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
       <template v-for="group in groupedSections" :key="group.section">
-        <div v-if="group.section === ALWAYS_OPEN" class="byzo-sidebar-section-label">{{ group.section }}</div>
+        <div v-if="group.section === ALWAYS_OPEN" class="byzo-sidebar-section-label">{{ SECTION_LABELS[group.section] || group.section }}</div>
         <button
           v-else
           type="button"
@@ -28,7 +28,7 @@
           :aria-controls="`byzo-nav-${slug(group.section)}`"
           @click="toggle(group)"
         >
-          <span>{{ group.section }}</span>
+          <span>{{ SECTION_LABELS[group.section] || group.section }}</span>
           <span v-if="!isOpen(group)" class="byzo-sidebar-section-count">{{ group.items.length }}</span>
           <svg class="byzo-sidebar-chevron" :class="{ 'is-open': isOpen(group) }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
         </button>
@@ -43,7 +43,7 @@
         >
           <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center" v-html="item.icon"></span>
           {{ item.label }}
-          <span v-if="navBadges[item.to]" class="byzo-sidebar-badge" :aria-label="`${navBadges[item.to]} new`">{{ navBadges[item.to] > 99 ? '99+' : navBadges[item.to] }}</span>
+          <span v-if="navBadges[item.to]" class="byzo-sidebar-badge" :aria-label="sprintf(__('%s new', 'bookyzo'), navBadges[item.to])">{{ navBadges[item.to] > 99 ? '99+' : navBadges[item.to] }}</span>
         </router-link>
       </template>
 
@@ -59,12 +59,13 @@
     </nav>
 
     <div class="border-t px-4 py-3 text-xs" style="border-color: var(--byzo-border); color: var(--byzo-text-muted)">
-      Bookyzo v1.0.0
+      {{ __('Bookyzo v1.0.0', 'bookyzo') }}
     </div>
   </aside>
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 // Bookyzo's own left nav — a full sidebar (not the earlier tab-row
 // design) sitting beside wp-admin's own menu, per an explicit request to
 // give this admin app a standalone sidebar shell rather than living
@@ -184,15 +185,15 @@ onBeforeUnmount(() => {
 // SECTION_ORDER's values, or it silently won't render (see groupedSections
 // below) — extend SECTION_ORDER first if a genuinely new category is needed.
 const items = [
-  { to: '/', label: 'Dashboard', section: 'Overview', icon: icon('<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>') },
-  { to: '/calendar', label: 'Calendar', section: 'Overview', icon: icon('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>') },
-  { to: '/bookings', label: 'Bookings', section: 'Overview', icon: icon('<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>') },
-  { to: '/bookable-items', label: 'Bookable Items', section: 'Overview', icon: icon('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') },
-  { to: '/customers', label: 'Customers', section: 'Overview', icon: icon('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') },
-  { to: '/settings/email-templates', label: 'Emails', section: 'Customization', icon: icon('<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>') },
-  { to: '/settings/payments', label: 'Payments', section: 'Pricing & Payments', icon: icon('<rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/>') },
-  { to: '/settings/appearance', label: 'Appearance', section: 'Customization', icon: icon('<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>') },
-  { to: '/settings/general', label: 'Settings', section: 'Settings', icon: icon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>') },
+  { to: '/', label: i18n.__('Dashboard', 'bookyzo'), section: 'Overview', icon: icon('<rect x="3" y="3" width="7" height="9" rx="1"/><rect x="14" y="3" width="7" height="5" rx="1"/><rect x="14" y="12" width="7" height="9" rx="1"/><rect x="3" y="16" width="7" height="5" rx="1"/>') },
+  { to: '/calendar', label: i18n.__('Calendar', 'bookyzo'), section: 'Overview', icon: icon('<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/>') },
+  { to: '/bookings', label: i18n.__('Bookings', 'bookyzo'), section: 'Overview', icon: icon('<path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>') },
+  { to: '/bookable-items', label: i18n.__('Bookable Items', 'bookyzo'), section: 'Overview', icon: icon('<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') },
+  { to: '/customers', label: i18n.__('Customers', 'bookyzo'), section: 'Overview', icon: icon('<path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>') },
+  { to: '/settings/email-templates', label: i18n.__('Emails', 'bookyzo'), section: 'Customization', icon: icon('<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>') },
+  { to: '/settings/payments', label: i18n.__('Payments', 'bookyzo'), section: 'Pricing & Payments', icon: icon('<rect x="1" y="4" width="22" height="16" rx="2"/><path d="M1 10h22"/>') },
+  { to: '/settings/appearance', label: i18n.__('Appearance', 'bookyzo'), section: 'Customization', icon: icon('<circle cx="13.5" cy="6.5" r=".5" fill="currentColor"/><circle cx="17.5" cy="10.5" r=".5" fill="currentColor"/><circle cx="8.5" cy="7.5" r=".5" fill="currentColor"/><circle cx="6.5" cy="12.5" r=".5" fill="currentColor"/><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>') },
+  { to: '/settings/general', label: i18n.__('Settings', 'bookyzo'), section: 'Settings', icon: icon('<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>') },
 ];
 
 // Canonical section order — headers render in this order (skipping any
@@ -200,6 +201,18 @@ const items = [
 // extraNavItems have registered on first paint). Keep in sync with the
 // `section` values add-ons are told to use (see admin-extensions.js).
 const SECTION_ORDER = ['Overview', 'Booking Tools', 'Pricing & Payments', 'Reports', 'Marketing', 'Customization', 'Integrations', 'Settings'];
+// The keys above are identifiers (add-ons name them, and the open/closed
+// state is stored by them); these are what the admin reads.
+const SECTION_LABELS = {
+  Overview: i18n.__('Overview', 'bookyzo'),
+  'Booking Tools': i18n.__('Booking Tools', 'bookyzo'),
+  'Pricing & Payments': i18n.__('Pricing & Payments', 'bookyzo'),
+  Reports: i18n.__('Reports', 'bookyzo'),
+  Marketing: i18n.__('Marketing', 'bookyzo'),
+  Customization: i18n.__('Customization', 'bookyzo'),
+  Integrations: i18n.__('Integrations', 'bookyzo'),
+  Settings: i18n.__('Settings', 'bookyzo'),
+};
 
 // A real, separate "Get Pro" page — never a locked/disabled preview of an
 // actual feature, see GetPro.vue's own docblock and the bookyzo-design
@@ -212,7 +225,7 @@ const SECTION_ORDER = ['Overview', 'Booking Tools', 'Pricing & Payments', 'Repor
 const proLicensed = !!(window.byzoAdmin && window.byzoAdmin.proLicensed);
 const getProItem = {
   to: '/get-pro',
-  label: 'Get Pro',
+  label: i18n.__('Get Pro', 'bookyzo'),
   icon: icon('<path d="m12 15 3.5-3.5L12 8"/><path d="M4.93 4.93a10 10 0 1 0 14.14 14.14A10 10 0 0 0 4.93 4.93Z"/>'),
   accent: true,
 };

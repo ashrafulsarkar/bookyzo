@@ -34,7 +34,7 @@
         class="text-sm text-muted-foreground underline-offset-4 hover:underline"
         @click="skip"
       >
-        Skip setup
+        {{ __('Skip setup', 'bookyzo') }}
       </button>
     </div>
 
@@ -120,6 +120,7 @@
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref, reactive, onMounted, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { api } from '../../api/client';
@@ -141,7 +142,7 @@ const router = useRouter();
 // (type -> business profile -> first bookable item). Matches
 // BYZO_Setup::STEPS exactly, minus 'done' which SuccessStep renders
 // instead of counting as a numbered progress dot.
-const stepLabels = ['Welcome', 'Type', 'Business', 'Details', 'Availability', 'Customer info', 'Pricing', 'Confirmation', 'Review'];
+const stepLabels = [i18n.__('Welcome', 'bookyzo'), i18n.__('Type', 'bookyzo'), i18n.__('Business', 'bookyzo'), i18n.__('Details', 'bookyzo'), i18n.__('Availability', 'bookyzo'), i18n.__('Customer info', 'bookyzo'), i18n.__('Pricing', 'bookyzo'), i18n.__('Confirmation', 'bookyzo'), i18n.__('Review', 'bookyzo')];
 const state = ref({ step: 'welcome', skipped: false, needed: true });
 
 // Accumulated across every step client-side and only sent to the server
@@ -280,7 +281,7 @@ async function createEverything() {
     // "View Dashboard" button is what actually navigates away.
     markSetupComplete();
   } catch (e) {
-    createError.value = e.message || 'Could not finish setup. Please check your answers and try again.';
+    createError.value = e.message || i18n.__('Could not finish setup. Please check your answers and try again.', 'bookyzo');
   } finally {
     creating.value = false;
   }

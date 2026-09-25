@@ -1,3 +1,5 @@
+import { i18n } from '../lib/i18n';
+
 /**
  * Account bundle's own tiny fetch wrapper — unlike src/widget/api.js
  * (fully guest, no session, no nonce needed), this bundle runs for an
@@ -24,7 +26,7 @@ async function request(path, options = {}) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = new Error(data.message || 'Something went wrong. Please try again.');
+    const err = new Error(data.message || i18n.__('Something went wrong. Please try again.', 'bookyzo'));
     err.code = data.code;
     throw err;
   }

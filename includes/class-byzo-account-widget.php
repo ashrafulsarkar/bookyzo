@@ -81,7 +81,8 @@ class BYZO_Account_Widget {
 		$entry = $manifest[ self::ENTRY ];
 		$base  = BYZO_PLUGIN_URL . 'assets/account/';
 
-		wp_enqueue_script( 'byzo-account', $base . $entry['file'], array(), BYZO_VERSION, true );
+		wp_enqueue_script( 'byzo-account', $base . $entry['file'], array( 'wp-i18n' ), BYZO_VERSION, true );
+		wp_set_script_translations( 'byzo-account', 'bookyzo', BYZO_PLUGIN_DIR . 'languages' );
 		add_filter( 'wp_script_attributes', array( __CLASS__, 'add_module_type' ) );
 
 		if ( ! empty( $entry['css'] ) ) {

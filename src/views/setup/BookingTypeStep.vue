@@ -1,9 +1,9 @@
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>What do you want to accept bookings for?</CardTitle>
+      <CardTitle>{{ __('What do you want to accept bookings for?', 'bookyzo') }}</CardTitle>
       <CardDescription>
-        You can add more types later from Bookable Items → Add New — this just picks which one to start with.
+        {{ __('You can add more types later from Bookable Items → Add New — this just picks which one to start with.', 'bookyzo') }}
       </CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-3">
@@ -26,12 +26,13 @@
       </label>
     </CardContent>
     <CardFooter class="justify-end">
-      <Button @click="$emit('next', selected)">Continue</Button>
+      <Button @click="$emit('next', selected)">{{ __('Continue', 'bookyzo') }}</Button>
     </CardFooter>
   </Card>
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -49,10 +50,10 @@ defineEmits(['next']);
 // 3-5) — kept in sync by hand across the 3 pickers, matching how
 // TypeStep.vue's own comment already flags this duplication.
 const types = [
-  { value: 'appointment', label: 'Appointment', description: 'One-on-one bookings with staff — salons, clinics, consultants.' },
-  { value: 'table', label: 'Table', description: 'Reservations for a table, room, or group — restaurants, venues.' },
-  { value: 'event', label: 'Event', description: 'Ticketed, dated occurrences — concerts, workshops, one-off sessions.' },
-  { value: 'slot', label: 'Slot', description: 'Fixed-capacity time slots — classes, workshops, rental sessions.' },
+  { value: 'appointment', label: i18n.__('Appointment', 'bookyzo'), description: i18n.__('One-on-one bookings with staff — salons, clinics, consultants.', 'bookyzo') },
+  { value: 'table', label: i18n.__('Table', 'bookyzo'), description: i18n.__('Reservations for a table, room, or group — restaurants, venues.', 'bookyzo') },
+  { value: 'event', label: i18n.__('Event', 'bookyzo'), description: i18n.__('Ticketed, dated occurrences — concerts, workshops, one-off sessions.', 'bookyzo') },
+  { value: 'slot', label: i18n.__('Slot', 'bookyzo'), description: i18n.__('Fixed-capacity time slots — classes, workshops, rental sessions.', 'bookyzo') },
 ];
 
 const selected = ref(types.some((t) => t.value === props.initial) ? props.initial : 'appointment');

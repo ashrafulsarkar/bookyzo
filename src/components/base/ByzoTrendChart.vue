@@ -31,7 +31,7 @@
         font-size="11"
         fill="var(--byzo-text-muted)"
         style="font-variant-numeric: tabular-nums"
-      >{{ y.value.toLocaleString() }}</text>
+      >{{ y.value.toLocaleString(locale) }}</text>
 
       <!-- area fill: series hue at ~10% opacity -->
       <path :d="areaPath" fill="var(--byzo-primary)" opacity="0.1" />
@@ -90,13 +90,14 @@
       style="background: var(--byzo-surface); border-color: var(--byzo-border);"
       :style="tooltipStyle"
     >
-      <div class="font-semibold tabular-nums">{{ points[activeIndex].total }} booking{{ points[activeIndex].total === 1 ? '' : 's' }}</div>
+      <div class="font-semibold tabular-nums">{{ sprintf(_n('%s booking', '%s bookings', points[activeIndex].total, 'bookyzo'), points[activeIndex].total) }}</div>
       <div class="text-muted-foreground">{{ fullLabel(activeIndex) }}</div>
     </div>
   </div>
 </template>
 
 <script setup>
+import { locale } from '@/lib/i18n';
 // A single-series daily-trend area chart (Dashboard's booking-count
 // history) — no shadcn-vue chart primitive exists for this, so it's a
 // custom SVG component in the same vein as ByzoCalendar/ByzoWeeklyScheduleGrid,
@@ -204,11 +205,11 @@ function dateLabel(index) {
 }
 
 function axisLabel(index) {
-  return dateLabel(index).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  return dateLabel(index).toLocaleDateString(locale, { month: 'short', day: 'numeric' });
 }
 
 function fullLabel(index) {
-  return dateLabel(index).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  return dateLabel(index).toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 const tooltipStyle = computed(() => {

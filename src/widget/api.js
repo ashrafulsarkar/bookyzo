@@ -1,3 +1,5 @@
+import { i18n } from '../lib/i18n';
+
 /**
  * Public widget's own tiny fetch wrapper — deliberately NOT wp.apiFetch
  * (that's an admin-app-only script dependency, not enqueued on the
@@ -21,7 +23,7 @@ async function request(path, options = {}) {
   });
   const data = await res.json().catch(() => ({}));
   if (!res.ok) {
-    const err = new Error(data.message || 'Something went wrong. Please try again.');
+    const err = new Error(data.message || i18n.__('Something went wrong. Please try again.', 'bookyzo'));
     err.code = data.code;
     throw err;
   }

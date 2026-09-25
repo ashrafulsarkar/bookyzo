@@ -12,60 +12,62 @@
  * `appointment` doubles as the fallback for an unknown/missing type, so
  * a lookup can never render `undefined`.
  */
+import { i18n } from '../lib/i18n';
+
 const COPY = {
   appointment: {
-    pickHeading: 'Choose a service',
-    pickSub: "Select what you'd like to book.",
-    slotHeading: 'Pick a time',
-    detailsHeading: 'Your details',
-    submit: 'Confirm booking',
-    submitting: 'Booking…',
-    confirmHeading: 'Booking received',
-    subjectLabel: 'Service',
+    pickHeading: i18n.__('Choose a service', 'bookyzo'),
+    pickSub: i18n.__("Select what you'd like to book.", 'bookyzo'),
+    slotHeading: i18n.__('Pick a time', 'bookyzo'),
+    detailsHeading: i18n.__('Your details', 'bookyzo'),
+    submit: i18n.__('Confirm booking', 'bookyzo'),
+    submitting: i18n.__('Booking…', 'bookyzo'),
+    confirmHeading: i18n.__('Booking received', 'bookyzo'),
+    subjectLabel: i18n.__('Service', 'bookyzo'),
     // Party size is meaningless for a 1:1 appointment — the widget hides
     // the input entirely for this type (see StepDetails).
     quantityLabel: null,
-    remaining: (n) => `${n} left`,
-    soldOut: 'Fully booked',
+    remaining: (n) => i18n.sprintf(i18n._n('%s left', '%s left', n, 'bookyzo'), n),
+    soldOut: i18n.__('Fully booked', 'bookyzo'),
   },
   table: {
-    pickHeading: 'Choose a table',
-    pickSub: "Select where you'd like to sit.",
-    slotHeading: 'Pick a time',
-    detailsHeading: 'Your details',
-    submit: 'Reserve table',
-    submitting: 'Reserving…',
-    confirmHeading: 'Reservation received',
-    subjectLabel: 'Table',
-    quantityLabel: 'Party size',
-    remaining: (n) => `${n} seats left`,
-    soldOut: 'Fully booked',
+    pickHeading: i18n.__('Choose a table', 'bookyzo'),
+    pickSub: i18n.__("Select where you'd like to sit.", 'bookyzo'),
+    slotHeading: i18n.__('Pick a time', 'bookyzo'),
+    detailsHeading: i18n.__('Your details', 'bookyzo'),
+    submit: i18n.__('Reserve table', 'bookyzo'),
+    submitting: i18n.__('Reserving…', 'bookyzo'),
+    confirmHeading: i18n.__('Reservation received', 'bookyzo'),
+    subjectLabel: i18n.__('Table', 'bookyzo'),
+    quantityLabel: i18n.__('Party size', 'bookyzo'),
+    remaining: (n) => i18n.sprintf(i18n._n('%s seat left', '%s seats left', n, 'bookyzo'), n),
+    soldOut: i18n.__('Fully booked', 'bookyzo'),
   },
   event: {
-    pickHeading: 'Choose an event',
-    pickSub: "Select what you'd like to attend.",
-    slotHeading: 'Choose a date',
-    detailsHeading: 'Your details',
-    submit: 'Get tickets',
-    submitting: 'Booking…',
-    confirmHeading: 'Tickets booked',
-    subjectLabel: 'Event',
-    quantityLabel: 'Tickets',
-    remaining: (n) => `${n} tickets left`,
-    soldOut: 'Sold out',
+    pickHeading: i18n.__('Choose an event', 'bookyzo'),
+    pickSub: i18n.__("Select what you'd like to attend.", 'bookyzo'),
+    slotHeading: i18n.__('Choose a date', 'bookyzo'),
+    detailsHeading: i18n.__('Your details', 'bookyzo'),
+    submit: i18n.__('Get tickets', 'bookyzo'),
+    submitting: i18n.__('Booking…', 'bookyzo'),
+    confirmHeading: i18n.__('Tickets booked', 'bookyzo'),
+    subjectLabel: i18n.__('Event', 'bookyzo'),
+    quantityLabel: i18n.__('Tickets', 'bookyzo'),
+    remaining: (n) => i18n.sprintf(i18n._n('%s ticket left', '%s tickets left', n, 'bookyzo'), n),
+    soldOut: i18n.__('Sold out', 'bookyzo'),
   },
   slot: {
-    pickHeading: 'Choose a session',
-    pickSub: "Select what you'd like to book.",
-    slotHeading: 'Pick a time',
-    detailsHeading: 'Your details',
-    submit: 'Reserve spot',
-    submitting: 'Reserving…',
-    confirmHeading: 'Booking received',
-    subjectLabel: 'Session',
-    quantityLabel: 'Spots',
-    remaining: (n) => `${n} spots left`,
-    soldOut: 'Fully booked',
+    pickHeading: i18n.__('Choose a session', 'bookyzo'),
+    pickSub: i18n.__("Select what you'd like to book.", 'bookyzo'),
+    slotHeading: i18n.__('Pick a time', 'bookyzo'),
+    detailsHeading: i18n.__('Your details', 'bookyzo'),
+    submit: i18n.__('Reserve spot', 'bookyzo'),
+    submitting: i18n.__('Reserving…', 'bookyzo'),
+    confirmHeading: i18n.__('Booking received', 'bookyzo'),
+    subjectLabel: i18n.__('Session', 'bookyzo'),
+    quantityLabel: i18n.__('Spots', 'bookyzo'),
+    remaining: (n) => i18n.sprintf(i18n._n('%s spot left', '%s spots left', n, 'bookyzo'), n),
+    soldOut: i18n.__('Fully booked', 'bookyzo'),
   },
 };
 
@@ -81,8 +83,8 @@ export function copyFor(type) {
 export const MIXED_COPY = {
   // A list with tables and events in it can't be headed "Choose a service"
   // (QA report 2026-09-22 §4.14).
-  pickHeading: 'What would you like to book?',
-  pickSub: 'Pick one to see available times.',
+  pickHeading: i18n.__('What would you like to book?', 'bookyzo'),
+  pickSub: i18n.__('Pick one to see available times.', 'bookyzo'),
 };
 
 /**
@@ -92,9 +94,9 @@ export const MIXED_COPY = {
  * says what it is.
  */
 export const GROUP_LABELS = {
-  appointment: 'Services',
-  table: 'Tables',
-  slot: 'Classes & sessions',
-  event: 'Events',
+  appointment: i18n.__('Services', 'bookyzo'),
+  table: i18n.__('Tables', 'bookyzo'),
+  slot: i18n.__('Classes & sessions', 'bookyzo'),
+  event: i18n.__('Events', 'bookyzo'),
 };
 export const GROUP_ORDER = ['appointment', 'table', 'slot', 'event'];

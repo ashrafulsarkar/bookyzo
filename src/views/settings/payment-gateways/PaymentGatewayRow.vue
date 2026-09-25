@@ -20,7 +20,7 @@
 
       <div class="flex shrink-0 items-center gap-3">
         <ByzoBadge :status="modelValue.enabled ? 'active' : 'inactive'">
-          {{ modelValue.enabled ? 'Enabled' : 'Disabled' }}
+          {{ modelValue.enabled ? __('Enabled', 'bookyzo') : __('Disabled', 'bookyzo') }}
         </ByzoBadge>
         <!-- stop propagation so flipping the switch doesn't also toggle
              the row's expand/collapse — they're independent actions. -->

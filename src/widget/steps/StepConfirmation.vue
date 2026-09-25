@@ -2,8 +2,8 @@
   <div class="confirmation">
     <div class="check">✓</div>
     <h2>{{ copy.confirmHeading }}</h2>
-    <p v-if="booking?.status === 'confirmed'">A confirmation has been sent to {{ booking?.customer_email }}.</p>
-    <p v-else>A confirmation will be sent to {{ booking?.customer_email }} once it's approved.</p>
+    <p v-if="booking?.status === 'confirmed'">{{ sprintf(__('A confirmation has been sent to %s.', 'bookyzo'), booking?.customer_email) }}</p>
+    <p v-else>{{ sprintf(__('A confirmation will be sent to %s once it\'s approved.', 'bookyzo'), booking?.customer_email) }}</p>
 
     <!-- The booking restated as a scannable card rather than buried in a
          sentence — this is the screen people screenshot or come back to. -->
@@ -14,43 +14,44 @@
       </div>
       <div v-if="booking?.slot_start" class="summary-row">
         <!-- On the booked item's own clock (QA report §6.1 A1). -->
-        <span class="summary-label">When</span>
-        <span class="summary-value">{{ formatDate(booking.local_slot_start || booking.slot_start) }} at {{ formatTime(booking.local_slot_start || booking.slot_start) }}</span>
+        <span class="summary-label">{{ __('When', 'bookyzo') }}</span>
+        <span class="summary-value">{{ sprintf(__('%1$s at %2$s', 'bookyzo'), formatDate(booking.local_slot_start || booking.slot_start), formatTime(booking.local_slot_start || booking.slot_start)) }}</span>
       </div>
       <div v-if="item?.location" class="summary-row">
-        <span class="summary-label">Where</span>
+        <span class="summary-label">{{ __('Where', 'bookyzo') }}</span>
         <span class="summary-value">{{ item.location }}</span>
       </div>
     </div>
 
     <p v-if="item?.meeting_link" class="location">
-      <a :href="item.meeting_link" target="_blank" rel="noopener noreferrer">Join meeting link</a>
+      <a :href="item.meeting_link" target="_blank" rel="noopener noreferrer">{{ __('Join meeting link', 'bookyzo') }}</a>
     </p>
     <!-- QR e-ticket and invoice (QA report 2026-09-22 B10) — a guest has no
          customer account to fetch them from, so they're offered here, via
          the same signed token as the "manage booking" link. -->
     <div v-if="ticketUrl" class="ticket">
-      <img :src="ticketUrl" alt="Your e-ticket QR code" width="180" height="180" />
-      <p class="ticket-note">Show this code at the door. It's in your confirmation email too.</p>
+      <img :src="ticketUrl" :alt="__('Your e-ticket QR code', 'bookyzo')" width="180" height="180" />
+      <p class="ticket-note">{{ __('Show this code at the door. It\'s in your confirmation email too.', 'bookyzo') }}</p>
     </div>
     <p v-if="invoiceUrl" class="location">
-      <a :href="invoiceUrl" target="_blank" rel="noopener noreferrer">Download invoice (PDF)</a>
+      <a :href="invoiceUrl" target="_blank" rel="noopener noreferrer">{{ __('Download invoice (PDF)', 'bookyzo') }}</a>
     </p>
     <div v-if="booking?.slot_start_gmt" class="add-to-calendar">
-      <a :href="googleCalendarUrl" target="_blank" rel="noopener noreferrer">Add to Google Calendar</a>
+      <a :href="googleCalendarUrl" target="_blank" rel="noopener noreferrer">{{ __('Add to Google Calendar', 'bookyzo') }}</a>
       <span class="sep">·</span>
-      <a href="#" @click.prevent="downloadIcs">Download .ics</a>
+      <a href="#" @click.prevent="downloadIcs">{{ __('Download .ics', 'bookyzo') }}</a>
     </div>
     <!-- Booking-time account opt-in result (Phase 1.7 step 6) — only
          present at all when the widget actually sent create_account:true;
          a booking that succeeded is never blocked or hidden behind this,
          it's purely an acknowledgment of the secondary action. -->
-    <p v-if="booking?.account_created" class="account-note">Your account has been created — you're now logged in.</p>
-    <p v-else-if="booking?.account_error" class="account-note account-note--error">Your booking was made, but the account couldn't be created: {{ booking.account_error }}</p>
+    <p v-if="booking?.account_created" class="account-note">{{ __('Your account has been created — you\'re now logged in.', 'bookyzo') }}</p>
+    <p v-else-if="booking?.account_error" class="account-note account-note--error">{{ sprintf(__('Your booking was made, but the account couldn\'t be created: %s', 'bookyzo'), booking.account_error) }}</p>
   </div>
 </template>
 
 <script setup>
+import { i18n, locale } from '@/lib/i18n';
 import { computed } from 'vue';
 import { copyFor } from '../copy';
 
@@ -79,10 +80,10 @@ function toLocalDate(iso) {
   return new Date(iso.replace(' ', 'T'));
 }
 function formatDate(iso) {
-  return toLocalDate(iso).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  return toLocalDate(iso).toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 function formatTime(iso) {
-  return toLocalDate(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return toLocalDate(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 }
 
 // "Add to calendar" (DETAILED-SPEC.md §A6, Phase 1.5 step 9) — computed
@@ -109,7 +110,7 @@ const googleCalendarUrl = computed(() => {
   const end = toUtcStamp(endGmt.value);
   const params = new URLSearchParams({
     action: 'TEMPLATE',
-    text: props.item?.name || 'Booking',
+    text: props.item?.name || i18n.__('Booking', 'bookyzo'),
     dates: `${start}/${end}`,
   });
   return `https://calendar.google.com/calendar/render?${params.toString()}`;
@@ -118,7 +119,7 @@ const googleCalendarUrl = computed(() => {
 function icsContent() {
   const start = toUtcStamp(startGmt.value);
   const end = toUtcStamp(endGmt.value);
-  const title = (props.item?.name || 'Booking').replace(/[\r\n]/g, ' ');
+  const title = (props.item?.name || i18n.__('Booking', 'bookyzo')).replace(/[\r\n]/g, ' ');
   return [
     'BEGIN:VCALENDAR',
     'VERSION:2.0',

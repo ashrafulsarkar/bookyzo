@@ -31,7 +31,7 @@
           {{ booking.timeLabel }} {{ booking.customer_name }}
         </button>
         <span v-if="day.bookings.length > 3" class="px-1 text-[11px] text-muted-foreground">
-          +{{ day.bookings.length - 3 }} more
+          {{ sprintf(__('+%s more', 'bookyzo'), day.bookings.length - 3) }}
         </span>
       </div>
     </button>
@@ -39,6 +39,7 @@
 </template>
 
 <script setup>
+import { weekdayNames } from '@/lib/date';
 import { computed } from 'vue';
 import { monthGridDays, toDateKey, isSameDay, formatTime } from '@/lib/date';
 
@@ -57,7 +58,7 @@ const props = defineProps({
 });
 defineEmits(['select-booking', 'select-day']);
 
-const dowLabels = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const dowLabels = weekdayNames('short');
 
 const days = computed(() => {
   const today = new Date();

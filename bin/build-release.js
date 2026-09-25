@@ -102,7 +102,7 @@ function generatePot() {
   console.log('Generating languages/bookyzo.pot (wp i18n make-pot)...');
   try {
     execSync(
-      'wp i18n make-pot . languages/bookyzo.pot --domain=bookyzo --slug=bookyzo --exclude=src,assets,release,scratchpad,.claude,bin',
+      'wp i18n make-pot . languages/bookyzo.pot --domain=bookyzo --slug=bookyzo --exclude=src,release,scratchpad,.claude,bin',
       { cwd: ROOT, stdio: 'inherit' }
     );
   } catch (error) {

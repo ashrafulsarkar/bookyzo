@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader title="Payments" subtitle="How customers pay you when they book.">
+    <ByzoPageHeader :title="__('Payments', 'bookyzo')" :subtitle="__('How customers pay you when they book.', 'bookyzo')">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="1" y="4" width="22" height="16" rx="2" />
@@ -8,7 +8,7 @@
         </svg>
       </template>
       <template #actions>
-        <Button :disabled="loading || saving" @click="save">{{ saving ? 'Saving…' : 'Save' }}</Button>
+        <Button :disabled="loading || saving" @click="save">{{ saving ? __('Saving…', 'bookyzo') : __('Save', 'bookyzo') }}</Button>
       </template>
     </ByzoPageHeader>
 
@@ -39,13 +39,14 @@
           v-if="allGatewayComponents[gateway.id] && form.gateways[gateway.id]"
           v-model="form.gateways[gateway.id]"
         />
-        <p v-else class="text-sm text-muted-foreground">{{ gateway.label }} settings aren't available in this version.</p>
+        <p v-else class="text-sm text-muted-foreground">{{ sprintf(__('%s settings aren\'t available in this version.', 'bookyzo'), gateway.label) }}</p>
       </PaymentGatewayRow>
     </div>
   </div>
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref, reactive, computed, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
@@ -79,7 +80,7 @@ async function load() {
     gateways.value = gatewayList;
     form.gateways = settings.gateways;
   } catch (e) {
-    toast.error(e.message || 'Could not load payment settings.');
+    toast.error(e.message || i18n.__('Could not load payment settings.', 'bookyzo'));
   } finally {
     loading.value = false;
   }
@@ -90,9 +91,9 @@ async function save() {
   try {
     const settings = await api.put('/payment-settings', { gateways: form.gateways });
     form.gateways = settings.gateways;
-    toast.success('Payment settings saved.');
+    toast.success(i18n.__('Payment settings saved.', 'bookyzo'));
   } catch (e) {
-    toast.error(e.message || 'Could not save payment settings.');
+    toast.error(e.message || i18n.__('Could not save payment settings.', 'bookyzo'));
   } finally {
     saving.value = false;
   }

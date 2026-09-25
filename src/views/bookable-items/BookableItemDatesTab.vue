@@ -2,25 +2,25 @@
   <div class="flex flex-col gap-4">
     <Card :class="embedded ? 'border-0 shadow-none' : 'max-w-xl'">
       <CardHeader>
-        <CardTitle>Add a date</CardTitle>
-        <CardDescription>Events have no weekly schedule — enter each occurrence directly (DETAILED-SPEC.md §1.3).</CardDescription>
+        <CardTitle>{{ __('Add a date', 'bookyzo') }}</CardTitle>
+        <CardDescription>{{ __('Events have no weekly schedule — enter each occurrence directly (DETAILED-SPEC.md §1.3).', 'bookyzo') }}</CardDescription>
       </CardHeader>
       <CardContent class="flex flex-col gap-4">
         <div class="flex flex-col gap-1.5">
-          <Label for="occurrence-date">Date</Label>
+          <Label for="occurrence-date">{{ __('Date', 'bookyzo') }}</Label>
           <Input id="occurrence-date" v-model="draft.date" type="date" class="h-9 w-48" />
         </div>
 
         <div class="flex items-center gap-2">
           <Input v-model="draft.start_time" type="time" class="h-8 w-auto" />
-          <span class="text-sm text-muted-foreground">to</span>
+          <span class="text-sm text-muted-foreground">{{ __('to', 'bookyzo') }}</span>
           <Input v-model="draft.end_time" type="time" class="h-8 w-auto" />
         </div>
 
         <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
       </CardContent>
       <CardFooter class="justify-end">
-        <Button :disabled="!draft.date || adding" @click="addOccurrence">{{ adding ? 'Adding…' : 'Add date' }}</Button>
+        <Button :disabled="!draft.date || adding" @click="addOccurrence">{{ adding ? __('Adding…', 'bookyzo') : __('Add date', 'bookyzo') }}</Button>
       </CardFooter>
     </Card>
 
@@ -30,9 +30,9 @@
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Date</TableHead>
-            <TableHead>Time</TableHead>
-            <TableHead>Status</TableHead>
+            <TableHead>{{ __('Date', 'bookyzo') }}</TableHead>
+            <TableHead>{{ __('Time', 'bookyzo') }}</TableHead>
+            <TableHead>{{ __('Status', 'bookyzo') }}</TableHead>
             <TableHead></TableHead>
           </TableRow>
         </TableHeader>
@@ -42,10 +42,10 @@
             <TableCell class="text-muted-foreground">
               {{ formatTime(occurrence.start_datetime) }}–{{ formatTime(occurrence.end_datetime) }}
             </TableCell>
-            <TableCell><ByzoBadge :status="occurrence.status">{{ occurrence.status }} · {{ occurrence.capacity_remaining }} left</ByzoBadge></TableCell>
+            <TableCell><ByzoBadge :status="occurrence.status">{{ sprintf(__('%1$s · %2$s left', 'bookyzo'), statusLabel(occurrence.status), occurrence.capacity_remaining) }}</ByzoBadge></TableCell>
             <TableCell class="text-right">
               <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="removeOccurrence(occurrence.id)">
-                Remove
+                {{ __('Remove', 'bookyzo') }}
               </Button>
             </TableCell>
           </TableRow>
@@ -54,12 +54,14 @@
     </Card>
 
     <Card v-else :class="['py-10 text-center text-sm text-muted-foreground', embedded ? 'mx-6' : 'max-w-xl']">
-      No dates yet — add the first occurrence above.
+      {{ __('No dates yet — add the first occurrence above.', 'bookyzo') }}
     </Card>
   </div>
 </template>
 
 <script setup>
+import { statusLabel } from '@/lib/status';
+import { i18n, locale } from '@/lib/i18n';
 import { ref, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -94,11 +96,11 @@ const draft = ref({
 });
 
 function formatDate(datetime) {
-  return new Date(datetime.replace(' ', 'T')).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(datetime.replace(' ', 'T')).toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function formatTime(datetime) {
-  return new Date(datetime.replace(' ', 'T')).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return new Date(datetime.replace(' ', 'T')).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 }
 
 async function load() {
@@ -106,7 +108,7 @@ async function load() {
   try {
     occurrences.value = await api.get(`/bookable-items/${props.bookableItemId}/slots`);
   } catch (e) {
-    error.value = e.message || 'Could not load dates.';
+    error.value = e.message || i18n.__('Could not load dates.', 'bookyzo');
   } finally {
     loading.value = false;
   }
@@ -120,7 +122,7 @@ async function addOccurrence() {
     draft.value.date = '';
     await load();
   } catch (e) {
-    error.value = e.message || 'Could not add this date.';
+    error.value = e.message || i18n.__('Could not add this date.', 'bookyzo');
   } finally {
     adding.value = false;
   }
@@ -133,7 +135,7 @@ async function removeOccurrence(id) {
     // Server refuses with 409 when the occurrence has bookings against it
     // (BYZO_Slot::delete_occurrence()) — surface that message as-is rather
     // than a generic one, it already explains exactly why.
-    toast.error(e.message || 'Could not remove this date.');
+    toast.error(e.message || i18n.__('Could not remove this date.', 'bookyzo'));
   }
 }
 

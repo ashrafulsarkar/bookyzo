@@ -1,14 +1,14 @@
 <template>
-  <h1>{{ justRegistered ? 'Welcome' : 'Welcome back' }}<template v-if="displayName">, {{ displayName }}</template></h1>
+  <h1>{{ justRegistered ? __('Welcome', 'bookyzo') : __('Welcome back', 'bookyzo') }}<template v-if="displayName">, {{ displayName }}</template></h1>
 
-  <p v-if="loading" class="bookyzo-account__empty">Loading your bookings…</p>
-  <p v-else-if="loadError" class="bookyzo-account__empty">Couldn't load your bookings. Please refresh the page.</p>
-  <p v-else-if="bookings.length === 0" class="bookyzo-account__empty">You don't have any bookings yet.</p>
+  <p v-if="loading" class="bookyzo-account__empty">{{ __('Loading your bookings…', 'bookyzo') }}</p>
+  <p v-else-if="loadError" class="bookyzo-account__empty">{{ __('Couldn\'t load your bookings. Please refresh the page.', 'bookyzo') }}</p>
+  <p v-else-if="bookings.length === 0" class="bookyzo-account__empty">{{ __('You don\'t have any bookings yet.', 'bookyzo') }}</p>
   <ul v-else class="bookyzo-account__booking-list">
     <li v-for="booking in bookings" :key="booking.id" class="bookyzo-account__booking">
       <div class="bookyzo-account__booking-title">{{ booking.customer_name }}</div>
       <div class="bookyzo-account__booking-meta">
-        <template v-if="booking.slot_start">{{ formatDate(booking.local_slot_start || booking.slot_start) }} · </template>{{ booking.status }}
+        <template v-if="booking.slot_start">{{ formatDate(booking.local_slot_start || booking.slot_start) }} · </template>{{ statusLabel(booking.status) }}
       </div>
       <button
         v-if="canCancel(booking)"
@@ -17,14 +17,14 @@
         :disabled="cancellingId === booking.id"
         @click="cancel(booking)"
       >
-        {{ cancellingId === booking.id ? 'Cancelling…' : 'Cancel booking' }}
+        {{ cancellingId === booking.id ? __('Cancelling…', 'bookyzo') : __('Cancel booking', 'bookyzo') }}
       </button>
       <!-- Plain browser-navigable link, not a fetch() call — see
            api.js's getInvoiceUrl() docblock for why. Only ever rendered
            when Pro's PDF renderer is actually active (never a dead link,
            per this project's standing Guideline-5 rule). -->
       <a v-if="pdfInvoiceEnabled" :href="getInvoiceUrl(booking.id)" class="bookyzo-account__btn bookyzo-account__btn--link">
-        Download invoice
+        {{ __('Download invoice', 'bookyzo') }}
       </a>
       <!-- Deliberately not restricted to Event-type bookings — same
            no-real-backend-reason-to-restrict call already made for
@@ -32,17 +32,19 @@
            step 12): a QR check-in ticket is equally meaningful for a
            table or appointment arrival, not just an event ticket. -->
       <a v-if="qrTicketEnabled" :href="getTicketQrUrl(booking.id)" class="bookyzo-account__btn bookyzo-account__btn--link">
-        View ticket
+        {{ __('View ticket', 'bookyzo') }}
       </a>
     </li>
   </ul>
 
   <form method="post" :action="logoutUrl">
-    <button type="submit" class="bookyzo-account__btn">Log out</button>
+    <button type="submit" class="bookyzo-account__btn">{{ __('Log out', 'bookyzo') }}</button>
   </form>
 </template>
 
 <script setup>
+import { statusLabel } from '@/lib/status';
+import { i18n, locale } from '@/lib/i18n';
 import { ref, onMounted } from 'vue';
 import { getMyBookings, cancelMyBooking, getInvoiceUrl, getTicketQrUrl } from '../api';
 
@@ -81,7 +83,7 @@ function canCancel(booking) {
 }
 
 function formatDate(mysqlDateTime) {
-  return new Date(mysqlDateTime.replace(' ', 'T')).toLocaleString();
+  return new Date(mysqlDateTime.replace(' ', 'T')).toLocaleString(locale);
 }
 
 async function cancel(booking) {
@@ -96,7 +98,7 @@ async function cancel(booking) {
     // dashboard visit) always re-derives the real current state from the
     // server, same "server is the source of truth" rule the old
     // manage-booking.php page followed.
-    window.alert(e.message || 'Could not cancel this booking.');
+    window.alert(e.message || i18n.__('Could not cancel this booking.', 'bookyzo'));
   } finally {
     cancellingId.value = null;
   }

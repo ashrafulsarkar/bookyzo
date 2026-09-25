@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader title="Appearance" subtitle="Match the booking widget to your site's design.">
+    <ByzoPageHeader :title="__('Appearance', 'bookyzo')" :subtitle="__('Match the booking widget to your site\'s design.', 'bookyzo')">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <circle cx="13.5" cy="6.5" r=".5" fill="currentColor" />
@@ -11,8 +11,8 @@
         </svg>
       </template>
       <template #actions>
-        <Button variant="outline" :disabled="loading || saving" @click="resetToDefaults">Reset to defaults</Button>
-        <Button :disabled="loading || saving" @click="save">{{ saving ? 'Saving…' : 'Save' }}</Button>
+        <Button variant="outline" :disabled="loading || saving" @click="resetToDefaults">{{ __('Reset to defaults', 'bookyzo') }}</Button>
+        <Button :disabled="loading || saving" @click="save">{{ saving ? __('Saving…', 'bookyzo') : __('Save', 'bookyzo') }}</Button>
       </template>
     </ByzoPageHeader>
 
@@ -26,8 +26,8 @@
         <div class="flex flex-col gap-4 flex-1 min-w-0 w-full">
           <Card>
             <CardHeader>
-              <CardTitle>Colors</CardTitle>
-              <CardDescription>The accent color is used for buttons, the progress bar, and selected times.</CardDescription>
+              <CardTitle>{{ __('Colors', 'bookyzo') }}</CardTitle>
+              <CardDescription>{{ __('The accent color is used for buttons, the progress bar, and selected times.', 'bookyzo') }}</CardDescription>
             </CardHeader>
             <CardContent class="grid sm:grid-cols-2 gap-4">
               <ColorField
@@ -43,52 +43,51 @@
 
           <Card>
             <CardHeader>
-              <CardTitle>Layout &amp; typography</CardTitle>
+              <CardTitle>{{ __('Layout & typography', 'bookyzo') }}</CardTitle>
             </CardHeader>
             <CardContent class="flex flex-col gap-4">
               <div class="grid grid-cols-2 gap-4">
                 <div class="flex flex-col gap-1.5">
-                  <Label for="a-max-width">Maximum width</Label>
+                  <Label for="a-max-width">{{ __('Maximum width', 'bookyzo') }}</Label>
                   <div class="flex items-center gap-2">
                     <Input id="a-max-width" v-model.number="form.max_width" type="number" min="280" max="900" step="10" class="w-24" />
-                    <span class="text-sm text-muted-foreground">px</span>
+                    <span class="text-sm text-muted-foreground">{{ __('px', 'bookyzo') }}</span>
                   </div>
                 </div>
                 <div class="flex flex-col gap-1.5">
-                  <Label for="a-font-size">Base font size</Label>
+                  <Label for="a-font-size">{{ __('Base font size', 'bookyzo') }}</Label>
                   <div class="flex items-center gap-2">
                     <Input id="a-font-size" v-model.number="form.font_size" type="number" min="11" max="22" step="1" class="w-24" />
-                    <span class="text-sm text-muted-foreground">px</span>
+                    <span class="text-sm text-muted-foreground">{{ __('px', 'bookyzo') }}</span>
                   </div>
                 </div>
                 <div class="flex flex-col gap-1.5">
-                  <Label for="a-radius">Corner rounding</Label>
+                  <Label for="a-radius">{{ __('Corner rounding', 'bookyzo') }}</Label>
                   <div class="flex items-center gap-2">
                     <Input id="a-radius" v-model.number="form.radius" type="number" min="0" max="40" step="1" class="w-24" />
-                    <span class="text-sm text-muted-foreground">px</span>
+                    <span class="text-sm text-muted-foreground">{{ __('px', 'bookyzo') }}</span>
                   </div>
                 </div>
                 <div class="flex flex-col gap-1.5">
-                  <Label for="a-radius-sm">Button/input rounding</Label>
+                  <Label for="a-radius-sm">{{ __('Button/input rounding', 'bookyzo') }}</Label>
                   <div class="flex items-center gap-2">
                     <Input id="a-radius-sm" v-model.number="form.radius_sm" type="number" min="0" max="40" step="1" class="w-24" />
-                    <span class="text-sm text-muted-foreground">px</span>
+                    <span class="text-sm text-muted-foreground">{{ __('px', 'bookyzo') }}</span>
                   </div>
                 </div>
               </div>
 
               <div class="flex flex-col gap-1.5">
-                <Label for="a-font-family">Font family</Label>
-                <Input id="a-font-family" v-model="form.font_family" type="text" placeholder="Leave empty to use your theme's font" />
+                <Label for="a-font-family">{{ __('Font family', 'bookyzo') }}</Label>
+                <Input id="a-font-family" v-model="form.font_family" type="text" :placeholder="__('Leave empty to use your theme\'s font', 'bookyzo')" />
                 <p class="text-xs text-muted-foreground">
-                  A CSS font list, e.g. <code>Poppins, sans-serif</code>. The font must already be loaded by your
-                  theme — this setting picks a font, it doesn't download one.
+                  {{ __('A CSS font list, e.g.', 'bookyzo') }} <code>Poppins, sans-serif</code>{{ __('. The font must already be loaded by your theme — this setting picks a font, it doesn\'t download one.', 'bookyzo') }}
                 </p>
               </div>
 
               <label class="flex items-center gap-2 text-sm">
                 <Switch v-model="form.show_shadow" />
-                Show a drop shadow around the widget
+                {{ __('Show a drop shadow around the widget', 'bookyzo') }}
               </label>
             </CardContent>
           </Card>
@@ -104,8 +103,8 @@
 
         <Card class="w-full xl:w-[420px] xl:shrink-0 xl:sticky xl:top-8">
           <CardHeader>
-            <CardTitle>Preview</CardTitle>
-            <CardDescription>Updates as you edit. Save to apply it on your site.</CardDescription>
+            <CardTitle>{{ __('Preview', 'bookyzo') }}</CardTitle>
+            <CardDescription>{{ __('Updates as you edit. Save to apply it on your site.', 'bookyzo') }}</CardDescription>
           </CardHeader>
           <CardContent>
             <WidgetPreview :appearance="form" />
@@ -117,6 +116,7 @@
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -151,13 +151,13 @@ const DEFAULTS = {
 };
 
 const colorFields = [
-  { key: 'primary_color', label: 'Accent', hint: 'Buttons, progress bar, selected times.' },
-  { key: 'primary_dark_color', label: 'Accent (dark)', hint: 'The darker end of the button gradient.' },
-  { key: 'primary_light_color', label: 'Accent (light)', hint: 'Background of a selected date or time.' },
-  { key: 'text_color', label: 'Text' },
-  { key: 'muted_text_color', label: 'Secondary text' },
-  { key: 'border_color', label: 'Borders' },
-  { key: 'surface_color', label: 'Background' },
+  { key: 'primary_color', label: i18n.__('Accent', 'bookyzo'), hint: i18n.__('Buttons, progress bar, selected times.', 'bookyzo') },
+  { key: 'primary_dark_color', label: i18n.__('Accent (dark)', 'bookyzo'), hint: i18n.__('The darker end of the button gradient.', 'bookyzo') },
+  { key: 'primary_light_color', label: i18n.__('Accent (light)', 'bookyzo'), hint: i18n.__('Background of a selected date or time.', 'bookyzo') },
+  { key: 'text_color', label: i18n.__('Text', 'bookyzo') },
+  { key: 'muted_text_color', label: i18n.__('Secondary text', 'bookyzo') },
+  { key: 'border_color', label: i18n.__('Borders', 'bookyzo') },
+  { key: 'surface_color', label: i18n.__('Background', 'bookyzo') },
 ];
 
 const form = ref({ ...DEFAULTS });
@@ -171,7 +171,7 @@ async function load() {
     const appearance = await api.get('/appearance');
     form.value = { ...DEFAULTS, ...appearance };
   } catch (e) {
-    error.value = e.message || 'Could not load appearance settings.';
+    error.value = e.message || i18n.__('Could not load appearance settings.', 'bookyzo');
   } finally {
     loading.value = false;
   }
@@ -198,9 +198,9 @@ async function save() {
     if (typeof extraSection.value?.save === 'function') {
       await extraSection.value.save();
     }
-    toast.success('Appearance saved.');
+    toast.success(i18n.__('Appearance saved.', 'bookyzo'));
   } catch (e) {
-    error.value = e.message || 'Could not save appearance settings.';
+    error.value = e.message || i18n.__('Could not save appearance settings.', 'bookyzo');
   } finally {
     saving.value = false;
   }

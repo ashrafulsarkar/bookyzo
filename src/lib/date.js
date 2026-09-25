@@ -5,6 +5,7 @@
  * decision) and don't need timezone conversion since the browser and
  * WordPress are assumed to agree on "today" for admin-side viewing.
  */
+import { locale } from './i18n';
 
 export function toDateKey(date) {
   const y = date.getFullYear();
@@ -59,15 +60,15 @@ export function isSameDay(a, b) {
 }
 
 export function formatDayLabel(date) {
-  return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
+  return date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' });
 }
 
 export function formatMonthLabel(date) {
-  return date.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  return date.toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 }
 
 export function formatTime(date) {
-  return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 }
 
 /**
@@ -79,5 +80,14 @@ export function formatTime(date) {
  * exactly as before.
  */
 export function formatHourLabel(date) {
-  return date.toLocaleTimeString(undefined, { hour: 'numeric' });
+  return date.toLocaleTimeString(locale, { hour: 'numeric' });
+}
+
+/**
+ * Weekday names, Sunday first (index = JS getDay()), in the page's
+ * language. `style` is Intl's: 'long' (Sunday) or 'short' (Sun).
+ */
+export function weekdayNames(style = 'long') {
+  // 1 January 2023 was a Sunday.
+  return Array.from({ length: 7 }, (_, i) => new Date(2023, 0, 1 + i).toLocaleDateString(locale, { weekday: style }));
 }

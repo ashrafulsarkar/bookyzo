@@ -261,10 +261,13 @@ class BYZO_Admin_Assets {
 		wp_enqueue_script(
 			'byzo-admin',
 			$dist_url . $entry['file'],
-			array( 'wp-api-fetch' ),
+			array( 'wp-api-fetch', 'wp-i18n' ),
 			BYZO_VERSION,
 			true
 		);
+		// Language-pack JSON for this bundle (QA report §6.2.1); a copy in
+		// the plugin's own languages/ folder wins over the downloaded one.
+		wp_set_script_translations( 'byzo-admin', 'bookyzo', BYZO_PLUGIN_DIR . 'languages' );
 		add_filter( 'wp_script_attributes', array( __CLASS__, 'add_module_type' ) );
 
 		if ( ! empty( $entry['css'] ) ) {

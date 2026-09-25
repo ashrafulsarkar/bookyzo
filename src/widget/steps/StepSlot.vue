@@ -70,7 +70,7 @@
             type="button"
             class="cal-nav"
             :disabled="!canGoPrev"
-            aria-label="Previous month"
+            :aria-label="__('Previous month', 'bookyzo')"
             @click="shiftMonth(-1)"
           >
             &#8249;
@@ -80,7 +80,7 @@
               type="button"
               class="cal-nav"
               :disabled="!canGoNext"
-              aria-label="Next month"
+              :aria-label="__('Next month', 'bookyzo')"
               @click="shiftMonth(1)"
             >
               &#8250;
@@ -103,7 +103,7 @@
                   'cal-cell--full': cell.available && cell.fullOnly,
                   'cal-cell--selected': cell.key === selectedDateKey,
                 }"
-                :title="cell.available && cell.fullOnly ? 'Full — waitlist only' : undefined"
+                :title="cell.available && cell.fullOnly ? __('Full — waitlist only', 'bookyzo') : undefined"
                 :disabled="!cell.available"
                 @click="selectedDateKey = cell.key"
               >
@@ -131,10 +131,10 @@
                   type="button"
                   class="chip"
                   :class="{ selected: selectedSlotId === slot.id, 'chip--full': isFull(slot) }"
-                  :title="isFull(slot) ? 'Full — join the waitlist' : undefined"
+                  :title="isFull(slot) ? __('Full — join the waitlist', 'bookyzo') : undefined"
                   @click="selectedSlotId = slot.id"
                 >
-                  {{ formatTime(slot.start_datetime) }}<span v-if="isFull(slot)" class="chip-full-tag"> · Full</span>
+                  {{ formatTime(slot.start_datetime) }}<span v-if="isFull(slot)" class="chip-full-tag"> {{ __('· Full', 'bookyzo') }}</span>
                 </button>
               </div>
             </div>
@@ -148,13 +148,14 @@
     <WaitlistForm v-if="selectedSlot && isFull(selectedSlot)" :slot="selectedSlot" :item="item" :party-size="partySize" />
 
     <div class="actions">
-      <button type="button" class="btn btn-outline" @click="$emit('back')">Back</button>
-      <button type="button" class="btn btn-primary" :disabled="!selectedSlot || isFull(selectedSlot)" @click="confirm">Continue</button>
+      <button type="button" class="btn btn-outline" @click="$emit('back')">{{ __('Back', 'bookyzo') }}</button>
+      <button type="button" class="btn btn-primary" :disabled="!selectedSlot || isFull(selectedSlot)" @click="confirm">{{ __('Continue', 'bookyzo') }}</button>
     </div>
   </div>
 </template>
 
 <script setup>
+import { i18n, locale } from '@/lib/i18n';
 import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue';
 import { getSlots, getSlotsForService } from '../api';
 import { copyFor } from '../copy';
@@ -199,7 +200,15 @@ const selectedDateKey = ref('');
 const selectedSlotId = ref(null);
 const monthCursor = ref(null);
 
-const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const dayNames = [
+  i18n._x('Su', 'Sunday, two letters', 'bookyzo'),
+  i18n._x('Mo', 'Monday, two letters', 'bookyzo'),
+  i18n._x('Tu', 'Tuesday, two letters', 'bookyzo'),
+  i18n._x('We', 'Wednesday, two letters', 'bookyzo'),
+  i18n._x('Th', 'Thursday, two letters', 'bookyzo'),
+  i18n._x('Fr', 'Friday, two letters', 'bookyzo'),
+  i18n._x('Sa', 'Saturday, two letters', 'bookyzo'),
+];
 
 function toDate(iso) {
   return new Date(iso.replace(' ', 'T'));
@@ -214,7 +223,7 @@ function monthKey(date) {
 }
 
 function formatTime(iso) {
-  return toDate(iso).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return toDate(iso).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 }
 
 const copy = computed(() => copyFor(props.item.type));
@@ -232,15 +241,15 @@ const partySizeOptions = computed(() => {
 
 const emptyMessage = computed(() => {
   if (isEvent.value) {
-    return 'No upcoming dates for this event right now.';
+    return i18n.__('No upcoming dates for this event right now.', 'bookyzo');
   }
   return asksPartySizeFirst.value && partySize.value > 1
-    ? `No times available for ${partySize.value} in the next few weeks.`
-    : 'No available times in the next few weeks.';
+    ? i18n.sprintf(i18n.__('No times available for %s in the next few weeks.', 'bookyzo'), partySize.value)
+    : i18n.__('No available times in the next few weeks.', 'bookyzo');
 });
 
 function formatOccurrenceDate(iso) {
-  return toDate(iso).toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  return toDate(iso).toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
 }
 
 // Only meaningful for a multi-capacity event; a sold-out occurrence still
@@ -297,7 +306,7 @@ function shiftMonth(delta) {
 const monthLabel = computed(() => {
   if (!monthCursor.value) return '';
   const [year, month] = monthCursor.value.split('-').map(Number);
-  return new Date(year, month - 1, 1).toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+  return new Date(year, month - 1, 1).toLocaleDateString(locale, { month: 'long', year: 'numeric' });
 });
 
 // Leading blanks so the 1st lands under its real weekday, then one cell
@@ -318,7 +327,7 @@ const monthCells = computed(() => {
 
 const selectedDateLabel = computed(() => {
   const date = availableDates.value.get(selectedDateKey.value);
-  return date ? date.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' }) : '';
+  return date ? date.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' }) : '';
 });
 
 const slotsForSelectedDate = computed(() =>
@@ -326,9 +335,9 @@ const slotsForSelectedDate = computed(() =>
 );
 
 const GROUPS = [
-  { label: 'Morning', test: (h) => h < 12 },
-  { label: 'Afternoon', test: (h) => h >= 12 && h < 17 },
-  { label: 'Evening', test: (h) => h >= 17 },
+  { label: i18n.__('Morning', 'bookyzo'), test: (h) => h < 12 },
+  { label: i18n.__('Afternoon', 'bookyzo'), test: (h) => h >= 12 && h < 17 },
+  { label: i18n.__('Evening', 'bookyzo'), test: (h) => h >= 17 },
 ];
 
 const groupedSlots = computed(() =>

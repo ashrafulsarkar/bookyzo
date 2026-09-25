@@ -1,10 +1,10 @@
 <template>
   <WidgetLoading v-if="loading" />
   <div v-else-if="error" class="error">{{ error }}</div>
-  <div v-else-if="items.length === 0 && services.length === 0" class="empty">No bookable services are available right now.</div>
+  <div v-else-if="items.length === 0 && services.length === 0" class="empty">{{ __('No bookable services are available right now.', 'bookyzo') }}</div>
   <!-- Several locations (QA report §6.1 A1): where first, then what. -->
   <div v-else-if="needsLocation && !autoSkipping">
-    <h2>Choose a location</h2>
+    <h2>{{ __('Choose a location', 'bookyzo') }}</h2>
     <div class="bookable-item-list">
       <button v-for="location in locations" :key="`location-${location.id}`" type="button" class="option-card" @click="chosenLocation = location">
         <span class="option-card-body">
@@ -20,13 +20,13 @@
     <p class="step-sub">
       {{ copy.pickSub }}
       <template v-if="chosenLocation">
-        <br />{{ chosenLocation.name }} · <button type="button" class="link-button" @click="chosenLocation = null">Change location</button>
+        <br />{{ chosenLocation.name }} · <button type="button" class="link-button" @click="chosenLocation = null">{{ __('Change location', 'bookyzo') }}</button>
       </template>
     </p>
     <!-- Pro services (QA report 2026-09-22 B9): picked by what, not by
          whom — the next step offers the staff who provide it, or "any
          available". Absent when there are none (always, without Pro). -->
-    <p v-if="visibleServices.length && visibleItems.length" class="group-label">Services</p>
+    <p v-if="visibleServices.length && visibleItems.length" class="group-label">{{ __('Services', 'bookyzo') }}</p>
     <div v-if="visibleServices.length" class="bookable-item-list">
       <button
         v-for="service in visibleServices"
@@ -38,7 +38,7 @@
         <span class="option-card-body">
           <span class="name">{{ service.name }}</span>
           <span class="meta">
-            <span class="meta-item">{{ serviceDuration(service) }} min</span>
+            <span class="meta-item">{{ sprintf(__('%s min', 'bookyzo'), serviceDuration(service)) }}</span>
             <span v-if="servicePrice(service)" class="meta-price">{{ servicePrice(service) }}</span>
           </span>
         </span>
@@ -60,7 +60,7 @@
           <span class="option-card-body">
             <span class="name">{{ item.name }}</span>
             <span class="meta">
-              <span class="meta-item">{{ item.duration_minutes }} min</span>
+              <span class="meta-item">{{ sprintf(__('%s min', 'bookyzo'), item.duration_minutes) }}</span>
               <span v-if="item.capacity > 1" class="meta-item">{{ capacityLabel(item) }}</span>
               <span v-if="item.price !== null" class="meta-price">{{ formatPrice(item.price) }}</span>
             </span>
@@ -73,6 +73,7 @@
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref, computed, onMounted } from 'vue';
 import { getPublicBookableItems, getPublicServices } from '../api';
 import { copyFor, MIXED_COPY, GROUP_LABELS, GROUP_ORDER } from '../copy';
@@ -111,7 +112,7 @@ function servicePrice(service) {
   const prices = service.staff.map((m) => m.price).filter((p) => p !== null);
   if (!prices.length) return '';
   const low = Math.min(...prices);
-  return prices.every((p) => p === low) ? formatMoney(low) : `from ${formatMoney(low)}`;
+  return prices.every((p) => p === low) ? formatMoney(low) : i18n.sprintf(i18n.__('from %s', 'bookyzo'), formatMoney(low));
 }
 
 // A picker filtered to one type (or a site that only sells one) can speak
@@ -142,7 +143,7 @@ const groups = computed(() =>
     type,
     // With Pro services listed above, "Services" twice would be two
     // headings for two different things — the staff themselves come second.
-    label: 'appointment' === type && visibleServices.value.length ? 'Or book with' : GROUP_LABELS[type],
+    label: 'appointment' === type && visibleServices.value.length ? i18n.__('Or book with', 'bookyzo') : GROUP_LABELS[type],
     items: visibleItems.value.filter((item) => item.type === type),
   })).filter((group) => group.items.length)
 );
@@ -151,9 +152,9 @@ const groups = computed(() =>
 // own words rather than one generic "party size".
 function capacityLabel(item) {
   const labels = {
-    table: `Seats ${item.capacity}`,
-    slot: `${item.capacity} spots`,
-    event: `${item.capacity} tickets`,
+    table: i18n.sprintf(i18n.__('Seats %s', 'bookyzo'), item.capacity),
+    slot: i18n.sprintf(i18n._n('%s spot', '%s spots', item.capacity, 'bookyzo'), item.capacity),
+    event: i18n.sprintf(i18n._n('%s ticket', '%s tickets', item.capacity, 'bookyzo'), item.capacity),
   };
   return labels[item.type] || '';
 }

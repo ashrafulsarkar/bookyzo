@@ -6,6 +6,7 @@
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { Loader2Icon } from 'lucide-vue-next';
 
 // The one loading state for every admin screen (list tables, dialogs, the
@@ -16,7 +17,7 @@ import { Loader2Icon } from 'lucide-vue-next';
 // inside an already-small panel (e.g. a dashboard card) rather than filling
 // a whole screen.
 defineProps({
-  label: { type: String, default: 'Loading…' },
+  label: { type: String, default: () => i18n.__('Loading…', 'bookyzo') },
   size: { type: String, default: 'default' },
 });
 </script>

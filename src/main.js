@@ -5,6 +5,7 @@ import App from './App.vue';
 import { router } from './router';
 import { toast } from 'vue-sonner';
 import { registerExtension, setNavBadge } from './lib/admin-extensions';
+import { installI18n } from './lib/i18n';
 
 const mountEl = document.getElementById('byzo-admin-app');
 
@@ -34,5 +35,5 @@ if (mountEl) {
   window.byzoAdmin.setNavBadge = setNavBadge;
   window.byzoAdmin.router = router;
 
-  createApp(App).use(router).mount(mountEl);
+  installI18n(createApp(App)).use(router).mount(mountEl);
 }

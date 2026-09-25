@@ -1,18 +1,18 @@
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>Customer information</CardTitle>
-      <CardDescription>Name and email are always collected — a booking is meaningless without them.</CardDescription>
+      <CardTitle>{{ __('Customer information', 'bookyzo') }}</CardTitle>
+      <CardDescription>{{ __('Name and email are always collected — a booking is meaningless without them.', 'bookyzo') }}</CardDescription>
     </CardHeader>
     <CardContent>
       <label class="flex items-center gap-2 text-sm">
         <Switch v-model="requirePhone" />
-        Require a phone number too
+        {{ __('Require a phone number too', 'bookyzo') }}
       </label>
     </CardContent>
     <CardFooter class="justify-between">
-      <Button variant="outline" @click="$emit('back')">Back</Button>
-      <Button @click="$emit('next', { require_phone: requirePhone })">Continue</Button>
+      <Button variant="outline" @click="$emit('back')">{{ __('Back', 'bookyzo') }}</Button>
+      <Button @click="$emit('next', { require_phone: requirePhone })">{{ __('Continue', 'bookyzo') }}</Button>
     </CardFooter>
   </Card>
 </template>

@@ -1,13 +1,12 @@
 <template>
   <div>
-    <h2>Payment</h2>
+    <h2>{{ __('Payment', 'bookyzo') }}</h2>
     <p v-if="isDeposit">
-      {{ booking.customer_name }}, a deposit of {{ formattedAmount }} is due now to secure your booking — the
-      remaining {{ formattedBalance }} of your {{ formattedTotal }} total is due at the appointment.
+      {{ sprintf(__('%1$s, a deposit of %2$s is due now to secure your booking — the remaining %3$s of your %4$s total is due at the appointment.', 'bookyzo'), booking.customer_name, formattedAmount, formattedBalance, formattedTotal) }}
     </p>
-    <p v-else>{{ booking.customer_name }}, your total is {{ formattedAmount }}.</p>
+    <p v-else>{{ sprintf(__('%1$s, your total is %2$s.', 'bookyzo'), booking.customer_name, formattedAmount) }}</p>
 
-    <WidgetLoading v-if="loadingStripe" label="Loading payment form…" />
+    <WidgetLoading v-if="loadingStripe" :label="__('Loading payment form…', 'bookyzo')" />
     <div v-else-if="setupError" class="error">{{ setupError }}</div>
     <template v-else>
       <div ref="cardElementRef" class="field" style="border: 1px solid var(--byzo-border); border-radius: var(--byzo-radius-sm); padding: 10px"></div>
@@ -15,15 +14,16 @@
     </template>
 
     <div class="actions">
-      <button v-if="payInPersonEnabled" type="button" class="btn btn-outline" :disabled="paying" @click="payInPerson">Pay in person instead</button>
+      <button v-if="payInPersonEnabled" type="button" class="btn btn-outline" :disabled="paying" @click="payInPerson">{{ __('Pay in person instead', 'bookyzo') }}</button>
       <button type="button" class="btn btn-primary" :disabled="!cardReady || paying" @click="pay">
-        {{ paying ? 'Processing…' : `Pay ${formattedAmount}` }}
+        {{ paying ? __('Processing…', 'bookyzo') : sprintf(__('Pay %s', 'bookyzo'), formattedAmount) }}
       </button>
     </div>
   </div>
 </template>
 
 <script setup>
+import { i18n, locale } from '@/lib/i18n';
 // Stripe Elements card payment (DETAILED-SPEC.md §A7) — loads Stripe.js
 // from Stripe's own CDN (js.stripe.com), which is required rather than
 // optional: Stripe's terms don't allow self-hosting/bundling this
@@ -66,7 +66,7 @@ let elements = null;
 let cardElement = null;
 
 const currency = (window.byzoWidget && window.byzoWidget.currency) || 'USD';
-const formatCurrency = (value) => new Intl.NumberFormat(undefined, { style: 'currency', currency }).format(value || 0);
+const formatCurrency = (value) => new Intl.NumberFormat(locale, { style: 'currency', currency }).format(value || 0);
 
 // Phase 2 step 6 (DETAILED-SPEC.md §A7) — deposit_amount is null for
 // every booking made the way Free itself works; when Pro sets it, this
@@ -87,7 +87,7 @@ function loadStripeJs() {
     const script = document.createElement('script');
     script.src = 'https://js.stripe.com/v3/';
     script.onload = () => resolve(window.Stripe);
-    script.onerror = () => reject(new Error('Could not load the payment form.'));
+    script.onerror = () => reject(new Error(i18n.__('Could not load the payment form.', 'bookyzo')));
     document.head.appendChild(script);
   });
 }
@@ -145,7 +145,7 @@ async function pay() {
 onMounted(async () => {
   const publishableKey = window.byzoWidget && window.byzoWidget.stripePublishableKey;
   if (!publishableKey) {
-    setupError.value = 'Online payment is not available right now.';
+    setupError.value = i18n.__('Online payment is not available right now.', 'bookyzo');
     loadingStripe.value = false;
     return;
   }
@@ -169,7 +169,7 @@ onMounted(async () => {
     await nextTick();
 
     if (!cardElementRef.value) {
-      throw new Error('Could not load the payment form.');
+      throw new Error(i18n.__('Could not load the payment form.', 'bookyzo'));
     }
 
     cardElement.mount(cardElementRef.value);

@@ -1,4 +1,4 @@
 <template>
-  <h1>Accounts unavailable</h1>
-  <p>Customer accounts are not enabled on this site.</p>
+  <h1>{{ __('Accounts unavailable', 'bookyzo') }}</h1>
+  <p>{{ __('Customer accounts are not enabled on this site.', 'bookyzo') }}</p>
 </template>

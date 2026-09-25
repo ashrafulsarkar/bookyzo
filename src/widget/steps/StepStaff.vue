@@ -1,15 +1,15 @@
 <template>
   <div>
-    <h2>Choose who you'd like</h2>
+    <h2>{{ __('Choose who you\'d like', 'bookyzo') }}</h2>
     <p class="step-sub">{{ service.name }}</p>
     <div class="bookable-item-list">
       <!-- Listed first: most customers don't mind who, and this shows the
            most open times (every staff member's, merged). -->
       <button v-if="service.staff.length > 1" type="button" class="option-card" @click="chooseAny">
         <span class="option-card-body">
-          <span class="name">Any available</span>
+          <span class="name">{{ __('Any available', 'bookyzo') }}</span>
           <span class="meta">
-            <span class="meta-item">Whoever is free — any of {{ service.staff.length }}</span>
+            <span class="meta-item">{{ sprintf(__('Whoever is free — any of %s', 'bookyzo'), service.staff.length) }}</span>
             <span v-if="anyPriceLabel" class="meta-price">{{ anyPriceLabel }}</span>
           </span>
         </span>
@@ -19,7 +19,7 @@
         <span class="option-card-body">
           <span class="name">{{ member.name }}</span>
           <span class="meta">
-            <span class="meta-item">{{ member.duration_minutes }} min</span>
+            <span class="meta-item">{{ sprintf(__('%s min', 'bookyzo'), member.duration_minutes) }}</span>
             <span v-if="member.price !== null" class="meta-price">{{ formatMoney(member.price) }}</span>
           </span>
         </span>
@@ -27,12 +27,13 @@
       </button>
     </div>
     <div class="actions">
-      <button type="button" class="btn btn-outline" @click="$emit('back')">Back</button>
+      <button type="button" class="btn btn-outline" @click="$emit('back')">{{ __('Back', 'bookyzo') }}</button>
     </div>
   </div>
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 // "Service → staff (or any available)" — the step between picking a Pro
 // service and picking a time (DETAILED-SPEC.md §3 B7, QA report 2026-09-22
 // B9). Emits a bookable-item-shaped object so the steps after it work
@@ -56,7 +57,7 @@ const prices = computed(() => props.service.staff.map((m) => m.price).filter((p)
 const anyPriceLabel = computed(() => {
   if (!prices.value.length) return '';
   const low = Math.min(...prices.value);
-  return prices.value.every((p) => p === low) ? formatMoney(low) : `from ${formatMoney(low)}`;
+  return prices.value.every((p) => p === low) ? formatMoney(low) : i18n.sprintf(i18n.__('from %s', 'bookyzo'), formatMoney(low));
 });
 
 function chooseStaff(member) {
@@ -65,7 +66,7 @@ function chooseStaff(member) {
     ...own,
     id: member.id,
     type: 'appointment',
-    name: `${props.service.name} with ${member.name}`,
+    name: i18n.sprintf(i18n.__('%1$s with %2$s', 'bookyzo'), props.service.name, member.name),
     price: member.price,
     duration_minutes: member.duration_minutes,
     service_id: props.service.id,

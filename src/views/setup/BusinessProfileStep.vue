@@ -1,28 +1,28 @@
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>Tell us about your business</CardTitle>
-      <CardDescription>This shows up on booking confirmations and reminder emails.</CardDescription>
+      <CardTitle>{{ __('Tell us about your business', 'bookyzo') }}</CardTitle>
+      <CardDescription>{{ __('This shows up on booking confirmations and reminder emails.', 'bookyzo') }}</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
-        <Label for="business_name">Business name</Label>
+        <Label for="business_name">{{ __('Business name', 'bookyzo') }}</Label>
         <Input id="business_name" v-model="form.business_name" type="text" />
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <Label for="currency">Currency</Label>
-        <Input id="currency" v-model="form.currency" type="text" maxlength="3" placeholder="USD" class="w-24 uppercase" />
-        <p class="text-xs text-muted-foreground">3-letter code, e.g. USD, BDT, GBP.</p>
+        <Label for="currency">{{ __('Currency', 'bookyzo') }}</Label>
+        <Input id="currency" v-model="form.currency" type="text" maxlength="3" :placeholder="__('USD', 'bookyzo')" class="w-24 uppercase" />
+        <p class="text-xs text-muted-foreground">{{ __('3-letter code, e.g. USD, BDT, GBP.', 'bookyzo') }}</p>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
         <div class="flex flex-col gap-1.5">
-          <Label for="start_time">Default opening time</Label>
+          <Label for="start_time">{{ __('Default opening time', 'bookyzo') }}</Label>
           <Input id="start_time" v-model="form.default_start_time" type="time" />
         </div>
         <div class="flex flex-col gap-1.5">
-          <Label for="end_time">Default closing time</Label>
+          <Label for="end_time">{{ __('Default closing time', 'bookyzo') }}</Label>
           <Input id="end_time" v-model="form.default_end_time" type="time" />
         </div>
       </div>
@@ -30,13 +30,14 @@
       <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
     </CardContent>
     <CardFooter class="justify-between">
-      <Button variant="outline" @click="$emit('back')">Back</Button>
-      <Button :disabled="saving" @click="save">{{ saving ? 'Saving…' : 'Continue' }}</Button>
+      <Button variant="outline" @click="$emit('back')">{{ __('Back', 'bookyzo') }}</Button>
+      <Button :disabled="saving" @click="save">{{ saving ? __('Saving…', 'bookyzo') : __('Continue', 'bookyzo') }}</Button>
     </CardFooter>
   </Card>
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref, onMounted } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -80,7 +81,7 @@ async function save() {
     // themselves — pass them up alongside the unchanged `next` signal.
     emit('next', { currency: form.value.currency, default_start_time: form.value.default_start_time, default_end_time: form.value.default_end_time });
   } catch (e) {
-    error.value = e.message || 'Could not save your business profile. Please check the fields above.';
+    error.value = e.message || i18n.__('Could not save your business profile. Please check the fields above.', 'bookyzo');
   } finally {
     saving.value = false;
   }

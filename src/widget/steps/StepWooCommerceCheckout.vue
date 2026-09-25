@@ -1,17 +1,18 @@
 <template>
   <div>
-    <h2>Checkout</h2>
-    <WidgetLoading v-if="!error" label="Taking you to secure checkout…" />
+    <h2>{{ __('Checkout', 'bookyzo') }}</h2>
+    <WidgetLoading v-if="!error" :label="__('Taking you to secure checkout…', 'bookyzo')" />
     <template v-else>
       <p class="error">{{ error }}</p>
       <div class="actions">
-        <button type="button" class="btn btn-outline" @click="payInPerson">Pay in person instead</button>
+        <button type="button" class="btn btn-outline" @click="payInPerson">{{ __('Pay in person instead', 'bookyzo') }}</button>
       </div>
     </template>
   </div>
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 // WooCommerce Bridge checkout hand-off (DETAILED-SPEC.md §3 B9). Only
 // reached when the selected item's wc_checkout_enabled flag is true (the
 // separate bookyzo-woocommerce plugin is active + licensed + enabled for
@@ -54,7 +55,7 @@ onMounted(async () => {
     const { checkout_url: checkoutUrl } = await startWooCommerceCheckout(props.booking.id, props.booking.customer_email);
     window.location.href = checkoutUrl;
   } catch (e) {
-    error.value = e.message || 'Could not start checkout. Please try again.';
+    error.value = e.message || i18n.__('Could not start checkout. Please try again.', 'bookyzo');
   }
 });
 </script>

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader title="Get Pro" subtitle="Unlock unlimited bookable items and every growth feature.">
+    <ByzoPageHeader :title="__('Get Pro', 'bookyzo')" :subtitle="__('Unlock unlimited bookable items and every growth feature.', 'bookyzo')">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="m12 15 3.5-3.5L12 8" />
@@ -9,7 +9,7 @@
       </template>
       <template #actions>
         <a v-if="getProUrl" :href="getProUrl" target="_blank" rel="noopener noreferrer">
-          <Button style="background: var(--byzo-danger); border-color: var(--byzo-danger)">Get Bookyzo Pro</Button>
+          <Button style="background: var(--byzo-danger); border-color: var(--byzo-danger)">{{ __('Get Bookyzo Pro', 'bookyzo') }}</Button>
         </a>
       </template>
     </ByzoPageHeader>
@@ -20,11 +20,10 @@
            here is a Guideline 5 (Trialware) rejection risk, see bookyzo-dev skill. -->
       <div v-if="!getProUrl" class="rounded-lg border px-4 py-3 text-sm flex items-center justify-between gap-4" style="border-color: var(--byzo-border); background: var(--byzo-surface-alt); color: var(--byzo-text-muted)">
         <span>
-          Unlock unlimited bookable items and every growth feature with Bookyzo Pro. If you already have a
-          license key, install &amp; activate the Bookyzo Pro plugin, then enter it under Bookyzo → License.
+          {{ __('Unlock unlimited bookable items and every growth feature with Bookyzo Pro. If you already have a license key, install & activate the Bookyzo Pro plugin, then enter it under Bookyzo → License.', 'bookyzo') }}
         </span>
         <a href="#" class="shrink-0">
-          <Button style="background: var(--byzo-danger); border-color: var(--byzo-danger)">Purchase Bookyzo Pro</Button>
+          <Button style="background: var(--byzo-danger); border-color: var(--byzo-danger)">{{ __('Purchase Bookyzo Pro', 'bookyzo') }}</Button>
         </a>
       </div>
 
@@ -33,9 +32,9 @@
           <table class="w-full text-sm">
             <thead>
               <tr class="border-b" style="border-color: var(--byzo-border)">
-                <th class="text-left font-medium px-4 py-3 text-muted-foreground">Feature</th>
-                <th class="text-center font-medium px-4 py-3 w-28 text-muted-foreground">Free</th>
-                <th class="text-center font-medium px-4 py-3 w-28" style="color: var(--byzo-primary)">Pro</th>
+                <th class="text-left font-medium px-4 py-3 text-muted-foreground">{{ __('Feature', 'bookyzo') }}</th>
+                <th class="text-center font-medium px-4 py-3 w-28 text-muted-foreground">{{ __('Free', 'bookyzo') }}</th>
+                <th class="text-center font-medium px-4 py-3 w-28" style="color: var(--byzo-primary)">{{ __('Pro', 'bookyzo') }}</th>
               </tr>
             </thead>
             <tbody>
@@ -50,14 +49,14 @@
       </Card>
 
       <p class="text-xs text-muted-foreground">
-        Every booking type (Appointment, Table, Event, Slot/Class) is fully included in the free plugin — Pro adds
-        depth and volume, never a locked booking type.
+        {{ __('Every booking type (Appointment, Table, Event, Slot/Class) is fully included in the free plugin — Pro adds depth and volume, never a locked booking type.', 'bookyzo') }}
       </p>
     </div>
   </div>
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 // A real, separate comparison page — not a dimmed/locked preview of any
 // actual Pro screen — per the bookyzo-design skill's explicit rule (mirrors
 // license-envato's own Get Pro page). Only reachable at all while
@@ -75,21 +74,21 @@ const getProUrl = window.byzoAdmin?.getProUrl || '';
 // to upgrade. Keep this in sync if FEATURES.md's B1-B11 headline items
 // change materially.
 const rows = [
-  { label: 'Bookable items per type (staff, tables, events, classes)', free: '1', pro: 'Unlimited' },
-  { label: 'Shifts per day', free: '1', pro: 'Multiple' },
-  { label: 'Multi-location / multi-branch scheduling', free: '—', pro: '✓' },
-  { label: 'SMS & WhatsApp reminders', free: '—', pro: '✓' },
-  { label: 'Deposits & multiple payment gateways', free: '—', pro: '✓' },
-  { label: 'Coupons, package credits & dynamic pricing', free: '—', pro: '✓' },
-  { label: 'Bulk actions, notes & tags', free: '—', pro: '✓' },
-  { label: 'Recurring class series', free: '—', pro: '✓' },
-  { label: 'Table floor plan editor & walk-in waitlist', free: '—', pro: '✓' },
-  { label: 'Event ticket tiers, QR e-tickets & check-in scanner', free: '—', pro: '✓' },
-  { label: 'Analytics dashboard & CSV exports', free: '—', pro: '✓' },
-  { label: 'Staff calendar sync (Google / Outlook)', free: '—', pro: '✓' },
-  { label: 'Webhooks, marketing pixels & calendar feeds', free: '—', pro: '✓' },
-  { label: 'Custom form field builder', free: '—', pro: '✓' },
-  { label: 'Custom CSS for the booking widget', free: '—', pro: '✓' },
-  { label: 'Automatic Pro plugin updates', free: '—', pro: '✓' },
+  { label: i18n.__('Bookable items per type (staff, tables, events, classes)', 'bookyzo'), free: '1', pro: i18n.__('Unlimited', 'bookyzo') },
+  { label: i18n.__('Shifts per day', 'bookyzo'), free: '1', pro: i18n.__('Multiple', 'bookyzo') },
+  { label: i18n.__('Multi-location / multi-branch scheduling', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('SMS & WhatsApp reminders', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Deposits & multiple payment gateways', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Coupons, package credits & dynamic pricing', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Bulk actions, notes & tags', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Recurring class series', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Table floor plan editor & walk-in waitlist', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Event ticket tiers, QR e-tickets & check-in scanner', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Analytics dashboard & CSV exports', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Staff calendar sync (Google / Outlook)', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Webhooks, marketing pixels & calendar feeds', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Custom form field builder', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Custom CSS for the booking widget', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Automatic Pro plugin updates', 'bookyzo'), free: '—', pro: '✓' },
 ];
 </script>

@@ -1,21 +1,21 @@
 <template>
-  <h1>Log in</h1>
+  <h1>{{ __('Log in', 'bookyzo') }}</h1>
   <form method="post" :action="loginUrl">
     <div class="bookyzo-account__field">
-      <label for="byzo-login-email">Email</label>
+      <label for="byzo-login-email">{{ __('Email', 'bookyzo') }}</label>
       <input id="byzo-login-email" type="email" name="email" required autocomplete="email">
     </div>
     <div class="bookyzo-account__field">
-      <label for="byzo-login-password">Password</label>
+      <label for="byzo-login-password">{{ __('Password', 'bookyzo') }}</label>
       <input id="byzo-login-password" type="password" name="password" required autocomplete="current-password">
     </div>
-    <button type="submit" class="bookyzo-account__btn">Log in</button>
+    <button type="submit" class="bookyzo-account__btn">{{ __('Log in', 'bookyzo') }}</button>
   </form>
   <p class="bookyzo-account__switch">
-    <a @click="$emit('switch')">Don't have an account? Create one</a>
+    <a @click="$emit('switch')">{{ __('Don\'t have an account? Create one', 'bookyzo') }}</a>
     <template v-if="lostPasswordUrl">
       &nbsp;·&nbsp;
-      <a :href="lostPasswordUrl">Forgot password?</a>
+      <a :href="lostPasswordUrl">{{ __('Forgot password?', 'bookyzo') }}</a>
     </template>
   </p>
 </template>

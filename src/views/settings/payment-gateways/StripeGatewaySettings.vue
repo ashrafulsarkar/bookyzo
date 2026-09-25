@@ -1,22 +1,22 @@
 <template>
   <div class="flex flex-col gap-4">
     <div class="flex flex-col gap-1.5">
-      <Label for="stripe-pk">Publishable key</Label>
-      <Input id="stripe-pk" :model-value="modelValue.publishable_key" @update:model-value="update('publishable_key', $event)" type="text" placeholder="pk_test_..." class="font-mono" />
+      <Label for="stripe-pk">{{ __('Publishable key', 'bookyzo') }}</Label>
+      <Input id="stripe-pk" :model-value="modelValue.publishable_key" @update:model-value="update('publishable_key', $event)" type="text" :placeholder="__('pk_test_...', 'bookyzo')" class="font-mono" />
     </div>
 
     <div class="flex flex-col gap-1.5">
-      <Label for="stripe-sk">Secret key</Label>
-      <Input id="stripe-sk" :model-value="modelValue.secret_key" @update:model-value="update('secret_key', $event)" type="password" placeholder="sk_test_..." class="font-mono" />
+      <Label for="stripe-sk">{{ __('Secret key', 'bookyzo') }}</Label>
+      <Input id="stripe-sk" :model-value="modelValue.secret_key" @update:model-value="update('secret_key', $event)" type="password" :placeholder="__('sk_test_...', 'bookyzo')" class="font-mono" />
     </div>
 
     <div class="flex flex-col gap-1.5">
-      <Label for="stripe-wh">Webhook signing secret</Label>
-      <Input id="stripe-wh" :model-value="modelValue.webhook_secret" @update:model-value="update('webhook_secret', $event)" type="password" placeholder="whsec_..." class="font-mono" />
+      <Label for="stripe-wh">{{ __('Webhook signing secret', 'bookyzo') }}</Label>
+      <Input id="stripe-wh" :model-value="modelValue.webhook_secret" @update:model-value="update('webhook_secret', $event)" type="password" :placeholder="__('whsec_...', 'bookyzo')" class="font-mono" />
       <p class="text-xs text-muted-foreground">
-        Add a webhook endpoint in your Stripe dashboard pointing to
+        {{ __('Add a webhook endpoint in your Stripe dashboard pointing to', 'bookyzo') }}
         <code class="rounded bg-muted px-1 py-0.5">{{ webhookUrl }}</code>
-        listening for the <code class="rounded bg-muted px-1 py-0.5">payment_intent.succeeded</code> event, then paste its signing secret here.
+        {{ __('listening for the', 'bookyzo') }} <code class="rounded bg-muted px-1 py-0.5">payment_intent.succeeded</code> {{ __('event, then paste its signing secret here.', 'bookyzo') }}
       </p>
     </div>
   </div>

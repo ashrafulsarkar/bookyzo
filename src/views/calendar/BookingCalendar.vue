@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader title="Calendar" subtitle="Every booking, by day, week, or month.">
+    <ByzoPageHeader :title="__('Calendar', 'bookyzo')" :subtitle="__('Every booking, by day, week, or month.', 'bookyzo')">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -11,18 +11,18 @@
         <Select v-model="itemFilter">
           <SelectTrigger class="h-9 w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All bookable items</SelectItem>
+            <SelectItem value="__all__">{{ __('All bookable items', 'bookyzo') }}</SelectItem>
             <SelectItem v-for="item in items" :key="item.id" :value="String(item.id)">{{ item.name }}</SelectItem>
           </SelectContent>
         </Select>
         <Select v-if="locations.length" v-model="locationFilter">
           <SelectTrigger class="h-9 w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All locations</SelectItem>
+            <SelectItem value="__all__">{{ __('All locations', 'bookyzo') }}</SelectItem>
             <SelectItem v-for="location in locations" :key="location.id" :value="String(location.id)">{{ location.name }}</SelectItem>
           </SelectContent>
         </Select>
-        <Button @click="showManualBooking = true">+ New booking</Button>
+        <Button @click="showManualBooking = true">{{ __('+ New booking', 'bookyzo') }}</Button>
       </template>
     </ByzoPageHeader>
 
@@ -57,6 +57,7 @@
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref, watch, onMounted } from 'vue';
 import { extraLocations as locations } from '@/lib/admin-extensions';
 import { Card } from '@/components/ui/card';
@@ -109,7 +110,7 @@ async function loadBookings() {
     }
     bookings.value = await api.get(`/bookings?${params.toString()}`);
   } catch (e) {
-    error.value = e.message || 'Could not load bookings.';
+    error.value = e.message || i18n.__('Could not load bookings.', 'bookyzo');
   }
 }
 
@@ -155,7 +156,7 @@ async function onRescheduleBooking({ booking, date, minutes }) {
     });
     slots = await api.get(`/slots?${params.toString()}`);
   } catch (e) {
-    toast.error(e.message || 'Could not check availability for that time.');
+    toast.error(e.message || i18n.__('Could not check availability for that time.', 'bookyzo'));
     return;
   }
 
@@ -165,16 +166,16 @@ async function onRescheduleBooking({ booking, date, minutes }) {
   });
 
   if (!targetMatch) {
-    toast.error('No available time there — drop it on an open slot.');
+    toast.error(i18n.__('No available time there — drop it on an open slot.', 'bookyzo'));
     return;
   }
 
   try {
     await api.put(`/bookings/${booking.id}/reschedule`, { slot_id: targetMatch.id });
-    toast.success('Booking rescheduled.');
+    toast.success(i18n.__('Booking rescheduled.', 'bookyzo'));
     loadBookings();
   } catch (e) {
-    toast.error(e.message || 'Could not reschedule this booking.');
+    toast.error(e.message || i18n.__('Could not reschedule this booking.', 'bookyzo'));
   }
 }
 

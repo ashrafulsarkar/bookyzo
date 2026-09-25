@@ -2,12 +2,12 @@
   <Dialog :open="true" @update:open="(v) => { if (!v) $emit('close'); }">
     <DialogContent class="max-w-md">
       <DialogHeader>
-        <DialogTitle>New booking</DialogTitle>
-        <DialogDescription>For a phone or walk-in customer.</DialogDescription>
+        <DialogTitle>{{ __('New booking', 'bookyzo') }}</DialogTitle>
+        <DialogDescription>{{ __('For a phone or walk-in customer.', 'bookyzo') }}</DialogDescription>
       </DialogHeader>
       <div class="flex flex-col gap-4">
         <div class="flex flex-col gap-1.5">
-          <Label for="mb-item">Bookable item</Label>
+          <Label for="mb-item">{{ __('Bookable item', 'bookyzo') }}</Label>
           <Select v-model="selectedBookableItemId">
             <SelectTrigger id="mb-item" class="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -20,21 +20,21 @@
              B9) — absent when there are none, which is always the case
              without Pro. "None" books at the item's own price. -->
         <div v-if="servicesForItem.length" class="flex flex-col gap-1.5">
-          <Label for="mb-service">Service</Label>
+          <Label for="mb-service">{{ __('Service', 'bookyzo') }}</Label>
           <Select v-model="selectedServiceId">
             <SelectTrigger id="mb-service" class="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem :value="NO_SERVICE">None</SelectItem>
+              <SelectItem :value="NO_SERVICE">{{ __('None', 'bookyzo') }}</SelectItem>
               <SelectItem v-for="service in servicesForItem" :key="service.id" :value="service.id">{{ service.label }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <Label for="mb-slot">Time slot</Label>
+          <Label for="mb-slot">{{ __('Time slot', 'bookyzo') }}</Label>
           <Select v-model="selectedSlotId" :disabled="loadingSlots || slots.length === 0">
             <SelectTrigger id="mb-slot" class="h-9">
-              <SelectValue :placeholder="loadingSlots ? 'Loading…' : (slots.length === 0 ? 'No available slots in the next 2 weeks' : undefined)" />
+              <SelectValue :placeholder="loadingSlots ? __('Loading…', 'bookyzo') : (slots.length === 0 ? __('No available slots in the next 2 weeks', 'bookyzo') : undefined)" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem v-for="slot in slots" :key="slot.id" :value="slot.id">{{ formatSlot(slot) }}</SelectItem>
@@ -52,7 +52,7 @@
              phone couldn't (QA report §4.3). Absent otherwise, including on
              every site without Pro. -->
         <div v-if="ticketTiers.length" class="flex flex-col gap-1.5">
-          <Label for="mb-tier">Ticket type</Label>
+          <Label for="mb-tier">{{ __('Ticket type', 'bookyzo') }}</Label>
           <Select v-model="form.ticket_tier_id">
             <SelectTrigger id="mb-tier" class="h-9"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -62,7 +62,7 @@
         </div>
 
         <div v-if="addons.length" class="flex flex-col gap-1.5">
-          <Label>Add-ons</Label>
+          <Label>{{ __('Add-ons', 'bookyzo') }}</Label>
           <label v-for="addon in addons" :key="addon.id" class="flex items-center justify-between gap-2 text-sm">
             <span class="flex items-center gap-2">
               <input v-model="form.addon_ids" type="checkbox" :value="addon.id" class="h-4 w-4" />
@@ -97,37 +97,37 @@
         <!-- The same server-computed total the customer would see
              (POST /bookings/quote), so staff quote the real price. -->
         <div v-if="quote && quote.payment_amount !== null" class="flex items-center justify-between rounded-md bg-muted/50 px-3 py-2 text-sm">
-          <span class="text-muted-foreground">Total</span>
+          <span class="text-muted-foreground">{{ __('Total', 'bookyzo') }}</span>
           <span class="font-medium">{{ formatMoney(quote.payment_amount) }}</span>
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <Label for="mb-name">Customer name</Label>
+          <Label for="mb-name">{{ __('Customer name', 'bookyzo') }}</Label>
           <Input id="mb-name" v-model="form.customer_name" type="text" />
         </div>
 
         <div class="grid grid-cols-2 gap-4">
           <div class="flex flex-col gap-1.5">
-            <Label for="mb-email">Email</Label>
+            <Label for="mb-email">{{ __('Email', 'bookyzo') }}</Label>
             <Input id="mb-email" v-model="form.customer_email" type="email" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <Label for="mb-phone">Phone</Label>
+            <Label for="mb-phone">{{ __('Phone', 'bookyzo') }}</Label>
             <Input id="mb-phone" v-model="form.customer_phone" type="tel" />
           </div>
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <Label for="mb-notes">Notes</Label>
+          <Label for="mb-notes">{{ __('Notes', 'bookyzo') }}</Label>
           <Textarea id="mb-notes" v-model="form.customer_notes" rows="2" />
         </div>
 
         <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
       </div>
       <DialogFooter>
-        <Button variant="outline" @click="$emit('close')">Cancel</Button>
+        <Button variant="outline" @click="$emit('close')">{{ __('Cancel', 'bookyzo') }}</Button>
         <Button :disabled="!selectedSlotId || !form.customer_name || !form.customer_email || saving" @click="save">
-          {{ saving ? 'Booking…' : 'Create booking' }}
+          {{ saving ? __('Booking…', 'bookyzo') : __('Create booking', 'bookyzo') }}
         </Button>
       </DialogFooter>
     </DialogContent>
@@ -135,6 +135,7 @@
 </template>
 
 <script setup>
+import { i18n, locale } from '@/lib/i18n';
 import { ref, computed, watch, onMounted } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -188,14 +189,14 @@ const form = ref({
 // §A4), so it needs the same type-aware label/hidden-for-Appointment/
 // max-by-remaining-capacity behavior.
 const PARTY_SIZE_LABELS = {
-  table: 'Party size',
-  event: 'Tickets',
-  slot: 'Spots',
+  table: i18n.__('Party size', 'bookyzo'),
+  event: i18n.__('Tickets', 'bookyzo'),
+  slot: i18n.__('Spots', 'bookyzo'),
 };
 const selectedItem = computed(() => items.value.find((i) => i.id === selectedBookableItemId.value));
 const selectedSlot = computed(() => slots.value.find((s) => s.id === selectedSlotId.value));
 const showPartySize = computed(() => selectedItem.value && selectedItem.value.type !== 'appointment');
-const partySizeLabel = computed(() => PARTY_SIZE_LABELS[selectedItem.value?.type] || 'Party size');
+const partySizeLabel = computed(() => PARTY_SIZE_LABELS[selectedItem.value?.type] || i18n.__('Party size', 'bookyzo'));
 const partySizeMax = computed(() => Math.max(1, selectedSlot.value?.capacity_remaining || 1));
 
 // /services/public is Pro's route; without Pro it 404s and there are simply
@@ -287,7 +288,7 @@ async function loadSlots() {
 
 function formatSlot(slot) {
   const start = new Date(slot.start_datetime);
-  return start.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return start.toLocaleString(locale, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
 async function save() {
@@ -302,7 +303,7 @@ async function save() {
     quote.value = null;
     emit('created', booking);
   } catch (e) {
-    error.value = e.message || 'Could not create this booking.';
+    error.value = e.message || i18n.__('Could not create this booking.', 'bookyzo');
   } finally {
     saving.value = false;
   }

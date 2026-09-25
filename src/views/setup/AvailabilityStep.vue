@@ -1,9 +1,9 @@
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>{{ type === 'event' ? 'When is it happening?' : 'Weekly availability' }}</CardTitle>
+      <CardTitle>{{ type === 'event' ? __('When is it happening?', 'bookyzo') : __('Weekly availability', 'bookyzo') }}</CardTitle>
       <CardDescription>
-        {{ type === 'event' ? 'Events are one-off dated occurrences, not a weekly schedule (you can add more dates later).' : 'When can this be booked, every week? You can fine-tune this later.' }}
+        {{ type === 'event' ? __('Events are one-off dated occurrences, not a weekly schedule (you can add more dates later).', 'bookyzo') : __('When can this be booked, every week? You can fine-tune this later.', 'bookyzo') }}
       </CardDescription>
     </CardHeader>
     <CardContent>
@@ -12,12 +12,12 @@
            on after the wizard (BookableItemDatesTab.vue). -->
       <div v-if="type === 'event'" class="flex flex-col gap-4">
         <div class="flex flex-col gap-1.5">
-          <Label for="wizard-occurrence-date">Date</Label>
+          <Label for="wizard-occurrence-date">{{ __('Date', 'bookyzo') }}</Label>
           <Input id="wizard-occurrence-date" v-model="occurrence.date" type="date" class="h-9 w-48" />
         </div>
         <div class="flex items-center gap-2">
           <Input v-model="occurrence.start_time" type="time" class="h-8 w-auto" />
-          <span class="text-sm text-muted-foreground">to</span>
+          <span class="text-sm text-muted-foreground">{{ __('to', 'bookyzo') }}</span>
           <Input v-model="occurrence.end_time" type="time" class="h-8 w-auto" />
         </div>
       </div>
@@ -26,13 +26,15 @@
       <p v-if="error" class="mt-4 text-sm text-destructive">{{ error }}</p>
     </CardContent>
     <CardFooter class="justify-between">
-      <Button variant="outline" @click="$emit('back')">Back</Button>
-      <Button @click="continueStep">Continue</Button>
+      <Button variant="outline" @click="$emit('back')">{{ __('Back', 'bookyzo') }}</Button>
+      <Button @click="continueStep">{{ __('Continue', 'bookyzo') }}</Button>
     </CardFooter>
   </Card>
 </template>
 
 <script setup>
+import { weekdayNames } from '@/lib/date';
+import { i18n } from '@/lib/i18n';
 import { ref } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -58,7 +60,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['next', 'back']);
 
-const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const WEEKDAY_NAMES = weekdayNames();
 
 const schedules = ref(
   Array.isArray(props.initial?.schedules)
@@ -87,9 +89,9 @@ const error = ref('');
 // step's Create (and, for Event, after the item itself already exists).
 function timeRangeError(start, end) {
   if (!start || !end) {
-    return 'Please enter both a start and an end time.';
+    return i18n.__('Please enter both a start and an end time.', 'bookyzo');
   }
-  return start < end ? '' : 'End time must be after start time.';
+  return start < end ? '' : i18n.__('End time must be after start time.', 'bookyzo');
 }
 
 function continueStep() {
@@ -97,7 +99,7 @@ function continueStep() {
 
   if ('event' === props.type) {
     if (!occurrence.value.date) {
-      error.value = 'Please pick a date.';
+      error.value = i18n.__('Please pick a date.', 'bookyzo');
       return;
     }
     const rangeError = timeRangeError(occurrence.value.start_time, occurrence.value.end_time);

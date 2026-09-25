@@ -16,7 +16,7 @@
               <span class="shrink-0 font-mono text-xs">· #{{ booking.id }}</span>
             </DialogDescription>
           </div>
-          <ByzoBadge :status="booking.status" class="shrink-0">{{ booking.status.replace('_', ' ') }}</ByzoBadge>
+          <ByzoBadge :status="booking.status" class="shrink-0">{{ statusLabel(booking.status) }}</ByzoBadge>
         </div>
       </DialogHeader>
 
@@ -32,7 +32,7 @@
           </div>
           <div v-if="booking.party_size > 1" class="flex items-center gap-2.5">
             <Users class="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span>{{ booking.party_size }} people</span>
+            <span>{{ sprintf(_n('%s person', '%s people', booking.party_size, 'bookyzo'), booking.party_size) }}</span>
           </div>
           <div v-if="booking.customer_notes" class="flex items-start gap-2.5">
             <StickyNote class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
@@ -48,7 +48,7 @@
               class="text-xs font-medium capitalize"
               :style="{ color: booking.payment_status === 'unpaid' ? 'var(--byzo-warning)' : 'var(--byzo-success)' }"
             >
-              {{ booking.payment_status.replace('_', ' ') }}
+              {{ statusLabel(booking.payment_status) }}
             </span>
           </div>
           <Button
@@ -58,7 +58,7 @@
             :disabled="markingPaid"
             @click="markPaid"
           >
-            {{ markingPaid ? 'Marking…' : 'Mark as paid' }}
+            {{ markingPaid ? __('Marking…', 'bookyzo') : __('Mark as paid', 'bookyzo') }}
           </Button>
         </div>
 
@@ -73,7 +73,7 @@
           v-if="booking.deposit_amount !== null && booking.deposit_amount < booking.payment_amount"
           class="text-xs text-muted-foreground"
         >
-          Deposit due online: {{ formatTotal(booking.deposit_amount) }} · Balance due: {{ formatTotal(booking.payment_amount - booking.deposit_amount) }}
+          {{ sprintf(__('Deposit due online: %1$s · Balance due: %2$s', 'bookyzo'), formatTotal(booking.deposit_amount), formatTotal(booking.payment_amount - booking.deposit_amount)) }}
         </p>
 
         <!-- Basic reschedule (added 2026-09-05, Phase 1.6, DETAILED-SPEC.md
@@ -81,15 +81,15 @@
              completed/cancelled/no_show/rejected booking has nothing left
              to move. -->
         <div v-if="canReschedule" class="rounded-lg border border-border p-3">
-          <Button v-if="!rescheduling" type="button" variant="outline" size="sm" @click="startReschedule">Reschedule</Button>
+          <Button v-if="!rescheduling" type="button" variant="outline" size="sm" @click="startReschedule">{{ __('Reschedule', 'bookyzo') }}</Button>
           <div v-else class="flex flex-col gap-2">
-            <Label for="reschedule-date" class="text-xs font-medium text-muted-foreground">Move to a different time</Label>
+            <Label for="reschedule-date" class="text-xs font-medium text-muted-foreground">{{ __('Move to a different time', 'bookyzo') }}</Label>
             <!-- A day first, then that day's times as chips — the same
                  shape the customer widget uses. One flat dropdown of every
                  open slot ran to 141 entries on the demo site (QA report
                  §4.2). -->
-            <p v-if="loadingSlots" class="text-sm text-muted-foreground">Loading…</p>
-            <p v-else-if="slots.length === 0" class="text-sm text-muted-foreground">No other available times.</p>
+            <p v-if="loadingSlots" class="text-sm text-muted-foreground">{{ __('Loading…', 'bookyzo') }}</p>
+            <p v-else-if="slots.length === 0" class="text-sm text-muted-foreground">{{ __('No other available times.', 'bookyzo') }}</p>
             <template v-else>
               <Select v-model="rescheduleDate">
                 <SelectTrigger id="reschedule-date" class="h-9"><SelectValue /></SelectTrigger>
@@ -112,9 +112,9 @@
             </template>
             <div class="flex gap-2">
               <Button type="button" size="sm" :disabled="!newSlotId || rescheduleSaving" @click="confirmReschedule">
-                {{ rescheduleSaving ? 'Moving…' : 'Move booking' }}
+                {{ rescheduleSaving ? __('Moving…', 'bookyzo') : __('Move booking', 'bookyzo') }}
               </Button>
-              <Button type="button" variant="ghost" size="sm" @click="rescheduling = false">Cancel</Button>
+              <Button type="button" variant="ghost" size="sm" @click="rescheduling = false">{{ __('Cancel', 'bookyzo') }}</Button>
             </div>
           </div>
         </div>
@@ -144,12 +144,12 @@
         was open (see the two screenshots this was reported against).
       -->
       <DialogFooter class="flex items-center justify-between gap-2 sm:justify-between">
-        <Button variant="ghost" @click="$emit('close')">Close</Button>
+        <Button variant="ghost" @click="$emit('close')">{{ __('Close', 'bookyzo') }}</Button>
         <div class="flex items-center gap-2">
           <DropdownMenu v-if="secondaryTransitions.length">
             <DropdownMenuTrigger as-child>
               <Button type="button" variant="outline" :disabled="updating">
-                More actions
+                {{ __('More actions', 'bookyzo') }}
                 <ChevronDown class="h-4 w-4" />
               </Button>
             </DropdownMenuTrigger>
@@ -166,7 +166,7 @@
             </DropdownMenuContent>
           </DropdownMenu>
           <Button v-if="primaryTransition" :disabled="updating" @click="changeStatus(primaryTransition)">
-            {{ updating ? 'Updating…' : label(primaryTransition) }}
+            {{ updating ? __('Updating…', 'bookyzo') : label(primaryTransition) }}
           </Button>
         </div>
       </DialogFooter>
@@ -175,6 +175,8 @@
 </template>
 
 <script setup>
+import { statusLabel } from '@/lib/status';
+import { i18n, locale } from '@/lib/i18n';
 import { ref, computed, watch } from 'vue';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -242,7 +244,7 @@ const slotDays = computed(() => {
   for (const slot of slots.value) {
     const key = slot.start_datetime.slice(0, 10);
     if (!byDay.has(key)) {
-      byDay.set(key, { key, label: new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' }), slots: [] });
+      byDay.set(key, { key, label: new Date(`${key}T12:00:00`).toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }), slots: [] });
     }
     byDay.get(key).slots.push(slot);
   }
@@ -257,7 +259,7 @@ watch(rescheduleDate, () => {
 });
 
 function formatSlotTime(slot) {
-  return new Date(slot.start_datetime.replace(' ', 'T')).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  return new Date(slot.start_datetime.replace(' ', 'T')).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' });
 }
 const rescheduleSaving = ref(false);
 
@@ -286,7 +288,7 @@ async function loadSlotsForReschedule() {
 
 function formatSlot(slot) {
   const start = new Date(slot.start_datetime);
-  return start.toLocaleString(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+  return start.toLocaleString(locale, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 }
 
 async function confirmReschedule() {
@@ -298,7 +300,7 @@ async function confirmReschedule() {
     newSlotId.value = null;
     emit('updated', updated);
   } catch (e) {
-    error.value = e.message || 'Could not reschedule this booking.';
+    error.value = e.message || i18n.__('Could not reschedule this booking.', 'bookyzo');
   } finally {
     rescheduleSaving.value = false;
   }
@@ -306,16 +308,16 @@ async function confirmReschedule() {
 
 const timeRangeLabel = computed(() => {
   if (!props.booking.slot_start) {
-    return 'No scheduled time';
+    return i18n.__('No scheduled time', 'bookyzo');
   }
   const start = new Date(props.booking.slot_start);
   const end = props.booking.slot_end ? new Date(props.booking.slot_end) : null;
-  const dateLabel = start.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
+  const dateLabel = start.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
   return end ? `${dateLabel}, ${formatTime(start)} – ${formatTime(end)}` : `${dateLabel}, ${formatTime(start)}`;
 });
 
 function label(status) {
-  return { confirmed: 'Confirm', completed: 'Mark completed', cancelled: 'Cancel', no_show: 'No-show', rejected: 'Reject' }[status] || status;
+  return { confirmed: i18n.__('Confirm', 'bookyzo'), completed: i18n.__('Mark completed', 'bookyzo'), cancelled: i18n.__('Cancel', 'bookyzo'), no_show: i18n.__('No-show', 'bookyzo'), rejected: i18n.__('Reject', 'bookyzo') }[status] || status;
 }
 
 async function changeStatus(status) {
@@ -325,7 +327,7 @@ async function changeStatus(status) {
     const updated = await api.put(`/bookings/${props.booking.id}`, { status });
     emit('updated', updated);
   } catch (e) {
-    error.value = e.message || 'Could not update this booking.';
+    error.value = e.message || i18n.__('Could not update this booking.', 'bookyzo');
   } finally {
     updating.value = false;
   }
@@ -338,7 +340,7 @@ async function markPaid() {
     const updated = await api.put(`/bookings/${props.booking.id}/payment`, { payment_status: 'paid_manual' });
     emit('updated', updated);
   } catch (e) {
-    error.value = e.message || 'Could not update payment status.';
+    error.value = e.message || i18n.__('Could not update payment status.', 'bookyzo');
   } finally {
     markingPaid.value = false;
   }

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader title="Bookable Items" subtitle="Your staff, tables, or bookable items.">
+    <ByzoPageHeader :title="__('Bookable Items', 'bookyzo')" :subtitle="__('Your staff, tables, or bookable items.', 'bookyzo')">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
@@ -10,17 +10,17 @@
         </svg>
       </template>
       <template #actions>
-        <Button @click="openAdd">+ Add bookable item</Button>
+        <Button @click="openAdd">{{ __('+ Add bookable item', 'bookyzo') }}</Button>
       </template>
     </ByzoPageHeader>
 
     <div class="px-6 pb-8">
       <div v-if="!loading && items.length > 0" class="mb-4 flex flex-col gap-1.5">
-        <Label class="text-xs text-muted-foreground">Type</Label>
+        <Label class="text-xs text-muted-foreground">{{ __('Type', 'bookyzo') }}</Label>
         <Select v-model="typeFilter">
           <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="__all__">All</SelectItem>
+            <SelectItem value="__all__">{{ __('All', 'bookyzo') }}</SelectItem>
             <SelectItem v-for="type in TYPES" :key="type" :value="type">{{ TYPE_LABELS[type] }}</SelectItem>
           </SelectContent>
         </Select>
@@ -29,52 +29,52 @@
       <ByzoLoading v-if="loading" />
 
       <Card v-else-if="items.length === 0" class="flex flex-col items-center gap-3 py-16 text-center">
-        <p class="font-medium">No bookable items yet</p>
+        <p class="font-medium">{{ __('No bookable items yet', 'bookyzo') }}</p>
         <p class="max-w-sm text-sm text-muted-foreground">
-          Add your first staff member, table, or bookable item to start accepting bookings.
+          {{ __('Add your first staff member, table, or bookable item to start accepting bookings.', 'bookyzo') }}
         </p>
-        <Button @click="openAdd">+ Add bookable item</Button>
+        <Button @click="openAdd">{{ __('+ Add bookable item', 'bookyzo') }}</Button>
       </Card>
 
       <Card v-else-if="filteredItems.length === 0" class="py-16 text-center text-sm text-muted-foreground">
-        No bookable items match this filter.
+        {{ __('No bookable items match this filter.', 'bookyzo') }}
       </Card>
 
       <Card v-else class="overflow-hidden">
         <Table class="min-w-[900px]">
           <TableHeader>
             <TableRow>
-              <TableHead class="min-w-[170px]">Name</TableHead>
-              <TableHead>Type</TableHead>
-              <TableHead>Duration</TableHead>
-              <TableHead>Price</TableHead>
-              <TableHead>Status</TableHead>
-              <TableHead>Shortcode</TableHead>
-              <TableHead class="text-right">Action</TableHead>
+              <TableHead class="min-w-[170px]">{{ __('Name', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('Type', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('Duration', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('Price', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('Status', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('Shortcode', 'bookyzo') }}</TableHead>
+              <TableHead class="text-right">{{ __('Action', 'bookyzo') }}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             <TableRow v-for="item in paginatedItems" :key="item.id">
               <TableCell class="min-w-[170px] font-medium">{{ item.name }}</TableCell>
               <TableCell><Badge variant="secondary">{{ TYPE_LABELS[item.type] || item.type }}</Badge></TableCell>
-              <TableCell class="text-muted-foreground">{{ item.duration_minutes }} min</TableCell>
+              <TableCell class="text-muted-foreground">{{ sprintf(__('%s min', 'bookyzo'), item.duration_minutes) }}</TableCell>
               <TableCell class="text-muted-foreground">{{ formatPrice(item.price) }}</TableCell>
-              <TableCell><ByzoBadge :status="item.status">{{ item.status }}</ByzoBadge></TableCell>
+              <TableCell><ByzoBadge :status="item.status">{{ statusLabel(item.status) }}</ByzoBadge></TableCell>
               <TableCell>
                 <div class="flex items-center gap-1.5">
                   <!-- Truncated so the Action column stays on screen at
                        common laptop widths (it was cut off at 1440px) — the
                        full shortcode is in the tooltip and on the copy button. -->
                   <code class="block max-w-[13rem] truncate whitespace-nowrap rounded bg-muted px-1.5 py-0.5 text-xs" :title="shortcode(item)">{{ shortcode(item) }}</code>
-                  <Button variant="ghost" size="icon" class="h-6 w-6" title="Copy shortcode" @click="copyShortcode(item)">
+                  <Button variant="ghost" size="icon" class="h-6 w-6" :title="__('Copy shortcode', 'bookyzo')" @click="copyShortcode(item)">
                     <Copy class="h-3.5 w-3.5" />
                   </Button>
                 </div>
               </TableCell>
               <TableCell class="text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <Button variant="ghost" size="sm" @click="openEdit(item)">Edit</Button>
-                  <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="askDelete(item)">Delete</Button>
+                  <Button variant="ghost" size="sm" @click="openEdit(item)">{{ __('Edit', 'bookyzo') }}</Button>
+                  <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="askDelete(item)">{{ __('Delete', 'bookyzo') }}</Button>
                 </div>
               </TableCell>
             </TableRow>
@@ -88,14 +88,14 @@
     <Dialog :open="!!deleteTarget" @update:open="(v) => { if (!v) deleteTarget = null; }">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete bookable item</DialogTitle>
+          <DialogTitle>{{ __('Delete bookable item', 'bookyzo') }}</DialogTitle>
           <DialogDescription>
-            Delete "{{ deleteTarget?.name }}"? This cannot be undone.
+            {{ sprintf(__('Delete "%s"? This cannot be undone.', 'bookyzo'), deleteTarget?.name) }}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" @click="deleteTarget = null">Cancel</Button>
-          <Button variant="destructive" @click="confirmDelete">Delete</Button>
+          <Button variant="outline" @click="deleteTarget = null">{{ __('Cancel', 'bookyzo') }}</Button>
+          <Button variant="destructive" @click="confirmDelete">{{ __('Delete', 'bookyzo') }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -105,6 +105,8 @@
 </template>
 
 <script setup>
+import { statusLabel } from '@/lib/status';
+import { i18n } from '@/lib/i18n';
 import { ref, computed, watch, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { toast } from 'vue-sonner';
@@ -126,7 +128,7 @@ import { api } from '@/api/client';
 import { useClientPagination } from '@/composables/useClientPagination';
 
 const TYPES = ['appointment', 'table', 'event', 'slot'];
-const TYPE_LABELS = { appointment: 'Appointment', table: 'Table', event: 'Event', slot: 'Slot' };
+const TYPE_LABELS = { appointment: i18n.__('Appointment', 'bookyzo'), table: i18n.__('Table', 'bookyzo'), event: i18n.__('Event', 'bookyzo'), slot: i18n.__('Slot', 'bookyzo') };
 
 const route = useRoute();
 const router = useRouter();
@@ -171,7 +173,7 @@ async function load() {
   try {
     items.value = await api.get('/bookable-items?per_page=100');
   } catch (e) {
-    toast.error(e.message || 'Could not load bookable items.');
+    toast.error(e.message || i18n.__('Could not load bookable items.', 'bookyzo'));
   } finally {
     loading.value = false;
   }
@@ -192,9 +194,9 @@ function shortcode(item) {
 async function copyShortcode(item) {
   try {
     await navigator.clipboard.writeText(shortcode(item));
-    toast.success('Shortcode copied.');
+    toast.success(i18n.__('Shortcode copied.', 'bookyzo'));
   } catch (e) {
-    toast.error('Could not copy — select and copy manually.');
+    toast.error(i18n.__('Could not copy — select and copy manually.', 'bookyzo'));
   }
 }
 
@@ -208,9 +210,9 @@ async function confirmDelete() {
   try {
     await api.delete(`/bookable-items/${item.id}`);
     items.value = items.value.filter((i) => i.id !== item.id);
-    toast.success(`"${item.name}" deleted.`);
+    toast.success(i18n.sprintf(i18n.__('"%s" deleted.', 'bookyzo'), item.name));
   } catch (e) {
-    toast.error(e.message || 'Could not delete this bookable item.');
+    toast.error(e.message || i18n.__('Could not delete this bookable item.', 'bookyzo'));
   } finally {
     deleteTarget.value = null;
   }

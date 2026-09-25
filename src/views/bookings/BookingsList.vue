@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader title="Bookings" subtitle="Every booking, filterable and exportable.">
+    <ByzoPageHeader :title="__('Bookings', 'bookyzo')" :subtitle="__('Every booking, filterable and exportable.', 'bookyzo')">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 11l3 3L22 4" />
@@ -9,7 +9,7 @@
       </template>
       <template #actions>
         <a :href="exportUrl" class="inline-flex">
-          <Button variant="outline">Export CSV</Button>
+          <Button variant="outline">{{ __('Export CSV', 'bookyzo') }}</Button>
         </a>
       </template>
     </ByzoPageHeader>
@@ -17,12 +17,12 @@
     <div class="px-6 pb-8">
       <div class="mb-4 flex flex-wrap items-end gap-4 rounded-lg border border-border bg-muted/30 p-4">
         <div class="flex flex-col gap-1.5">
-          <Label for="bookings-search" class="text-xs font-medium text-muted-foreground">Search</Label>
-          <Input id="bookings-search" v-model="filters.search" type="search" placeholder="Name, email or phone" class="h-9 w-56" />
+          <Label for="bookings-search" class="text-xs font-medium text-muted-foreground">{{ __('Search', 'bookyzo') }}</Label>
+          <Input id="bookings-search" v-model="filters.search" type="search" :placeholder="__('Name, email or phone', 'bookyzo')" class="h-9 w-56" />
         </div>
 
         <div class="flex flex-col gap-1.5">
-          <Label class="text-xs font-medium text-muted-foreground">From</Label>
+          <Label class="text-xs font-medium text-muted-foreground">{{ __('From', 'bookyzo') }}</Label>
           <Popover>
             <PopoverTrigger as-child>
               <Button
@@ -32,7 +32,7 @@
                 :class="!filters.from && 'text-muted-foreground'"
               >
                 <CalendarIcon class="h-4 w-4 shrink-0" />
-                {{ filters.from ? formatFilterDate(filters.from) : 'Any date' }}
+                {{ filters.from ? formatFilterDate(filters.from) : __('Any date', 'bookyzo') }}
               </Button>
             </PopoverTrigger>
             <PopoverContent class="w-auto p-0" align="start">
@@ -41,7 +41,7 @@
           </Popover>
         </div>
         <div class="flex flex-col gap-1.5">
-          <Label class="text-xs font-medium text-muted-foreground">To</Label>
+          <Label class="text-xs font-medium text-muted-foreground">{{ __('To', 'bookyzo') }}</Label>
           <Popover>
             <PopoverTrigger as-child>
               <Button
@@ -51,7 +51,7 @@
                 :class="!filters.to && 'text-muted-foreground'"
               >
                 <CalendarIcon class="h-4 w-4 shrink-0" />
-                {{ filters.to ? formatFilterDate(filters.to) : 'Any date' }}
+                {{ filters.to ? formatFilterDate(filters.to) : __('Any date', 'bookyzo') }}
               </Button>
             </PopoverTrigger>
             <PopoverContent class="w-auto p-0" align="start">
@@ -60,32 +60,32 @@
           </Popover>
         </div>
         <div class="flex flex-col gap-1.5">
-          <Label class="text-xs font-medium text-muted-foreground">Bookable item</Label>
+          <Label class="text-xs font-medium text-muted-foreground">{{ __('Bookable item', 'bookyzo') }}</Label>
           <Select v-model="filters.bookable_item_id">
             <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All</SelectItem>
+              <SelectItem value="__all__">{{ __('All', 'bookyzo') }}</SelectItem>
               <SelectItem v-for="item in items" :key="item.id" :value="String(item.id)">{{ item.name }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div v-if="locations.length" class="flex flex-col gap-1.5">
-          <Label class="text-xs font-medium text-muted-foreground">Location</Label>
+          <Label class="text-xs font-medium text-muted-foreground">{{ __('Location', 'bookyzo') }}</Label>
           <Select v-model="filters.location_id">
             <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All</SelectItem>
+              <SelectItem value="__all__">{{ __('All', 'bookyzo') }}</SelectItem>
               <SelectItem v-for="location in locations" :key="location.id" :value="String(location.id)">{{ location.name }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
         <div class="flex flex-col gap-1.5">
-          <Label class="text-xs font-medium text-muted-foreground">Status</Label>
+          <Label class="text-xs font-medium text-muted-foreground">{{ __('Status', 'bookyzo') }}</Label>
           <Select v-model="filters.status">
             <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="__all__">All</SelectItem>
-              <SelectItem v-for="status in statuses" :key="status" :value="status">{{ status.replace('_', ' ') }}</SelectItem>
+              <SelectItem value="__all__">{{ __('All', 'bookyzo') }}</SelectItem>
+              <SelectItem v-for="status in statuses" :key="status" :value="status">{{ statusLabel(status) }}</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -97,7 +97,7 @@
           @click="clearFilters"
         >
           <X class="h-4 w-4" />
-          Clear filters
+          {{ __('Clear filters', 'bookyzo') }}
         </Button>
       </div>
 
@@ -108,7 +108,7 @@
         v-if="bulkActions.length && selectedIds.length"
         class="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 px-4 py-2.5"
       >
-        <span class="mr-2 text-sm font-medium">{{ selectedIds.length }} selected</span>
+        <span class="mr-2 text-sm font-medium">{{ sprintf(__('%s selected', 'bookyzo'), selectedIds.length) }}</span>
         <Button
           v-for="action in bulkActions"
           :key="action.label"
@@ -120,13 +120,13 @@
         >
           {{ action.label }}
         </Button>
-        <Button size="sm" variant="ghost" class="ml-auto text-muted-foreground" :disabled="bulkBusy" @click="selectedIds = []">Clear selection</Button>
+        <Button size="sm" variant="ghost" class="ml-auto text-muted-foreground" :disabled="bulkBusy" @click="selectedIds = []">{{ __('Clear selection', 'bookyzo') }}</Button>
       </div>
 
       <ByzoLoading v-if="loading" />
 
       <Card v-else-if="bookings.length === 0" class="py-16 text-center text-sm text-muted-foreground">
-        No bookings match these filters.
+        {{ __('No bookings match these filters.', 'bookyzo') }}
       </Card>
 
       <Card v-else class="overflow-hidden">
@@ -139,17 +139,17 @@
                 <input
                   type="checkbox"
                   class="h-4 w-4 cursor-pointer align-middle"
-                  aria-label="Select every booking on this page"
+                  :aria-label="__('Select every booking on this page', 'bookyzo')"
                   :checked="pageAllSelected"
                   @change="togglePage($event.target.checked)"
                 />
               </TableHead>
               <TableHead class="w-16">#</TableHead>
-              <TableHead>Customer</TableHead>
-              <TableHead>Bookable item</TableHead>
-              <TableHead>Party</TableHead>
-              <TableHead>When</TableHead>
-              <TableHead>Status</TableHead>
+              <TableHead>{{ __('Customer', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('Bookable item', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('Party', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('When', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('Status', 'bookyzo') }}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -163,7 +163,7 @@
                 <input
                   type="checkbox"
                   class="h-4 w-4 cursor-pointer align-middle"
-                  :aria-label="`Select booking #${booking.id}`"
+                  :aria-label="sprintf(__('Select booking #%s', 'bookyzo'), booking.id)"
                   :checked="selectedIds.includes(booking.id)"
                   @change="toggleOne(booking.id, $event.target.checked)"
                 />
@@ -182,10 +182,10 @@
               <TableCell class="text-muted-foreground">{{ booking.party_size }}</TableCell>
               <TableCell class="text-muted-foreground">{{ whenLabel(booking) }}</TableCell>
               <TableCell>
-                <ByzoBadge :status="booking.status">{{ booking.status.replace('_', ' ') }}</ByzoBadge>
+                <ByzoBadge :status="booking.status">{{ statusLabel(booking.status) }}</ByzoBadge>
                 <!-- Set by a refund add-on when the customer cancels a paid
                      booking (QA report §6.2.7); Free never sets it. -->
-                <span v-if="booking.refund_status === 'requested'" class="mt-1 block text-[11px] font-medium text-amber-700">Refund requested</span>
+                <span v-if="booking.refund_status === 'requested'" class="mt-1 block text-[11px] font-medium text-amber-700">{{ __('Refund requested', 'bookyzo') }}</span>
               </TableCell>
             </TableRow>
           </TableBody>
@@ -209,6 +209,8 @@
 </template>
 
 <script setup>
+import { statusLabel } from '@/lib/status';
+import { i18n, locale } from '@/lib/i18n';
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import { Card } from '@/components/ui/card';
@@ -280,9 +282,9 @@ async function runBulk(action) {
   bulkBusy.value = true;
   try {
     const result = await action.run([...selectedIds.value]);
-    toast.success(result?.message || `${action.label}: done.`);
+    toast.success(result?.message || i18n.sprintf(i18n.__('%s: done.', 'bookyzo'), action.label));
   } catch (e) {
-    toast.error(e.message || `Could not ${action.label.toLowerCase()} these bookings.`);
+    toast.error(e.message || i18n.sprintf(i18n.__('Could not apply "%s" to these bookings.', 'bookyzo'), action.label));
   } finally {
     bulkBusy.value = false;
   }
@@ -309,7 +311,7 @@ async function loadBookings() {
     if (filters.search.trim()) params.set('search', filters.search.trim());
     bookings.value = await api.get(`/bookings?${params.toString()}`);
   } catch (e) {
-    toast.error(e.message || 'Could not load bookings.');
+    toast.error(e.message || i18n.__('Could not load bookings.', 'bookyzo'));
   } finally {
     loading.value = false;
   }
@@ -342,7 +344,7 @@ function fromCalendarDate(value) {
 }
 
 function formatFilterDate(value) {
-  return new Date(`${value}T00:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+  return new Date(`${value}T00:00:00`).toLocaleDateString(locale, { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
 function itemName(id) {
@@ -353,7 +355,7 @@ function whenLabel(booking) {
   if (!booking.slot_start) {
     return '—';
   }
-  return new Date(booking.slot_start).toLocaleString(undefined, {
+  return new Date(booking.slot_start).toLocaleString(locale, {
     month: 'short',
     day: 'numeric',
     hour: 'numeric',

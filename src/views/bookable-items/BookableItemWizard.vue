@@ -2,9 +2,9 @@
   <Dialog :open="open" @update:open="(v) => !v && close()">
     <DialogScrollContent class="max-w-xl" @pointer-down-outside="onPointerDownOutside" @escape-key-down="onEscapeKeyDown">
       <DialogHeader>
-        <DialogTitle>{{ isEdit ? 'Edit bookable item' : 'Add bookable item' }}</DialogTitle>
+        <DialogTitle>{{ isEdit ? __('Edit bookable item', 'bookyzo') : __('Add bookable item', 'bookyzo') }}</DialogTitle>
         <DialogDescription>
-          {{ isEdit ? 'The same steps as adding one — nothing is saved until you confirm on the last step.' : 'Set it up in a few quick steps — you can fine-tune everything later.' }}
+          {{ isEdit ? __('The same steps as adding one — nothing is saved until you confirm on the last step.', 'bookyzo') : __('Set it up in a few quick steps — you can fine-tune everything later.', 'bookyzo') }}
         </DialogDescription>
       </DialogHeader>
 
@@ -15,7 +15,7 @@
       <div v-else-if="loadError" class="flex flex-col gap-4">
         <p class="text-sm text-destructive">{{ loadError }}</p>
         <div class="flex justify-end">
-          <Button variant="outline" @click="close">Close</Button>
+          <Button variant="outline" @click="close">{{ __('Close', 'bookyzo') }}</Button>
         </div>
       </div>
 
@@ -69,8 +69,8 @@
         <div v-else-if="step === 'extra' && extraItemEditStep" class="flex flex-col gap-6">
           <component :is="extraItemEditStep.component" :model-value="extraData" :item="{ id: itemId, ...wizardData }" :currency="currency" />
           <div class="flex justify-between">
-            <Button variant="outline" @click="step = 'pricing'">Back</Button>
-            <Button @click="step = 'review'">Continue</Button>
+            <Button variant="outline" @click="step = 'pricing'">{{ __('Back', 'bookyzo') }}</Button>
+            <Button @click="step = 'review'">{{ __('Continue', 'bookyzo') }}</Button>
           </div>
         </div>
         <ReviewStep
@@ -80,8 +80,8 @@
           :extra-rows="extraRows"
           :saving="saving"
           :error="saveError"
-          :submit-label="isEdit ? 'Save changes' : 'Create bookable item'"
-          :saving-label="isEdit ? 'Saving…' : 'Creating…'"
+          :submit-label="isEdit ? __('Save changes', 'bookyzo') : __('Create bookable item', 'bookyzo')"
+          :saving-label="isEdit ? __('Saving…', 'bookyzo') : __('Creating…', 'bookyzo')"
           @create="submit"
           @back="step = extraItemEditStep ? 'extra' : 'pricing'"
         />
@@ -91,6 +91,7 @@
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref, reactive, computed, watch } from 'vue';
 import { toast } from 'vue-sonner';
 import { Dialog, DialogScrollContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -143,10 +144,10 @@ const STEP_ORDER = computed(() => {
 const step = ref('type');
 const currentIndex = computed(() => STEP_ORDER.value.indexOf(step.value));
 const stepLabels = computed(() => {
-  const availabilityLabel = wizardData.type === 'event' ? 'Dates' : 'Availability';
-  const labels = ['Details', availabilityLabel, 'Pricing', ...(extraItemEditStep.value ? [extraItemEditStep.value.label] : []), 'Review'];
+  const availabilityLabel = wizardData.type === 'event' ? i18n.__('Dates', 'bookyzo') : i18n.__('Availability', 'bookyzo');
+  const labels = [i18n.__('Details', 'bookyzo'), availabilityLabel, i18n.__('Pricing', 'bookyzo'), ...(extraItemEditStep.value ? [extraItemEditStep.value.label] : []), i18n.__('Review', 'bookyzo')];
 
-  return isEdit.value ? labels : ['Type', ...labels];
+  return isEdit.value ? labels : [i18n.__('Type', 'bookyzo'), ...labels];
 });
 
 // The add-on step's working copy (see the template), seeded by its own
@@ -336,7 +337,7 @@ async function loadItem(id) {
     original.occurrenceIds = (occurrences || []).map((o) => o.id);
   } catch (e) {
     if (token !== loadToken) return;
-    loadError.value = e.message || 'Could not load this bookable item.';
+    loadError.value = e.message || i18n.__('Could not load this bookable item.', 'bookyzo');
   } finally {
     if (token === loadToken) {
       loading.value = false;
@@ -374,7 +375,7 @@ async function saveExtra(id) {
   try {
     await extraItemEditStep.value.save(id, { ...extraData });
   } catch (e) {
-    throw new Error(`The item was saved, but its ${extraItemEditStep.value.label.toLowerCase()} weren't: ${e.message || 'unknown error'}`);
+    throw new Error(i18n.sprintf(i18n.__('The item was saved, but its "%1$s" settings weren\'t: %2$s', 'bookyzo'), extraItemEditStep.value.label, e.message || i18n.__('unknown error', 'bookyzo')));
   }
 }
 
@@ -471,7 +472,7 @@ async function submit() {
       const updated = await api.put(`/bookable-items/${props.itemId}`, payload);
       await syncSchedule(props.itemId);
       await saveExtra(props.itemId);
-      toast.success(`"${updated.name}" saved.`);
+      toast.success(i18n.sprintf(i18n.__('"%s" saved.', 'bookyzo'), updated.name));
       emit('saved', updated);
     } else {
       // Type is immutable server-side, so if the owner went Back after a
@@ -501,13 +502,13 @@ async function submit() {
       createdId.value = null;
       createdType.value = '';
       createdScheduleSaved.value = false;
-      toast.success(`"${created.name}" created.`);
+      toast.success(i18n.sprintf(i18n.__('"%s" created.', 'bookyzo'), created.name));
       emit('saved', created);
     }
     succeeded = true;
   } catch (e) {
     saveError.value =
-      e.message || (isEdit.value ? 'Could not save this bookable item. Please check your answers and try again.' : 'Could not create this bookable item. Please check your answers and try again.');
+      e.message || (isEdit.value ? i18n.__('Could not save this bookable item. Please check your answers and try again.', 'bookyzo') : i18n.__('Could not create this bookable item. Please check your answers and try again.', 'bookyzo'));
   } finally {
     saving.value = false;
   }
@@ -548,11 +549,13 @@ function close() {
   // shows up where the owner can finish it via Edit instead of silently
   // vanishing until the next reload.
   if (createdId.value) {
-    let missing = wizardData.type === 'event' ? 'dates were' : 'availability was';
+    let message = wizardData.type === 'event'
+      ? i18n.sprintf(i18n.__('"%s" was created, but its dates were not saved — open it from the list to finish setting it up.', 'bookyzo'), wizardData.name)
+      : i18n.sprintf(i18n.__('"%s" was created, but its availability was not saved — open it from the list to finish setting it up.', 'bookyzo'), wizardData.name);
     if (createdScheduleSaved.value && extraItemEditStep.value) {
-      missing = `${extraItemEditStep.value.label.toLowerCase()} were`;
+      message = i18n.sprintf(i18n.__('"%1$s" was created, but its "%2$s" settings were not saved — open it from the list to finish setting it up.', 'bookyzo'), wizardData.name, extraItemEditStep.value.label);
     }
-    toast.warning(`"${wizardData.name}" was created, but its ${missing} not saved — open it from the list to finish setting it up.`);
+    toast.warning(message);
     emit('saved', { id: createdId.value, name: wizardData.name, type: createdType.value });
   }
 

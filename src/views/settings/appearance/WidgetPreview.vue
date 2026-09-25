@@ -21,7 +21,7 @@
         <span class="byzo-stage__light" />
         <span class="byzo-stage__light" />
         <span class="byzo-stage__light" />
-        <span class="byzo-stage__url">yoursite.com</span>
+        <span class="byzo-stage__url">{{ __('yoursite.com', 'bookyzo') }}</span>
       </div>
 
       <div class="byzo-stage__page">
@@ -39,8 +39,8 @@
           </div>
 
           <template v-if="step === 'service'">
-            <h2 class="byzo-preview__title">Choose a service</h2>
-            <p class="byzo-preview__subtitle">Pick what you'd like to book.</p>
+            <h2 class="byzo-preview__title">{{ __('Choose a service', 'bookyzo') }}</h2>
+            <p class="byzo-preview__subtitle">{{ __('Pick what you\'d like to book.', 'bookyzo') }}</p>
 
             <div class="byzo-preview__card-list">
               <span
@@ -62,8 +62,8 @@
           </template>
 
           <template v-else-if="step === 'time'">
-            <h2 class="byzo-preview__title">Pick a time</h2>
-            <p class="byzo-preview__subtitle">Maya Chen — Senior Stylist</p>
+            <h2 class="byzo-preview__title">{{ __('Pick a time', 'bookyzo') }}</h2>
+            <p class="byzo-preview__subtitle">{{ __('Maya Chen — Senior Stylist', 'bookyzo') }}</p>
 
             <!-- Month calendar beside grouped times, same as StepSlot.vue's
                  real .picker layout (not the old flat run of date chips). -->
@@ -71,7 +71,7 @@
               <div class="byzo-preview__cal">
                 <div class="byzo-preview__cal-head">
                   <span class="byzo-preview__cal-nav">&#8249;</span>
-                  <span class="byzo-preview__cal-title">September 2026</span>
+                  <span class="byzo-preview__cal-title">{{ __('September 2026', 'bookyzo') }}</span>
                   <span class="byzo-preview__cal-nav">&#8250;</span>
                 </div>
                 <div class="byzo-preview__cal-grid byzo-preview__cal-dow">
@@ -92,9 +92,9 @@
               </div>
 
               <div class="byzo-preview__times">
-                <div class="byzo-preview__times-head">Thursday, September 10</div>
+                <div class="byzo-preview__times-head">{{ __('Thursday, September 10', 'bookyzo') }}</div>
                 <div class="byzo-preview__time-group">
-                  <div class="byzo-preview__time-group-label">Morning</div>
+                  <div class="byzo-preview__time-group-label">{{ __('Morning', 'bookyzo') }}</div>
                   <div class="byzo-preview__chips">
                     <span class="byzo-preview__chip">9:00</span>
                     <span class="byzo-preview__chip byzo-preview__chip--selected">10:50</span>
@@ -102,7 +102,7 @@
                   </div>
                 </div>
                 <div class="byzo-preview__time-group">
-                  <div class="byzo-preview__time-group-label">Afternoon</div>
+                  <div class="byzo-preview__time-group-label">{{ __('Afternoon', 'bookyzo') }}</div>
                   <div class="byzo-preview__chips">
                     <span class="byzo-preview__chip">12:40</span>
                     <span class="byzo-preview__chip">2:15</span>
@@ -112,43 +112,43 @@
             </div>
 
             <div class="byzo-preview__actions">
-              <span class="byzo-preview__btn byzo-preview__btn--outline">Back</span>
-              <span class="byzo-preview__btn byzo-preview__btn--primary">Continue</span>
+              <span class="byzo-preview__btn byzo-preview__btn--outline">{{ __('Back', 'bookyzo') }}</span>
+              <span class="byzo-preview__btn byzo-preview__btn--primary">{{ __('Continue', 'bookyzo') }}</span>
             </div>
           </template>
 
           <template v-else>
-            <h2 class="byzo-preview__title">Your details</h2>
+            <h2 class="byzo-preview__title">{{ __('Your details', 'bookyzo') }}</h2>
 
             <!-- Restated booking summary, same as StepDetails.vue's real
                  .summary card — not a bare form. -->
             <div class="byzo-preview__summary">
               <div class="byzo-preview__summary-row">
-                <span class="byzo-preview__summary-label">Service</span>
-                <span class="byzo-preview__summary-value">Maya Chen — Senior Stylist</span>
+                <span class="byzo-preview__summary-label">{{ __('Service', 'bookyzo') }}</span>
+                <span class="byzo-preview__summary-value">{{ __('Maya Chen — Senior Stylist', 'bookyzo') }}</span>
               </div>
               <div class="byzo-preview__summary-row">
-                <span class="byzo-preview__summary-label">When</span>
-                <span class="byzo-preview__summary-value">Thu 10 Sept, 10:50</span>
+                <span class="byzo-preview__summary-label">{{ __('When', 'bookyzo') }}</span>
+                <span class="byzo-preview__summary-value">{{ __('Thu 10 Sept, 10:50', 'bookyzo') }}</span>
               </div>
               <div class="byzo-preview__summary-row byzo-preview__summary-row--total">
-                <span class="byzo-preview__summary-label">Total</span>
+                <span class="byzo-preview__summary-label">{{ __('Total', 'bookyzo') }}</span>
                 <span class="byzo-preview__summary-value">65.00</span>
               </div>
             </div>
 
             <div class="byzo-preview__field">
-              <span class="byzo-preview__label">Name</span>
-              <span class="byzo-preview__input">Jamie Rivera</span>
+              <span class="byzo-preview__label">{{ __('Name', 'bookyzo') }}</span>
+              <span class="byzo-preview__input">{{ __('Jamie Rivera', 'bookyzo') }}</span>
             </div>
             <div class="byzo-preview__field">
-              <span class="byzo-preview__label">Email</span>
-              <span class="byzo-preview__input byzo-preview__input--focus">jamie@example.com</span>
+              <span class="byzo-preview__label">{{ __('Email', 'bookyzo') }}</span>
+              <span class="byzo-preview__input byzo-preview__input--focus">{{ __('jamie@example.com', 'bookyzo') }}</span>
             </div>
 
             <div class="byzo-preview__actions">
-              <span class="byzo-preview__btn byzo-preview__btn--outline">Back</span>
-              <span class="byzo-preview__btn byzo-preview__btn--primary">Confirm booking</span>
+              <span class="byzo-preview__btn byzo-preview__btn--outline">{{ __('Back', 'bookyzo') }}</span>
+              <span class="byzo-preview__btn byzo-preview__btn--primary">{{ __('Confirm booking', 'bookyzo') }}</span>
             </div>
           </template>
         </div>
@@ -174,6 +174,7 @@
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref, computed } from 'vue';
 
 const props = defineProps({
@@ -181,9 +182,9 @@ const props = defineProps({
 });
 
 const stepOptions = [
-  { value: 'service', label: 'Service' },
-  { value: 'time', label: 'Time' },
-  { value: 'details', label: 'Details' },
+  { value: 'service', label: i18n.__('Service', 'bookyzo') },
+  { value: 'time', label: i18n.__('Time', 'bookyzo') },
+  { value: 'details', label: i18n.__('Details', 'bookyzo') },
 ];
 
 const step = ref('time');
@@ -193,7 +194,15 @@ const services = [
   { name: 'Morning Flow Yoga', duration: '60 min', price: '18.00', highlighted: false },
 ];
 
-const dayNames = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+const dayNames = [
+  i18n._x('Su', 'Sunday, two letters', 'bookyzo'),
+  i18n._x('Mo', 'Monday, two letters', 'bookyzo'),
+  i18n._x('Tu', 'Tuesday, two letters', 'bookyzo'),
+  i18n._x('We', 'Wednesday, two letters', 'bookyzo'),
+  i18n._x('Th', 'Thursday, two letters', 'bookyzo'),
+  i18n._x('Fr', 'Friday, two letters', 'bookyzo'),
+  i18n._x('Sa', 'Saturday, two letters', 'bookyzo'),
+];
 
 // September 2026 starts on a Tuesday — 2 leading blanks, then 30 days.
 // A handful marked "open" (bookable) and one "selected", the rest muted,

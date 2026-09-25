@@ -1,28 +1,28 @@
 <template>
   <Card ref="rootEl">
     <CardHeader>
-      <CardTitle>{{ compact ? `Tell us about your first ${typeLabel.toLowerCase()}` : `${typeLabel} details` }}</CardTitle>
-      <CardDescription>{{ compact ? 'You can add a photo and more later.' : 'Only the name is required — everything else is optional.' }}</CardDescription>
+      <CardTitle>{{ compact ? firstTitle : sprintf(__('%s details', 'bookyzo'), typeLabel) }}</CardTitle>
+      <CardDescription>{{ compact ? __('You can add a photo and more later.', 'bookyzo') : __('Only the name is required — everything else is optional.', 'bookyzo') }}</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-4">
       <div class="flex flex-col gap-1.5">
-        <Label for="wizard-item-name">Name</Label>
+        <Label for="wizard-item-name">{{ __('Name', 'bookyzo') }}</Label>
         <Input id="wizard-item-name" v-model="form.name" type="text" />
       </div>
 
       <div class="flex flex-col gap-1.5">
-        <Label for="wizard-item-description">Description (optional)</Label>
+        <Label for="wizard-item-description">{{ __('Description (optional)', 'bookyzo') }}</Label>
         <Textarea id="wizard-item-description" v-model="form.description" rows="2" />
       </div>
 
       <template v-if="!compact">
         <div class="flex flex-col gap-1.5">
-          <Label>Photo</Label>
+          <Label>{{ __('Photo', 'bookyzo') }}</Label>
           <div class="flex items-center gap-3">
             <img v-if="photoUrl" :src="photoUrl" alt="" class="h-16 w-16 rounded-md border object-cover" />
-            <div v-else class="flex h-16 w-16 items-center justify-center rounded-md border text-xs text-muted-foreground">None</div>
-            <Button type="button" variant="outline" size="sm" @click="pickPhoto">{{ photoUrl ? 'Change photo' : 'Choose photo' }}</Button>
-            <Button v-if="photoUrl" type="button" variant="ghost" size="sm" @click="removePhoto">Remove</Button>
+            <div v-else class="flex h-16 w-16 items-center justify-center rounded-md border text-xs text-muted-foreground">{{ __('None', 'bookyzo') }}</div>
+            <Button type="button" variant="outline" size="sm" @click="pickPhoto">{{ photoUrl ? __('Change photo', 'bookyzo') : __('Choose photo', 'bookyzo') }}</Button>
+            <Button v-if="photoUrl" type="button" variant="ghost" size="sm" @click="removePhoto">{{ __('Remove', 'bookyzo') }}</Button>
           </div>
         </div>
       </template>
@@ -47,23 +47,23 @@
            structured multi-branch location_id. -->
       <div class="grid grid-cols-2 gap-4">
         <div class="flex flex-col gap-1.5">
-          <Label for="wizard-item-location">Location</Label>
-          <Input id="wizard-item-location" v-model="form.location" type="text" placeholder="e.g. 123 Main St, or Online" />
+          <Label for="wizard-item-location">{{ __('Location', 'bookyzo') }}</Label>
+          <Input id="wizard-item-location" v-model="form.location" type="text" :placeholder="__('e.g. 123 Main St, or Online', 'bookyzo')" />
         </div>
         <div class="flex flex-col gap-1.5">
-          <Label for="wizard-item-meeting-link">Meeting link</Label>
+          <Label for="wizard-item-meeting-link">{{ __('Meeting link', 'bookyzo') }}</Label>
           <Input id="wizard-item-meeting-link" v-model="form.meeting_link" type="url" placeholder="https://zoom.us/…" />
         </div>
       </div>
 
       <div v-if="!compact" class="flex flex-col gap-1.5">
-        <Label>Status</Label>
+        <Label>{{ __('Status', 'bookyzo') }}</Label>
         <Select v-model="form.status">
           <SelectTrigger class="h-9"><SelectValue /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
-            <SelectItem value="archived">Archived</SelectItem>
+            <SelectItem value="active">{{ __('Active', 'bookyzo') }}</SelectItem>
+            <SelectItem value="inactive">{{ __('Inactive', 'bookyzo') }}</SelectItem>
+            <SelectItem value="archived">{{ __('Archived', 'bookyzo') }}</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -74,13 +74,14 @@
          existing item, where the Type step is skipped) — a Back button
          with nowhere to go is worse than no Back button. -->
     <CardFooter :class="hideBack ? 'justify-end' : 'justify-between'">
-      <Button v-if="!hideBack" variant="outline" @click="$emit('back')">Back</Button>
-      <Button @click="continueStep">Continue</Button>
+      <Button v-if="!hideBack" variant="outline" @click="$emit('back')">{{ __('Back', 'bookyzo') }}</Button>
+      <Button @click="continueStep">{{ __('Continue', 'bookyzo') }}</Button>
     </CardFooter>
   </Card>
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -109,18 +110,25 @@ const props = defineProps({
 const emit = defineEmits(['next', 'back']);
 
 // Labels per DETAILED-SPEC.md §A2/A3's per-type field matrix.
-const TYPE_LABELS = { appointment: 'Appointment', table: 'Table', event: 'Event', slot: 'Slot' };
+const TYPE_LABELS = { appointment: i18n.__('Appointment', 'bookyzo'), table: i18n.__('Table', 'bookyzo'), event: i18n.__('Event', 'bookyzo'), slot: i18n.__('Slot', 'bookyzo') };
 const typeLabel = computed(() => TYPE_LABELS[props.type] || props.type);
+const FIRST_TITLES = {
+  appointment: i18n.__('Tell us about your first appointment', 'bookyzo'),
+  table: i18n.__('Tell us about your first table', 'bookyzo'),
+  event: i18n.__('Tell us about your first event', 'bookyzo'),
+  slot: i18n.__('Tell us about your first slot', 'bookyzo'),
+};
+const firstTitle = computed(() => FIRST_TITLES[props.type] || FIRST_TITLES.appointment);
 
-const DURATION_LABELS = { appointment: 'Appointment length (minutes)', table: 'Reservation length (minutes)', slot: 'Slot length (minutes)' };
-const durationLabel = computed(() => DURATION_LABELS[props.type] || 'Duration (minutes)');
+const DURATION_LABELS = { appointment: i18n.__('Appointment length (minutes)', 'bookyzo'), table: i18n.__('Reservation length (minutes)', 'bookyzo'), slot: i18n.__('Slot length (minutes)', 'bookyzo') };
+const durationLabel = computed(() => DURATION_LABELS[props.type] || i18n.__('Duration (minutes)', 'bookyzo'));
 
-const CAPACITY_LABELS = { table: 'Seats', event: 'Total tickets/seats', slot: 'Spots per slot' };
-const capacityLabel = computed(() => CAPACITY_LABELS[props.type] || 'Capacity');
+const CAPACITY_LABELS = { table: i18n.__('Seats', 'bookyzo'), event: i18n.__('Total tickets/seats', 'bookyzo'), slot: i18n.__('Spots per slot', 'bookyzo') };
+const capacityLabel = computed(() => CAPACITY_LABELS[props.type] || i18n.__('Capacity', 'bookyzo'));
 
 // "Staff Member 1" matches DETAILED-SPEC.md §A1's per-type sensible-default
 // convention (the same naming FirstBookableItemStep used for Appointment).
-const DEFAULT_NAMES = { appointment: 'Staff Member 1', table: 'Table 1', event: 'My Event', slot: 'Bookable Item 1' };
+const DEFAULT_NAMES = { appointment: i18n.__('Staff Member 1', 'bookyzo'), table: i18n.__('Table 1', 'bookyzo'), event: i18n.__('My Event', 'bookyzo'), slot: i18n.__('Bookable Item 1', 'bookyzo') };
 
 // An empty name, or one that is still ANOTHER type's untouched default
 // (owner picked Appointment, saw "Staff Member 1", went Back and switched
@@ -147,7 +155,7 @@ const error = ref('');
 function continueStep() {
   error.value = '';
   if (!form.value.name.trim()) {
-    error.value = 'Please enter a name.';
+    error.value = i18n.__('Please enter a name.', 'bookyzo');
     return;
   }
 
@@ -158,21 +166,21 @@ function continueStep() {
   if (props.type !== 'event') {
     const duration = Number(form.value.duration_minutes);
     if (!Number.isFinite(duration) || duration < 5) {
-      error.value = 'Duration must be at least 5 minutes.';
+      error.value = i18n.__('Duration must be at least 5 minutes.', 'bookyzo');
       return;
     }
   }
   if (props.type !== 'appointment') {
     const capacity = Number(form.value.capacity);
     if (!Number.isInteger(capacity) || capacity < 1) {
-      error.value = `${capacityLabel.value} must be a whole number of at least 1.`;
+      error.value = i18n.sprintf(i18n.__('%s must be a whole number of at least 1.', 'bookyzo'), capacityLabel.value);
       return;
     }
   }
 
   const link = form.value.meeting_link.trim();
   if (link && !/^https?:\/\//i.test(link)) {
-    error.value = 'Meeting link must start with http:// or https://.';
+    error.value = i18n.__('Meeting link must start with http:// or https://.', 'bookyzo');
     return;
   }
 
@@ -221,8 +229,8 @@ function pickPhoto() {
   }
   if (!mediaFrame) {
     mediaFrame = window.wp.media({
-      title: 'Select a photo',
-      button: { text: 'Use this photo' },
+      title: i18n.__('Select a photo', 'bookyzo'),
+      button: { text: i18n.__('Use this photo', 'bookyzo') },
       library: { type: 'image' },
       multiple: false,
     });

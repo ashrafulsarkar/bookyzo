@@ -15,7 +15,7 @@
               :model-value="shift.start_time"
               @update:model-value="(value) => updateShift(weekday.value, index, 'start_time', value)"
             />
-            <span class="text-sm text-muted-foreground">to</span>
+            <span class="text-sm text-muted-foreground">{{ __('to', 'bookyzo') }}</span>
             <Input
               type="time"
               class="h-8 w-auto"
@@ -34,7 +34,7 @@
               v-if="shiftsFor(weekday.value).length > 1"
               type="button"
               class="text-muted-foreground hover:text-destructive"
-              :aria-label="`Remove this shift on ${weekday.label}`"
+              :aria-label="sprintf(__('Remove this shift on %s', 'bookyzo'), weekday.label)"
               @click="removeShift(weekday.value, index)"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>
@@ -46,16 +46,17 @@
             class="text-xs font-medium text-primary hover:underline"
             @click="addShift(weekday.value)"
           >
-            + Add shift
+            {{ __('+ Add shift', 'bookyzo') }}
           </button>
         </div>
       </template>
-      <span v-else class="text-sm text-muted-foreground">Closed</span>
+      <span v-else class="text-sm text-muted-foreground">{{ __('Closed', 'bookyzo') }}</span>
     </div>
   </div>
 </template>
 
 <script setup>
+import { weekdayNames } from '@/lib/date';
 // The single most load-bearing custom component in the admin app
 // (bookyzo-design skill) — Booking Management and Pro's drag-and-drop
 // reschedule both build on the visual language established here.
@@ -79,15 +80,7 @@ const props = defineProps({
 });
 const emit = defineEmits(['update:modelValue']);
 
-const weekdays = [
-  { value: 0, label: 'Sunday' },
-  { value: 1, label: 'Monday' },
-  { value: 2, label: 'Tuesday' },
-  { value: 3, label: 'Wednesday' },
-  { value: 4, label: 'Thursday' },
-  { value: 5, label: 'Friday' },
-  { value: 6, label: 'Saturday' },
-];
+const weekdays = weekdayNames().map((label, value) => ({ value, label }));
 
 const schedules = computed(() => props.modelValue);
 

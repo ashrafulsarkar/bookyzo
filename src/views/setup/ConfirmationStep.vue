@@ -1,28 +1,28 @@
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>Confirmation &amp; notifications</CardTitle>
-      <CardDescription>You can change any of these later in Settings.</CardDescription>
+      <CardTitle>{{ __('Confirmation & notifications', 'bookyzo') }}</CardTitle>
+      <CardDescription>{{ __('You can change any of these later in Settings.', 'bookyzo') }}</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-4">
       <label class="flex items-center gap-2 text-sm">
         <Switch v-model="form.auto_confirm" />
-        Automatically confirm new bookings (skip manual review)
+        {{ __('Automatically confirm new bookings (skip manual review)', 'bookyzo') }}
       </label>
 
       <label class="flex items-center gap-2 text-sm">
         <Switch v-model="form.send_confirmation_email" />
-        Send a confirmation email to the customer
+        {{ __('Send a confirmation email to the customer', 'bookyzo') }}
       </label>
 
       <label class="flex items-center gap-2 text-sm">
         <Switch v-model="form.send_admin_notification" />
-        Email me when a new booking comes in
+        {{ __('Email me when a new booking comes in', 'bookyzo') }}
       </label>
     </CardContent>
     <CardFooter class="justify-between">
-      <Button variant="outline" @click="$emit('back')">Back</Button>
-      <Button @click="$emit('next', { ...form })">Continue</Button>
+      <Button variant="outline" @click="$emit('back')">{{ __('Back', 'bookyzo') }}</Button>
+      <Button @click="$emit('next', { ...form })">{{ __('Continue', 'bookyzo') }}</Button>
     </CardFooter>
   </Card>
 </template>

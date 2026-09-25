@@ -1,11 +1,11 @@
 <template>
   <Card>
     <CardHeader>
-      <CardTitle>Let's set up your first booking</CardTitle>
-      <CardDescription>A few quick steps — you'll be accepting bookings by the end of this.</CardDescription>
+      <CardTitle>{{ __('Let\'s set up your first booking', 'bookyzo') }}</CardTitle>
+      <CardDescription>{{ __('A few quick steps — you\'ll be accepting bookings by the end of this.', 'bookyzo') }}</CardDescription>
     </CardHeader>
     <CardFooter class="justify-end">
-      <Button @click="$emit('next')">Get started</Button>
+      <Button @click="$emit('next')">{{ __('Get started', 'bookyzo') }}</Button>
     </CardFooter>
   </Card>
 </template>

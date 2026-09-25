@@ -39,6 +39,7 @@
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref, computed } from 'vue';
 import StepBookableItem from './steps/StepBookableItem.vue';
 import StepStaff from './steps/StepStaff.vue';
@@ -105,7 +106,7 @@ const confirmedItem = computed(() => {
   if (!item || !item.service_id || item.staff_id || !booking) return item;
   const member = (item.staff || []).find((m) => m.id === booking.bookable_item_id);
   const own = publicItems.value.find((i) => i.id === booking.bookable_item_id) || {};
-  return member ? { ...own, ...item, id: member.id, name: `${item.service_name} with ${member.name}` } : item;
+  return member ? { ...own, ...item, id: member.id, name: i18n.sprintf(i18n.__('%1$s with %2$s', 'bookyzo'), item.service_name, member.name) } : item;
 });
 
 async function onDetailsSubmit(form) {

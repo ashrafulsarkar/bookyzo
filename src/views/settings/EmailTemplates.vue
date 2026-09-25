@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader title="Email Templates" subtitle="Plain-text notifications sent to customers.">
+    <ByzoPageHeader :title="__('Email Templates', 'bookyzo')" :subtitle="__('Plain-text notifications sent to customers.', 'bookyzo')">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="2" y="4" width="20" height="16" rx="2" />
@@ -8,7 +8,7 @@
         </svg>
       </template>
       <template #actions>
-        <Button :disabled="loading || saving" @click="save">{{ saving ? 'Saving…' : 'Save all' }}</Button>
+        <Button :disabled="loading || saving" @click="save">{{ saving ? __('Saving…', 'bookyzo') : __('Save all', 'bookyzo') }}</Button>
       </template>
     </ByzoPageHeader>
 
@@ -23,18 +23,18 @@
           </CardHeader>
           <CardContent class="flex flex-col gap-4">
             <div class="flex flex-col gap-1.5">
-              <Label :for="`subject-${event.id}`">Subject</Label>
+              <Label :for="`subject-${event.id}`">{{ __('Subject', 'bookyzo') }}</Label>
               <Input :id="`subject-${event.id}`" v-model="templates[event.id].subject" type="text" />
             </div>
             <div class="flex flex-col gap-1.5">
-              <Label :for="`body-${event.id}`">Body</Label>
+              <Label :for="`body-${event.id}`">{{ __('Body', 'bookyzo') }}</Label>
               <!-- rows=6 cut every shipped default off mid-sentence — the
                    longest ("Booking received") runs 12 lines before wrapping,
                    so the box opened already hiding its own content and made
                    the templates look truncated rather than editable. -->
               <Textarea :id="`body-${event.id}`" v-model="templates[event.id].body" rows="14" class="resize-y font-mono" />
               <p class="text-xs text-muted-foreground">
-                Placeholders: <code>{customer_name}</code> <code>{bookable_item_name}</code> <code>{start_time}</code>
+                {{ __('Placeholders:', 'bookyzo') }} <code>{customer_name}</code> <code>{bookable_item_name}</code> <code>{start_time}</code>
                 <code>{business_name}</code> <code>{cancel_link}</code> <code>{add_to_calendar_link}</code>
                 <code>{booking_id}</code> <code>{party_size}</code> <code>{total}</code>
                 <code>{customer_email}</code> <code>{customer_phone}</code> <code>{admin_booking_link}</code>
@@ -43,7 +43,7 @@
                 <template v-if="documents.invoice"> <code>{invoice_link}</code></template>
               </p>
               <p v-if="event.id === 'booking_confirmed' && (documents.ticket || documents.invoice)" class="text-xs text-muted-foreground">
-                If this email doesn't use {{ documentPlaceholders }}, the link is added at the end automatically.
+                {{ sprintf(__('If this email doesn\'t use %s, the link is added at the end automatically.', 'bookyzo'), documentPlaceholders) }}
               </p>
             </div>
           </CardContent>
@@ -54,6 +54,7 @@
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -74,15 +75,15 @@ const documentPlaceholders = [documents.ticket && '{ticket_link}', documents.inv
 // (DETAILED-SPEC.md §A6 — that's a Pro feature layered on the same
 // stored subject/body values later, not a different data shape now).
 const events = [
-  { id: 'booking_created', label: 'Booking received', description: 'Sent immediately when a customer books.' },
-  { id: 'booking_confirmed', label: 'Booking confirmed', description: 'Sent when you confirm a pending booking (or immediately, if auto-confirm is on).' },
-  { id: 'booking_cancelled', label: 'Booking cancelled', description: 'Sent when a booking is cancelled.' },
-  { id: 'booking_reminder', label: 'Reminder', description: 'Sent automatically ~24 hours before the booking.' },
+  { id: 'booking_created', label: i18n.__('Booking received', 'bookyzo'), description: i18n.__('Sent immediately when a customer books.', 'bookyzo') },
+  { id: 'booking_confirmed', label: i18n.__('Booking confirmed', 'bookyzo'), description: i18n.__('Sent when you confirm a pending booking (or immediately, if auto-confirm is on).', 'bookyzo') },
+  { id: 'booking_cancelled', label: i18n.__('Booking cancelled', 'bookyzo'), description: i18n.__('Sent when a booking is cancelled.', 'bookyzo') },
+  { id: 'booking_reminder', label: i18n.__('Reminder', 'bookyzo'), description: i18n.__('Sent automatically ~24 hours before the booking.', 'bookyzo') },
   // Added Phase 1.5 step 6 — the only one of the 5 sent to you (the site
   // admin) rather than the customer, gated by its own "Email me when a
   // new booking comes in" toggle (Settings / the setup wizard), separate
   // from the 4 customer-facing ones above.
-  { id: 'admin_new_booking', label: 'New booking alert (to you)', description: 'Sent to your site admin email whenever a new booking comes in.' },
+  { id: 'admin_new_booking', label: i18n.__('New booking alert (to you)', 'bookyzo'), description: i18n.__('Sent to your site admin email whenever a new booking comes in.', 'bookyzo') },
 ];
 
 const templates = ref({});
@@ -94,7 +95,7 @@ async function load() {
   try {
     templates.value = await api.get('/email-templates');
   } catch (e) {
-    toast.error(e.message || 'Could not load email templates.');
+    toast.error(e.message || i18n.__('Could not load email templates.', 'bookyzo'));
   } finally {
     loading.value = false;
   }
@@ -104,9 +105,9 @@ async function save() {
   saving.value = true;
   try {
     templates.value = await api.put('/email-templates', templates.value);
-    toast.success('Email templates saved.');
+    toast.success(i18n.__('Email templates saved.', 'bookyzo'));
   } catch (e) {
-    toast.error(e.message || 'Could not save email templates.');
+    toast.error(e.message || i18n.__('Could not save email templates.', 'bookyzo'));
   } finally {
     saving.value = false;
   }

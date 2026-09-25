@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader title="Customers" subtitle="Everyone who's booked with you.">
+    <ByzoPageHeader :title="__('Customers', 'bookyzo')" :subtitle="__('Everyone who\'s booked with you.', 'bookyzo')">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
@@ -15,27 +15,27 @@
           <input type="hidden" name="_wpnonce" :value="importNonce" />
           <input ref="fileInput" type="file" name="customers_csv" accept=".csv,text/csv" class="hidden" @change="onFileChosen" />
         </form>
-        <Button variant="outline" @click="fileInput?.click()">Import CSV</Button>
+        <Button variant="outline" @click="fileInput?.click()">{{ __('Import CSV', 'bookyzo') }}</Button>
         <!-- An add-on's own header actions (admin-extensions.js
              extraCustomerListActions), e.g. a customer export. -->
         <a v-for="action in extraCustomerListActions" :key="action.label" :href="action.href" class="inline-flex">
           <Button variant="outline">{{ action.label }}</Button>
         </a>
-        <Button @click="openCreate">+ Add customer</Button>
+        <Button @click="openCreate">{{ __('+ Add customer', 'bookyzo') }}</Button>
       </template>
     </ByzoPageHeader>
 
     <div class="px-6 pb-8">
       <div class="mb-4 flex flex-col gap-1.5">
-        <Label class="text-xs font-medium text-muted-foreground" for="c-search">Search</Label>
+        <Label class="text-xs font-medium text-muted-foreground" for="c-search">{{ __('Search', 'bookyzo') }}</Label>
         <div class="relative w-72">
           <SearchIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input id="c-search" v-model="search" type="text" placeholder="Name, email, or phone…" class="h-9 !pl-9 !pr-8" />
+          <Input id="c-search" v-model="search" type="text" :placeholder="__('Name, email, or phone…', 'bookyzo')" class="h-9 !pl-9 !pr-8" />
           <button
             v-if="search"
             type="button"
             class="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            aria-label="Clear search"
+            :aria-label="__('Clear search', 'bookyzo')"
             @click="search = ''"
           >
             <X class="h-4 w-4" />
@@ -46,26 +46,26 @@
       <ByzoLoading v-if="loading" />
 
       <Card v-else-if="items.length === 0 && !search" class="flex flex-col items-center gap-3 py-16 text-center">
-        <p class="font-medium">No customers yet</p>
+        <p class="font-medium">{{ __('No customers yet', 'bookyzo') }}</p>
         <p class="max-w-sm text-sm text-muted-foreground">
-          Customers appear here automatically the first time they book, or you can add one yourself or import a CSV list.
+          {{ __('Customers appear here automatically the first time they book, or you can add one yourself or import a CSV list.', 'bookyzo') }}
         </p>
       </Card>
 
       <Card v-else-if="items.length === 0" class="py-16 text-center text-sm text-muted-foreground">
-        No customers match this search.
+        {{ __('No customers match this search.', 'bookyzo') }}
       </Card>
 
       <Card v-else class="overflow-hidden">
         <Table class="min-w-[760px]">
           <TableHeader>
             <TableRow>
-              <TableHead>Name</TableHead>
-              <TableHead>Email</TableHead>
-              <TableHead>Phone</TableHead>
-              <TableHead>Tags</TableHead>
-              <TableHead>Source</TableHead>
-              <TableHead class="text-right">Action</TableHead>
+              <TableHead>{{ __('Name', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('Email', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('Phone', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('Tags', 'bookyzo') }}</TableHead>
+              <TableHead>{{ __('Source', 'bookyzo') }}</TableHead>
+              <TableHead class="text-right">{{ __('Action', 'bookyzo') }}</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -74,11 +74,11 @@
               <TableCell class="text-muted-foreground">{{ customer.email }}</TableCell>
               <TableCell class="text-muted-foreground">{{ customer.phone || '—' }}</TableCell>
               <TableCell class="text-muted-foreground">{{ customer.tags || '—' }}</TableCell>
-              <TableCell><Badge variant="secondary">{{ customer.source }}</Badge></TableCell>
+              <TableCell><Badge variant="secondary">{{ SOURCE_LABELS[customer.source] || customer.source }}</Badge></TableCell>
               <TableCell class="text-right">
                 <div class="flex items-center justify-end gap-1">
-                  <Button variant="ghost" size="sm" @click="openEdit(customer)">Edit</Button>
-                  <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="askDelete(customer)">Delete</Button>
+                  <Button variant="ghost" size="sm" @click="openEdit(customer)">{{ __('Edit', 'bookyzo') }}</Button>
+                  <Button variant="ghost" size="sm" class="text-destructive hover:text-destructive" @click="askDelete(customer)">{{ __('Delete', 'bookyzo') }}</Button>
                 </div>
               </TableCell>
             </TableRow>
@@ -92,34 +92,34 @@
     <Dialog :open="!!editing" @update:open="(v) => { if (!v) editing = null; }">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{{ editing?.id ? 'Edit customer' : 'Add customer' }}</DialogTitle>
+          <DialogTitle>{{ editing?.id ? __('Edit customer', 'bookyzo') : __('Add customer', 'bookyzo') }}</DialogTitle>
         </DialogHeader>
         <div class="flex flex-col gap-4">
           <div class="flex flex-col gap-1.5">
-            <Label for="cf-name">Name</Label>
+            <Label for="cf-name">{{ __('Name', 'bookyzo') }}</Label>
             <Input id="cf-name" v-model="form.name" type="text" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <Label for="cf-email">Email</Label>
+            <Label for="cf-email">{{ __('Email', 'bookyzo') }}</Label>
             <Input id="cf-email" v-model="form.email" type="email" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <Label for="cf-phone">Phone</Label>
+            <Label for="cf-phone">{{ __('Phone', 'bookyzo') }}</Label>
             <Input id="cf-phone" v-model="form.phone" type="text" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <Label for="cf-tags">Tags</Label>
-            <Input id="cf-tags" v-model="form.tags" type="text" placeholder="e.g. vip, regular" />
+            <Label for="cf-tags">{{ __('Tags', 'bookyzo') }}</Label>
+            <Input id="cf-tags" v-model="form.tags" type="text" :placeholder="__('e.g. vip, regular', 'bookyzo')" />
           </div>
           <div class="flex flex-col gap-1.5">
-            <Label for="cf-notes">Notes</Label>
+            <Label for="cf-notes">{{ __('Notes', 'bookyzo') }}</Label>
             <Textarea id="cf-notes" v-model="form.notes" rows="3" />
           </div>
           <p v-if="formError" class="text-sm text-destructive">{{ formError }}</p>
         </div>
         <DialogFooter>
-          <Button variant="outline" @click="editing = null">Cancel</Button>
-          <Button :disabled="saving" @click="save">{{ saving ? 'Saving…' : 'Save' }}</Button>
+          <Button variant="outline" @click="editing = null">{{ __('Cancel', 'bookyzo') }}</Button>
+          <Button :disabled="saving" @click="save">{{ saving ? __('Saving…', 'bookyzo') : __('Save', 'bookyzo') }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -127,14 +127,14 @@
     <Dialog :open="!!deleteTarget" @update:open="(v) => { if (!v) deleteTarget = null; }">
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Delete customer</DialogTitle>
+          <DialogTitle>{{ __('Delete customer', 'bookyzo') }}</DialogTitle>
           <DialogDescription>
-            Delete "{{ deleteTarget?.name }}"? This only removes their customer record — past bookings are unaffected.
+            {{ sprintf(__('Delete "%s"? This only removes their customer record — past bookings are unaffected.', 'bookyzo'), deleteTarget?.name) }}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
-          <Button variant="outline" @click="deleteTarget = null">Cancel</Button>
-          <Button variant="destructive" @click="confirmDelete">Delete</Button>
+          <Button variant="outline" @click="deleteTarget = null">{{ __('Cancel', 'bookyzo') }}</Button>
+          <Button variant="destructive" @click="confirmDelete">{{ __('Delete', 'bookyzo') }}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
@@ -142,6 +142,7 @@
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
 import { ref, reactive, watch, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import { Button } from '@/components/ui/button';
@@ -159,6 +160,11 @@ import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import { api } from '@/api/client';
 import { useClientPagination } from '@/composables/useClientPagination';
 import { extraCustomerListActions } from '@/lib/admin-extensions';
+
+const SOURCE_LABELS = {
+  booking: i18n.__('Booking', 'bookyzo'),
+  import: i18n.__('Import', 'bookyzo'),
+};
 
 const items = ref([]);
 const loading = ref(true);
@@ -196,7 +202,7 @@ async function load() {
   try {
     items.value = await api.get(`/customers?per_page=100&search=${encodeURIComponent(search.value)}`);
   } catch (e) {
-    toast.error(e.message || 'Could not load customers.');
+    toast.error(e.message || i18n.__('Could not load customers.', 'bookyzo'));
   } finally {
     loading.value = false;
   }
@@ -228,15 +234,15 @@ async function save() {
     if (editing.value?.id) {
       const updated = await api.put(`/customers/${editing.value.id}`, payload);
       items.value = items.value.map((c) => (c.id === updated.id ? updated : c));
-      toast.success('Customer updated.');
+      toast.success(i18n.__('Customer updated.', 'bookyzo'));
     } else {
       const created = await api.post('/customers', payload);
       items.value = [created, ...items.value];
-      toast.success('Customer added.');
+      toast.success(i18n.__('Customer added.', 'bookyzo'));
     }
     editing.value = null;
   } catch (e) {
-    formError.value = e.message || 'Could not save this customer.';
+    formError.value = e.message || i18n.__('Could not save this customer.', 'bookyzo');
   } finally {
     saving.value = false;
   }
@@ -252,9 +258,9 @@ async function confirmDelete() {
   try {
     await api.delete(`/customers/${customer.id}`);
     items.value = items.value.filter((c) => c.id !== customer.id);
-    toast.success(`"${customer.name}" deleted.`);
+    toast.success(i18n.sprintf(i18n.__('"%s" deleted.', 'bookyzo'), customer.name));
   } catch (e) {
-    toast.error(e.message || 'Could not delete this customer.');
+    toast.error(e.message || i18n.__('Could not delete this customer.', 'bookyzo'));
   } finally {
     deleteTarget.value = null;
   }
@@ -272,9 +278,11 @@ onMounted(() => {
   const error = params.get('byzo_import_error');
 
   if (null !== imported) {
-    toast.success(`Imported ${imported} customer${imported === '1' ? '' : 's'}${skipped && skipped !== '0' ? `, skipped ${skipped}` : ''}.`);
+        const importedText = i18n.sprintf(i18n._n('Imported %s customer.', 'Imported %s customers.', Number(imported), 'bookyzo'), imported);
+    const skippedText = skipped && skipped !== '0' ? ' ' + i18n.sprintf(i18n._n('Skipped %s row.', 'Skipped %s rows.', Number(skipped), 'bookyzo'), skipped) : '';
+    toast.success(importedText + skippedText);
   } else if (error) {
-    toast.error(error === 'no_file' ? 'Please choose a CSV file to import.' : 'Could not read that file.');
+    toast.error(error === 'no_file' ? i18n.__('Please choose a CSV file to import.', 'bookyzo') : i18n.__('Could not read that file.', 'bookyzo'));
   }
 
   if (null !== imported || error) {

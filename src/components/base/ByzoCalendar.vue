@@ -2,9 +2,9 @@
   <div class="flex flex-col">
     <div class="flex items-center justify-between border-b border-border px-4 py-3">
       <div class="flex items-center gap-2">
-        <Button variant="outline" size="sm" @click="goToday">Today</Button>
-        <Button variant="ghost" size="icon" @click="step(-1)" aria-label="Previous">‹</Button>
-        <Button variant="ghost" size="icon" @click="step(1)" aria-label="Next">›</Button>
+        <Button variant="outline" size="sm" @click="goToday">{{ __('Today', 'bookyzo') }}</Button>
+        <Button variant="ghost" size="icon" @click="step(-1)" :aria-label="__('Previous', 'bookyzo')">‹</Button>
+        <Button variant="ghost" size="icon" @click="step(1)" :aria-label="__('Next', 'bookyzo')">›</Button>
         <span class="ml-2 text-sm font-medium">{{ rangeLabel }}</span>
       </div>
       <div class="flex gap-1 rounded-md border border-border p-0.5">
@@ -16,7 +16,7 @@
           :class="viewMode === mode ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'"
           @click="viewMode = mode"
         >
-          {{ mode }}
+          {{ VIEW_LABELS[mode] }}
         </button>
       </div>
     </div>
@@ -47,6 +47,14 @@
 </template>
 
 <script setup>
+import { i18n } from '@/lib/i18n';
+
+const VIEW_LABELS = {
+  day: i18n.__('Day', 'bookyzo'),
+  week: i18n.__('Week', 'bookyzo'),
+  month: i18n.__('Month', 'bookyzo'),
+  agenda: i18n.__('Agenda', 'bookyzo'),
+};
 // The single most load-bearing custom component in the admin app
 // (bookyzo-design skill) — no shadcn-vue equivalent exists (its own
 // Calendar/RangeCalendar are date-pickers, not event-grid views).

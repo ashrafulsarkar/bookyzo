@@ -64,6 +64,7 @@ class BYZO_Public_Widget {
 			BYZO_VERSION,
 			true
 		);
+		wp_set_script_translations( 'byzo-block-editor', 'bookyzo', BYZO_PLUGIN_DIR . 'languages' );
 
 		register_block_type(
 			'bookyzo/booking-form',
@@ -183,7 +184,8 @@ class BYZO_Public_Widget {
 		$entry = $manifest[ self::ENTRY ];
 		$base  = BYZO_PLUGIN_URL . 'assets/widget/';
 
-		wp_enqueue_script( 'byzo-widget', $base . $entry['file'], array(), BYZO_VERSION, true );
+		wp_enqueue_script( 'byzo-widget', $base . $entry['file'], array( 'wp-i18n' ), BYZO_VERSION, true );
+		wp_set_script_translations( 'byzo-widget', 'bookyzo', BYZO_PLUGIN_DIR . 'languages' );
 		add_filter( 'wp_script_attributes', array( __CLASS__, 'add_module_type' ) );
 
 		if ( ! empty( $entry['css'] ) ) {
