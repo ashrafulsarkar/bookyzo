@@ -88,6 +88,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-ticket-tiers-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-cancel.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-marketing.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-privacy.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-public-guard.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-payment-gateways.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-payment-settings.php';
@@ -116,6 +117,7 @@ class BYZO_Plugin {
 		BYZO_Customer_Import::init();
 		BYZO_Booking_Cancel::init();
 		BYZO_Marketing::init();
+		BYZO_Privacy::init();
 		BYZO_Customer_Auth::init();
 		BYZO_Public_Widget::init();
 		BYZO_Account_Widget::init();

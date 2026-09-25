@@ -131,6 +131,7 @@ The per-type cap (1 bookable item per type) stays enforced centrally via `BYZO_C
 ### A10. Customer Management
 - Customer list auto-populated from bookings, searchable and sortable
 - Import an existing customer list from CSV (lowers the switching cost from another booking tool)
+- **Privacy tools — DONE 2026-09-25 (QA report §6.2.5):** WordPress's own Tools → Export / Erase Personal Data find a person's customer profile and bookings by email. Erasing anonymises bookings and keeps the record. A booking that hasn't happened yet is kept and reported, so it can be cancelled first. There is also suggested text for the privacy policy under Settings → Privacy. Pro adds its class series and names the booking-form answers.
 
 ### A11. Customer Account & Dashboard (moved from Pro 2026-09-06)
 
