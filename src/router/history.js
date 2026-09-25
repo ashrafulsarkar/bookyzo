@@ -24,6 +24,8 @@
  * direction, for building outgoing URLs.
  */
 
+import { staffMode } from '../lib/staff';
+
 const VIEW_PARAM = 'view';
 const PAGE_PARAM = 'page';
 
@@ -56,6 +58,12 @@ const SLUG_FOR_ROUTE = {
   // WP's own menu highlighting the Dashboard row instead of License.
   '/pro/license': 'bookyzo-license',
 };
+
+// A staff login's bookings are their top-level page (BYZO_Plugin's
+// staff_routes(), QA report §6.2.9); `bookyzo-bookings` isn't theirs.
+if (staffMode) {
+  SLUG_FOR_ROUTE['/bookings'] = 'bookyzo';
+}
 
 /**
  * The admin page a route should live under. A sub-route with no page of

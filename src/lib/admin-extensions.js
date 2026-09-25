@@ -46,7 +46,7 @@ export const extraPaymentGatewayComponents = reactive({});
 // (if ever) an add-on registers one, so Free never renders an empty section.
 export const extraAppearanceSection = ref(null);
 
-// One extra step BookableItemEditDialog.vue inserts between Pricing and
+// One extra step BookableItemWizard.vue inserts between Pricing and
 // Review (QA report 2026-09-22 §4.8) — so settings an add-on keeps per
 // item (fees, tax, commission…) are edited with the item instead of on a
 // screen of their own. Shape:

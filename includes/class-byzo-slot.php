@@ -107,16 +107,17 @@ class BYZO_Slot {
 	/**
 	 * Whether earliest_bookable_start() binds the current request. Admins
 	 * are exempt — they record walk-ins and phone bookings for times a
-	 * customer could no longer book online.
+	 * customer could no longer book online. Staff logins too, when they
+	 * move one of their own bookings (QA report §6.2.9).
 	 */
 	public static function lead_time_applies() {
 		/**
 		 * Filters whether the booking lead time (no past slots, and the
 		 * minimum advance notice) applies to the current request.
 		 *
-		 * @param bool $applies Default: true for everyone but users who can manage_options.
+		 * @param bool $applies Default: true for everyone but users who can manage_options and staff logins.
 		 */
-		return (bool) apply_filters( 'byzo_enforce_booking_lead_time', ! current_user_can( 'manage_options' ) );
+		return (bool) apply_filters( 'byzo_enforce_booking_lead_time', ! current_user_can( 'manage_options' ) && ! BYZO_Staff::is_staff() );
 	}
 
 	/**
@@ -260,11 +261,13 @@ class BYZO_Slot {
 	 *
 	 * @return array<int,array{bookable_item_id:int,total_slots:int,booked_slots:int,rate:float}>
 	 */
-	public static function get_occupancy_by_bookable_item( DateTime $from, DateTime $to ) {
+	public static function get_occupancy_by_bookable_item( DateTime $from, DateTime $to, $location_id = 0 ) {
 		global $wpdb;
 
 		$slots_table    = self::table();
 		$bookings_table = $wpdb->prefix . 'byzo_bookings';
+
+		$in_location = BYZO_Booking::location_sql( $location_id, 's.bookable_item_id' );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
 		$rows = $wpdb->get_results(
@@ -275,6 +278,7 @@ class BYZO_Slot {
 				 FROM {$slots_table} s
 				 LEFT JOIN {$bookings_table} b ON b.slot_id = s.id AND b.status NOT IN ('cancelled','rejected')
 				 WHERE s.status IN ('open','full') AND s.start_datetime >= %s AND s.start_datetime < %s
+				 {$in_location}
 				 GROUP BY s.bookable_item_id",
 				$from->format( 'Y-m-d H:i:s' ),
 				$to->format( 'Y-m-d H:i:s' )

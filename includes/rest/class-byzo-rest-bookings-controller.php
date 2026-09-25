@@ -27,7 +27,7 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 					// to their own bookings by get_items() below (never able
 					// to pass bookable_item_id/an arbitrary filter to see
 					// anyone else's rows — see get_items()'s own comment).
-					'permission_callback' => array( $this, 'admin_or_own_customer_permissions_check' ),
+					'permission_callback' => array( $this, 'list_permissions_check' ),
 					'args'                => array(
 						'from'             => array( 'type' => 'string' ),
 						'to'               => array( 'type' => 'string' ),
@@ -58,12 +58,12 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_item' ),
-					'permission_callback' => array( $this, 'admin_permissions_check' ),
+					'permission_callback' => array( $this, 'booking_access_permissions_check' ),
 				),
 				array(
 					'methods'             => WP_REST_Server::EDITABLE,
 					'callback'            => array( $this, 'update_item' ),
-					'permission_callback' => array( $this, 'admin_permissions_check' ),
+					'permission_callback' => array( $this, 'booking_access_permissions_check' ),
 				),
 			)
 		);
@@ -124,7 +124,7 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 				array(
 					'methods'             => WP_REST_Server::EDITABLE,
 					'callback'            => array( $this, 'update_payment' ),
-					'permission_callback' => array( $this, 'admin_permissions_check' ),
+					'permission_callback' => array( $this, 'booking_access_permissions_check' ),
 				),
 			)
 		);
@@ -222,7 +222,11 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 		// widen this beyond their own rows either). An admin's request is
 		// completely unaffected — customer_id stays 0, query()'s existing
 		// unscoped behavior.
-		if ( ! current_user_can( 'manage_options' ) ) {
+		if ( BYZO_Staff::is_staff() ) {
+			// A staff login sees only their own items' bookings (QA report
+			// §6.2.9); their filters still narrow within that.
+			$args['bookable_item_ids'] = BYZO_Staff::item_ids();
+		} elseif ( ! current_user_can( 'manage_options' ) ) {
 			$customer = BYZO_Customer::get_by_wp_user_id( get_current_user_id() );
 			$args     = array(
 				'from'      => $args['from'],
@@ -402,6 +406,22 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return true;
 		}
 
+		if ( BYZO_Staff::is_staff() ) {
+			return $this->booking_access_permissions_check( $request );
+		}
+
+		return $this->admin_or_own_customer_permissions_check( $request );
+	}
+
+	/**
+	 * GET /bookings: admins, logged-in customers (their own) and staff
+	 * logins (their own items').
+	 */
+	public function list_permissions_check( WP_REST_Request $request ) {
+		if ( BYZO_Staff::is_staff() ) {
+			return true;
+		}
+
 		return $this->admin_or_own_customer_permissions_check( $request );
 	}
 
@@ -426,6 +446,14 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			$ownership_check = $this->require_owns_booking_if_customer( $id );
 			if ( is_wp_error( $ownership_check ) ) {
 				return $ownership_check;
+			}
+		}
+
+		// A staff login moves bookings only onto their own items' times.
+		if ( ! $by_token && BYZO_Staff::is_staff() ) {
+			$new_slot = BYZO_Slot::get( absint( $body['slot_id'] ) );
+			if ( ! $new_slot || ! BYZO_Staff::can_access_item( $new_slot['bookable_item_id'] ) ) {
+				return new WP_Error( 'byzo_rest_forbidden', __( 'You can only move bookings to your own times.', 'bookyzo' ), array( 'status' => 403 ) );
 			}
 		}
 
@@ -513,6 +541,12 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 	private function require_owns_booking_if_customer( $booking_id ) {
 		if ( current_user_can( 'manage_options' ) ) {
 			return true;
+		}
+
+		if ( BYZO_Staff::is_staff() ) {
+			return BYZO_Staff::can_access_booking( $booking_id )
+				? true
+				: new WP_Error( 'byzo_rest_forbidden', __( 'You do not have permission to do this.', 'bookyzo' ), array( 'status' => 403 ) );
 		}
 
 		$booking  = BYZO_Booking::get( $booking_id );

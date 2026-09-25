@@ -130,4 +130,16 @@ class BYZO_Capabilities {
 	public static function codes_enabled() {
 		return (bool) apply_filters( 'byzo_codes_enabled', false );
 	}
+
+	/**
+	 * Whether a WordPress user linked to a bookable item
+	 * (`bookable_items.wp_user_id`) gets the staff view of the admin app —
+	 * only their own items' bookings (QA report §6.2.9, FEATURES.md B1).
+	 * Free has no way to link anyone; an add-on hooks this.
+	 *
+	 * @return bool
+	 */
+	public static function staff_logins_enabled() {
+		return (bool) apply_filters( 'byzo_staff_logins_enabled', false );
+	}
 }

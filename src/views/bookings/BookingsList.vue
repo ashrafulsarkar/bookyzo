@@ -1,6 +1,9 @@
 <template>
   <div>
-    <ByzoPageHeader :title="__('Bookings', 'bookyzo')" :subtitle="__('Every booking, filterable and exportable.', 'bookyzo')">
+    <ByzoPageHeader
+      :title="staffMode ? __('My bookings', 'bookyzo') : __('Bookings', 'bookyzo')"
+      :subtitle="staffMode ? __('Bookings for the items you work.', 'bookyzo') : __('Every booking, filterable and exportable.', 'bookyzo')"
+    >
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <path d="M9 11l3 3L22 4" />
@@ -8,7 +11,7 @@
         </svg>
       </template>
       <template #actions>
-        <a :href="exportUrl" class="inline-flex">
+        <a v-if="!staffMode" :href="exportUrl" class="inline-flex">
           <Button variant="outline">{{ __('Export CSV', 'bookyzo') }}</Button>
         </a>
       </template>
@@ -210,6 +213,7 @@
 
 <script setup>
 import { statusLabel } from '@/lib/status';
+import { staffMode } from '@/lib/staff';
 import { i18n, locale } from '@/lib/i18n';
 import { ref, reactive, computed, watch, onMounted } from 'vue';
 import { toast } from 'vue-sonner';

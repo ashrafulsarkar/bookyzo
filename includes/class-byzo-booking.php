@@ -108,6 +108,7 @@ class BYZO_Booking {
 			'to'               => '',
 			'search'           => '',
 			'bookable_item_id' => 0,
+			'bookable_item_ids' => null,
 			// Bookings for one location's items (QA report §6.1 A1) —
 			// items.location_id is Free's column, set by a locations add-on.
 			'location_id'      => 0,
@@ -129,6 +130,18 @@ class BYZO_Booking {
 		if ( ! empty( $args['location_id'] ) ) {
 			$where[]  = "b.bookable_item_id IN (SELECT id FROM {$items_table} WHERE location_id = %d)"; // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
 			$params[] = (int) $args['location_id'];
+		}
+
+		// A staff login's own items only (QA report §6.2.9) — set by the
+		// REST controller from the session, never from a request param.
+		if ( is_array( $args['bookable_item_ids'] ) ) {
+			$ids = array_map( 'intval', $args['bookable_item_ids'] );
+			if ( ! $ids ) {
+				$where[] = '1=0';
+			} else {
+				$where[] = 'b.bookable_item_id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')';
+				$params  = array_merge( $params, $ids );
+			}
 		}
 
 		if ( $args['bookable_item_id'] ) {
@@ -302,6 +315,27 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * " AND <column> IN (the items at this location)", or '' for every
+	 * location — the Analytics screen's location filter (QA report §6.1
+	 * A1). Each aggregate below takes an optional $location_id and appends
+	 * this to its WHERE.
+	 *
+	 * @param int    $location_id Location id; 0 = all.
+	 * @param string $column      The bookable_item_id column to narrow.
+	 * @return string
+	 */
+	public static function location_sql( $location_id, $column ) {
+		global $wpdb;
+
+		$location_id = absint( $location_id );
+		if ( ! $location_id ) {
+			return '';
+		}
+
+		return " AND {$column} IN (SELECT id FROM {$wpdb->prefix}byzo_bookable_items WHERE location_id = {$location_id})";
+	}
+
+	/**
 	 * Daily booking counts over [from, to) — the Dashboard trend chart's
 	 * data source. Same INNER JOIN onto wp_byzo_slots as get_status_counts()
 	 * (a booking whose slot was deleted has no date to bucket it under).
@@ -314,11 +348,13 @@ class BYZO_Booking {
 	 * @return array Zero-filled for every date in the range (no gaps for
 	 *               days with no bookings), each entry { date, total }.
 	 */
-	public static function get_daily_counts( DateTime $from, DateTime $to ) {
+	public static function get_daily_counts( DateTime $from, DateTime $to, $location_id = 0 ) {
 		global $wpdb;
 
 		$bookings_table = self::table();
 		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		$in_location = self::location_sql( $location_id, 'b.bookable_item_id' );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
 		$rows = $wpdb->get_results(
@@ -327,6 +363,7 @@ class BYZO_Booking {
 				 FROM {$bookings_table} b
 				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
 				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 {$in_location}
 				 GROUP BY day",
 				$from->format( 'Y-m-d H:i:s' ),
 				$to->format( 'Y-m-d H:i:s' )
@@ -363,11 +400,13 @@ class BYZO_Booking {
 	 *
 	 * @return array<int,array{bookable_item_id:int,revenue:float,count:int}>
 	 */
-	public static function get_revenue_by_bookable_item( DateTime $from, DateTime $to ) {
+	public static function get_revenue_by_bookable_item( DateTime $from, DateTime $to, $location_id = 0 ) {
 		global $wpdb;
 
 		$bookings_table = self::table();
 		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		$in_location = self::location_sql( $location_id, 'b.bookable_item_id' );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
 		$rows = $wpdb->get_results(
@@ -376,6 +415,7 @@ class BYZO_Booking {
 				 FROM {$bookings_table} b
 				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
 				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 {$in_location}
 				 AND b.payment_status IN ('paid_manual','paid_online')
 				 GROUP BY b.bookable_item_id",
 				$from->format( 'Y-m-d H:i:s' ),
@@ -472,12 +512,14 @@ class BYZO_Booking {
 	 *
 	 * @return array<int,array{type:string,revenue:float,count:int}>
 	 */
-	public static function get_revenue_by_type( DateTime $from, DateTime $to ) {
+	public static function get_revenue_by_type( DateTime $from, DateTime $to, $location_id = 0 ) {
 		global $wpdb;
 
 		$bookings_table = self::table();
 		$slots_table    = $wpdb->prefix . 'byzo_slots';
 		$items_table    = $wpdb->prefix . 'byzo_bookable_items';
+
+		$in_location = self::location_sql( $location_id, 'b.bookable_item_id' );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
 		$rows = $wpdb->get_results(
@@ -487,6 +529,7 @@ class BYZO_Booking {
 				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
 				 INNER JOIN {$items_table} i ON i.id = b.bookable_item_id
 				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 {$in_location}
 				 AND b.payment_status IN ('paid_manual','paid_online')
 				 GROUP BY i.type",
 				$from->format( 'Y-m-d H:i:s' ),
@@ -517,11 +560,13 @@ class BYZO_Booking {
 	 *
 	 * @return array{overall:array{no_show:int,completed:int,rate:float},by_bookable_item:array<int,array{bookable_item_id:int,no_show:int,completed:int,rate:float}>}
 	 */
-	public static function get_no_show_rate( DateTime $from, DateTime $to ) {
+	public static function get_no_show_rate( DateTime $from, DateTime $to, $location_id = 0 ) {
 		global $wpdb;
 
 		$bookings_table = self::table();
 		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		$in_location = self::location_sql( $location_id, 'b.bookable_item_id' );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
 		$rows = $wpdb->get_results(
@@ -530,6 +575,7 @@ class BYZO_Booking {
 				 FROM {$bookings_table} b
 				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
 				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 {$in_location}
 				 AND b.status IN ('completed','no_show')
 				 GROUP BY b.bookable_item_id, b.status",
 				$from->format( 'Y-m-d H:i:s' ),
@@ -587,12 +633,14 @@ class BYZO_Booking {
 	 *
 	 * @return array<int,array{bookable_item_id:int,count:int}>
 	 */
-	public static function get_popular_bookable_items( DateTime $from, DateTime $to, $limit = 10 ) {
+	public static function get_popular_bookable_items( DateTime $from, DateTime $to, $limit = 10, $location_id = 0 ) {
 		global $wpdb;
 
 		$bookings_table = self::table();
 		$slots_table    = $wpdb->prefix . 'byzo_slots';
 		$limit          = max( 1, min( 50, (int) $limit ) );
+
+		$in_location = self::location_sql( $location_id, 'b.bookable_item_id' );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
 		$rows = $wpdb->get_results(
@@ -601,6 +649,7 @@ class BYZO_Booking {
 				 FROM {$bookings_table} b
 				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
 				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 {$in_location}
 				 AND b.status NOT IN ('cancelled','rejected')
 				 GROUP BY b.bookable_item_id
 				 ORDER BY count DESC
@@ -632,11 +681,13 @@ class BYZO_Booking {
 	 *
 	 * @return array<int,array{hour:int,count:int}>
 	 */
-	public static function get_popular_hours( DateTime $from, DateTime $to ) {
+	public static function get_popular_hours( DateTime $from, DateTime $to, $location_id = 0 ) {
 		global $wpdb;
 
 		$bookings_table = self::table();
 		$slots_table    = $wpdb->prefix . 'byzo_slots';
+
+		$in_location = self::location_sql( $location_id, 'b.bookable_item_id' );
 
 		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table names, not user input.
 		$rows = $wpdb->get_results(
@@ -645,6 +696,7 @@ class BYZO_Booking {
 				 FROM {$bookings_table} b
 				 INNER JOIN {$slots_table} s ON s.id = b.slot_id
 				 WHERE s.start_datetime >= %s AND s.start_datetime < %s
+				 {$in_location}
 				 AND b.status NOT IN ('cancelled','rejected')
 				 GROUP BY hour
 				 ORDER BY hour ASC",

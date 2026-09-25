@@ -48,7 +48,7 @@
       </template>
 
       <router-link
-        v-if="!proLicensed"
+        v-if="!proLicensed && !staffMode"
         :to="getProItem.to"
         class="byzo-sidebar-item byzo-sidebar-item--accent flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
         active-class="byzo-sidebar-item--active"
@@ -88,6 +88,7 @@ const icon = (paths) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="n
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import { extraNavItems, navBadges } from '../../lib/admin-extensions';
+import { staffMode } from '../../lib/staff';
 
 // Collapsible sections (QA report 2026-09-22 §4.11 — with Pro on, the rail
 // was ~28 rows, longer than most screens). Overview is always open; any
@@ -235,11 +236,19 @@ const getProItem = {
 // "Get Pro" is rendered separately, below every section, in the template —
 // it's a CTA row, not a navigation destination, so it never joins a
 // section (and never gets mistaken for one of Pro's own screens).
+// A staff login gets only their own two screens (lib/staff.js).
+const staffItems = [
+  { ...items.find((item) => item.to === '/bookings'), label: i18n.__('My bookings', 'bookyzo') },
+  items.find((item) => item.to === '/calendar'),
+];
+
 const groupedSections = computed(() =>
-  SECTION_ORDER.map((section) => ({
-    section,
-    items: [...items, ...extraNavItems].filter((item) => item.section === section),
-  })).filter((group) => group.items.length > 0)
+  staffMode
+    ? [{ section: ALWAYS_OPEN, items: staffItems }]
+    : SECTION_ORDER.map((section) => ({
+        section,
+        items: [...items, ...extraNavItems].filter((item) => item.section === section),
+      })).filter((group) => group.items.length > 0)
 );
 </script>
 

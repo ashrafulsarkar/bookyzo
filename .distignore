@@ -32,3 +32,5 @@ src
 scratchpad
 *.zip
 *.log
+# Local QA notes, never shipped.
+BOOKYZO-QA-REPORT-2026-09-22.md

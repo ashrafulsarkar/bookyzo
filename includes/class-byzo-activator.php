@@ -81,6 +81,11 @@ class BYZO_Activator {
 		// bridge plugin is active and enabled for it; NULL on every Free
 		// (and unbridged Pro) install, same "don't gate the data model"
 		// pattern as every other Pro-consumed column above.
+		// `wp_user_id` added 2026-09-25 (BYZO_DB_VERSION 3.1->3.2, QA report
+		// §6.2.9) — the WordPress user who works this item (a staff login).
+		// That user's admin view shows only the bookings of the items linked
+		// to them (BYZO_Staff). NULL on every Free install: only an add-on
+		// turning on BYZO_Capabilities::staff_logins_enabled() ever sets it.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookable_items (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			type VARCHAR(20) NOT NULL DEFAULT 'appointment',
@@ -106,11 +111,13 @@ class BYZO_Activator {
 			floor_height SMALLINT NULL,
 			floor_shape VARCHAR(20) NULL,
 			wc_product_id BIGINT UNSIGNED NULL,
+			wp_user_id BIGINT UNSIGNED NULL,
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			PRIMARY KEY  (id),
 			KEY type (type),
-			KEY status (status)
+			KEY status (status),
+			KEY wp_user_id (wp_user_id)
 		) {$charset_collate};";
 
 		// wp_byzo_schedules (recurring weekly pattern)

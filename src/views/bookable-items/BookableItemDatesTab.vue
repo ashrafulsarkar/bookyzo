@@ -1,6 +1,6 @@
 <template>
   <div class="flex flex-col gap-4">
-    <Card :class="embedded ? 'border-0 shadow-none' : 'max-w-xl'">
+    <Card class="max-w-xl">
       <CardHeader>
         <CardTitle>{{ __('Add a date', 'bookyzo') }}</CardTitle>
         <CardDescription>{{ __('Events have no weekly schedule — enter each occurrence directly (DETAILED-SPEC.md §1.3).', 'bookyzo') }}</CardDescription>
@@ -26,7 +26,7 @@
 
     <ByzoLoading v-if="loading" size="compact" />
 
-    <Card v-else-if="occurrences.length > 0" :class="['overflow-hidden', embedded ? 'mx-6' : 'max-w-xl']">
+    <Card v-else-if="occurrences.length > 0" :class="['overflow-hidden', 'max-w-xl']">
       <Table>
         <TableHeader>
           <TableRow>
@@ -53,7 +53,7 @@
       </Table>
     </Card>
 
-    <Card v-else :class="['py-10 text-center text-sm text-muted-foreground', embedded ? 'mx-6' : 'max-w-xl']">
+    <Card v-else :class="['py-10 text-center text-sm text-muted-foreground', 'max-w-xl']">
       {{ __('No dates yet — add the first occurrence above.', 'bookyzo') }}
     </Card>
   </div>
@@ -75,13 +75,6 @@ import { api } from '@/api/client';
 
 const props = defineProps({
   bookableItemId: { type: [String, Number], required: true },
-  // True when rendered inside BookableItemEditDialog.vue: drops the form
-  // card's own border/shadow (it would otherwise sit as a bordered card
-  // inside the dialog's bordered surface) and the max-w-xl cap, so the
-  // tab fills the dialog. The class can't just fall through from the
-  // parent as it does for the single-Card tabs — this root is a wrapper
-  // <div> with several cards inside.
-  embedded: { type: Boolean, default: false },
 });
 
 const occurrences = ref([]);

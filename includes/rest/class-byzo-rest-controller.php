@@ -48,6 +48,30 @@ abstract class BYZO_REST_Controller {
 	}
 
 	/**
+	 * Admins, plus staff logins (BYZO_Staff, QA report §6.2.9). The
+	 * callback itself narrows a staff caller to their own items.
+	 */
+	public function staff_permissions_check( WP_REST_Request $request ) {
+		if ( BYZO_Staff::is_staff() ) {
+			return true;
+		}
+
+		return $this->admin_permissions_check( $request );
+	}
+
+	/**
+	 * Admins, plus a staff login whose item the booking in the route's
+	 * `id` belongs to.
+	 */
+	public function booking_access_permissions_check( WP_REST_Request $request ) {
+		if ( BYZO_Staff::is_staff() && BYZO_Staff::can_access_booking( (int) $request->get_param( 'id' ) ) ) {
+			return true;
+		}
+
+		return $this->admin_permissions_check( $request );
+	}
+
+	/**
 	 * Permission callback for routes the public booking widget calls
 	 * (guest-allowed). Always true today — reserved as a named hook point
 	 * so a rate-limit/honeypot guard (DETAILED-SPEC.md §4's abuse-guard

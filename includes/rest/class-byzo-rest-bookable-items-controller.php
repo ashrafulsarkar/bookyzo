@@ -26,7 +26,7 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 				array(
 					'methods'             => WP_REST_Server::READABLE,
 					'callback'            => array( $this, 'get_items' ),
-					'permission_callback' => array( $this, 'admin_permissions_check' ),
+					'permission_callback' => array( $this, 'staff_permissions_check' ),
 					'args'                => array(
 						'type'     => array( 'type' => 'string' ),
 						'status'   => array( 'type' => 'string' ),
@@ -173,6 +173,8 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 				'status'   => $request->get_param( 'status' ),
 				'per_page' => $request->get_param( 'per_page' ),
 				'page'     => $request->get_param( 'page' ),
+				// A staff login lists only their own items (QA report §6.2.9).
+				'ids'      => BYZO_Staff::is_staff() ? BYZO_Staff::item_ids() : null,
 			)
 		);
 

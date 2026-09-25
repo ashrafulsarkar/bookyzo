@@ -36,6 +36,7 @@ class BYZO_Bookable_Item {
 	 *     @type string $status   Filter by status.
 	 *     @type int    $per_page Default 20, max 100.
 	 *     @type int    $page     1-indexed.
+	 *     @type int[]  $ids      Only these items (a staff login's own, BYZO_Staff); null = any.
 	 * }
 	 */
 	public static function query( $args = array() ) {
@@ -46,11 +47,22 @@ class BYZO_Bookable_Item {
 			'status'   => '',
 			'per_page' => 20,
 			'page'     => 1,
+			'ids'      => null,
 		);
 		$args = wp_parse_args( $args, $defaults );
 
 		$where  = array( '1=1' );
 		$params = array();
+
+		if ( is_array( $args['ids'] ) ) {
+			$ids = array_map( 'intval', $args['ids'] );
+			if ( ! $ids ) {
+				$where[] = '1=0';
+			} else {
+				$where[] = 'id IN (' . implode( ',', array_fill( 0, count( $ids ), '%d' ) ) . ')';
+				$params  = array_merge( $params, $ids );
+			}
+		}
 
 		if ( $args['type'] && in_array( $args['type'], self::VALID_TYPES, true ) ) {
 			$where[]  = 'type = %s';
@@ -211,6 +223,60 @@ class BYZO_Bookable_Item {
 		);
 
 		return true;
+	}
+
+	/**
+	 * Links a WordPress user to this item as its staff login (QA report
+	 * §6.2.9), or clears the link with null. Same shape as
+	 * update_tax_rate_override(): Free's own screens never set it, only an
+	 * add-on's route does.
+	 *
+	 * @param int      $id      Bookable item id.
+	 * @param int|null $user_id WordPress user id, or null to unlink.
+	 * @return true|WP_Error
+	 */
+	public static function update_wp_user_id( $id, $user_id ) {
+		global $wpdb;
+
+		if ( ! self::get( $id ) ) {
+			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		if ( null !== $user_id && ! get_userdata( (int) $user_id ) ) {
+			return new WP_Error( 'byzo_invalid_user', __( 'That user does not exist.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$wpdb->update(
+			self::table(),
+			array(
+				'wp_user_id' => null === $user_id ? null : (int) $user_id,
+				'updated_at' => current_time( 'mysql' ),
+			),
+			array( 'id' => $id )
+		);
+
+		return true;
+	}
+
+	/**
+	 * Ids of the items linked to a WordPress user (their staff login),
+	 * archived items left out.
+	 *
+	 * @param int $user_id WordPress user id.
+	 * @return int[]
+	 */
+	public static function ids_for_wp_user( $user_id ) {
+		global $wpdb;
+
+		if ( ! $user_id ) {
+			return array();
+		}
+
+		$ids = $wpdb->get_col(
+			$wpdb->prepare( 'SELECT id FROM ' . self::table() . " WHERE wp_user_id = %d AND status != 'archived' ORDER BY name", $user_id ) // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+		);
+
+		return array_map( 'intval', $ids );
 	}
 
 	/**
@@ -564,6 +630,7 @@ class BYZO_Bookable_Item {
 		$row['floor_height']       = isset( $row['floor_height'] ) && null !== $row['floor_height'] ? (int) $row['floor_height'] : null;
 		$row['floor_shape']        = isset( $row['floor_shape'] ) && null !== $row['floor_shape'] ? (string) $row['floor_shape'] : null;
 		$row['wc_product_id']      = isset( $row['wc_product_id'] ) && null !== $row['wc_product_id'] ? (int) $row['wc_product_id'] : null;
+		$row['wp_user_id']         = isset( $row['wp_user_id'] ) && null !== $row['wp_user_id'] ? (int) $row['wp_user_id'] : null;
 
 		return $row;
 	}

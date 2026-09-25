@@ -12,6 +12,7 @@ import AppearanceSettings from '../views/settings/AppearanceSettings.vue';
 import GetPro from '../views/GetPro.vue';
 import { api } from '../api/client';
 import { createWpAdminHistory } from './history';
+import { staffMode, STAFF_ROUTES } from '../lib/staff';
 
 // Custom wp-admin history (see ./history.js) rather than either stock
 // option. Each sidebar screen is a real registered admin page
@@ -86,6 +87,12 @@ export function markSetupComplete() {
 }
 
 router.beforeEach(async (to) => {
+  // A staff login (lib/staff.js) only has their bookings and the
+  // calendar; setup is the owner's business, never theirs.
+  if (staffMode) {
+    return STAFF_ROUTES.includes(to.name) || { name: 'bookings' };
+  }
+
   if (to.name === 'setup') {
     return true;
   }

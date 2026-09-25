@@ -61,6 +61,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-capabilities.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-install-redirect.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-bookable-item.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-staff.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-customer.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-customer-auth.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-availability.php';
@@ -224,10 +225,15 @@ class BYZO_Plugin {
 	 * without the first submenu row repeating it.
 	 */
 	public function register_admin_menu() {
+		// A staff login (BYZO_Staff) gets the same menu with only their
+		// own screens, behind `read` — being linked to an item is the real
+		// permission, and every REST route re-checks it per booking.
+		$capability = BYZO_Staff::is_staff() ? 'read' : 'manage_options';
+
 		add_menu_page(
 			__( 'Bookyzo – Booking & Appointments', 'bookyzo' ),
 			__( 'Bookyzo', 'bookyzo' ),
-			'manage_options',
+			$capability,
 			self::MENU_SLUG,
 			array( $this, 'render_admin_root' ),
 			'dashicons-calendar-alt',
@@ -239,11 +245,32 @@ class BYZO_Plugin {
 				self::MENU_SLUG,
 				$route['title'],
 				$route['label'],
-				'manage_options',
+				$capability,
 				$slug,
 				array( $this, 'render_admin_root' )
 			);
 		}
+	}
+
+	/**
+	 * The two screens a staff login sees (QA report §6.2.9): their
+	 * bookings, which is also their landing page, and the calendar.
+	 *
+	 * @return array<string,array{route:string,label:string,title:string}>
+	 */
+	private static function staff_routes() {
+		return array(
+			self::MENU_SLUG    => array(
+				'route' => '/bookings',
+				'label' => __( 'My bookings', 'bookyzo' ),
+				'title' => __( 'My bookings', 'bookyzo' ),
+			),
+			'bookyzo-calendar' => array(
+				'route' => '/calendar',
+				'label' => __( 'Calendar', 'bookyzo' ),
+				'title' => __( 'Bookyzo Calendar', 'bookyzo' ),
+			),
+		);
 	}
 
 	/**
@@ -263,6 +290,10 @@ class BYZO_Plugin {
 	 * @return array<string,array{route:string,label:string,title:string}>
 	 */
 	public static function routes() {
+		if ( BYZO_Staff::is_staff() ) {
+			return self::staff_routes();
+		}
+
 		$routes = array(
 			self::MENU_SLUG => array(
 				'route' => '/',

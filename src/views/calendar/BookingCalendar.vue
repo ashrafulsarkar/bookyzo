@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader :title="__('Calendar', 'bookyzo')" :subtitle="__('Every booking, by day, week, or month.', 'bookyzo')">
+    <ByzoPageHeader :title="__('Calendar', 'bookyzo')" :subtitle="staffMode ? __('Your bookings, by day, week, or month.', 'bookyzo') : __('Every booking, by day, week, or month.', 'bookyzo')">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
           <rect x="3" y="4" width="18" height="18" rx="2" />
@@ -22,7 +22,7 @@
             <SelectItem v-for="location in locations" :key="location.id" :value="String(location.id)">{{ location.name }}</SelectItem>
           </SelectContent>
         </Select>
-        <Button @click="showManualBooking = true">{{ __('+ New booking', 'bookyzo') }}</Button>
+        <Button v-if="!staffMode" @click="showManualBooking = true">{{ __('+ New booking', 'bookyzo') }}</Button>
       </template>
     </ByzoPageHeader>
 
@@ -60,6 +60,7 @@
 import { i18n } from '@/lib/i18n';
 import { ref, watch, onMounted } from 'vue';
 import { extraLocations as locations } from '@/lib/admin-extensions';
+import { staffMode } from '@/lib/staff';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/ui/select';
@@ -180,6 +181,10 @@ async function onRescheduleBooking({ booking, date, minutes }) {
 }
 
 function onSelectSlot() {
+  if (staffMode) {
+    return;
+  }
+
   // Clicking an empty calendar cell opens the same manual-booking flow —
   // the bookable item/time are picked inside the modal rather than trying
   // to infer an exact slot from a click position (buffer time and shift
