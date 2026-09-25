@@ -106,6 +106,16 @@ class BYZO_Public_Widget {
 	}
 
 	/**
+	 * The package store's mount point, on the same widget bundle (QA report
+	 * §6.1 A2). Free sells no packages and registers no shortcode for this;
+	 * an add-on that does calls it.
+	 */
+	public static function render_packages_store() {
+		self::enqueue_assets();
+		return '<div class="bookyzo-packages-mount"></div>';
+	}
+
+	/**
 	 * @param array $config {
 	 *     @type string|int $bookable_item_id Optional — pins the widget to one bookable item, skipping the picker step.
 	 *     @type string     $type             Optional — filters the picker to one booking type (DETAILED-SPEC.md §A5).

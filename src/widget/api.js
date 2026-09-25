@@ -58,6 +58,14 @@ export const getTicketTiers = (bookableItemId) => request(`/ticket-tiers/public?
 // add-ons, booking fee, tax), so the Total shown is the Total charged.
 export const getQuote = (payload) => request('/bookings/quote', { method: 'POST', body: JSON.stringify(payload) });
 export const createBooking = (payload) => request('/bookings', { method: 'POST', body: JSON.stringify(payload) });
+// Package store (QA report §6.1 A2) — an add-on's routes, only used on a
+// page that renders the store.
+export const getPackages = () => request('/packages/public');
+export const startPackagePurchase = (packageId, payload) => request(`/packages/${packageId}/purchase`, { method: 'POST', body: JSON.stringify(payload) });
+export const createPackageIntent = (purchaseId, token) => request(`/package-purchases/${purchaseId}/intent`, { method: 'POST', body: JSON.stringify({ token }) });
+export const confirmPackagePurchase = (purchaseId, token, paymentIntentId) =>
+  request(`/package-purchases/${purchaseId}/confirm`, { method: 'POST', body: JSON.stringify({ token, payment_intent_id: paymentIntentId }) });
+
 // Only called when window.byzoWidget.waitlistEnabled (an add-on's route).
 export const joinWaitlist = (payload) => request('/waitlist', { method: 'POST', body: JSON.stringify(payload) });
 export const createBookingPaymentIntent = (bookingId, customerEmail) =>

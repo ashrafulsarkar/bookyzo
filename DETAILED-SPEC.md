@@ -508,6 +508,32 @@ The last of Appointment Pro's four `FEATURES.md` bullets — the other three (st
 
 **New Pro table** `wp_byzo_custom_fields` (§1.6) — the originally-speced columns (`id`, `bookable_item_id NULL`, `label`, `field_type`, `options` JSON NULL, `required`, `sort_order`) plus one addition not in the original plan: a `status VARCHAR(20)` column (`active`/`inactive`), for parity with every other Pro CRUD table this phase (pricing_rules, webhooks, services) — lets an admin temporarily disable a field without losing its configuration or deleting real submitted data's meaning. **New Pro REST routes**: `GET/POST /custom-fields` (admin-only list-all/create) and `PUT/DELETE /custom-fields/{id}` (admin-only update/delete) — plain CRUD on the Pro-owned table, hooking the Free filter above to expose only `status = 'active'` rows to the public route. **Admin UI**: new "Form Fields" screen (per-bookable-item or global scope picker, field list with type/required/status, add/edit modal with type-specific config — options list for `dropdown`).
 
+### B6. Packages bought online — BUILT 2026-09-25 (QA report §6.1 A2)
+
+- **Tables** (`BYZOP_DB_VERSION` 2.3→2.4):
+  - `wp_byzo_packages`: name, description, credits, price, validity_days, applies_to_type, bookable_item_id, status.
+  - `wp_byzo_package_purchases`: package_id, unique `code` (`PKG-XXXX-XXXX`, lookalike characters swapped out, never clashing with a coupon), buyer name/email, `credits_total`/`price`/`applies_to_type`/`bookable_item_id` copied at purchase, status (`pending` → `paid`, or `void`), payment method/reference, `paid_at`, `expires_at`.
+- **Free:**
+  - `BYZO_Stripe::create_intent_for( $amount, $metadata, $email )`, a PaymentIntent for anything.
+  - The Stripe webhook fires `byzo_stripe_payment_succeeded` with every succeeded intent.
+  - `BYZO_Public_Widget::render_packages_store()` outputs a `.bookyzo-packages-mount` on the widget bundle. Free registers no shortcode for it.
+  - `PackageStore.vue` in the widget bundle: list → name/email (honeypot) → Stripe card → code shown.
+- **Pro `BYZOP_Packages`:**
+  - Registers `[bookyzo_packages]`.
+  - `start_purchase()` checks the package, the email and that Stripe is ready. It creates a pending purchase and returns an HMAC `token` (id + email, `wp_salt('auth')`). A zero-price package is issued immediately.
+  - `create_intent()` needs the token.
+  - `confirm()` re-fetches the intent from Stripe and requires this purchase's id in its metadata, `succeeded`, and `amount_received` ≥ price. Only then does it `mark_paid()` (sets the expiry and emails the code). The webhook runs the same check.
+  - The resolver runs on `byzo_booking_discount` at priority 20, after coupons. It refuses a code that is unpaid or void, expired, or for another item/type. It requires credits left ≥ party size (used = non-cancelled bookings' `party_size` with that `package_purchase_id`) and covers the booking's `subtotal`.
+  - `byzo_codes_enabled` is on while any package is on sale.
+  - Deleting a bought package pauses it instead.
+  - Privacy export lists purchases; erase anonymises the name and email but keeps the purchase record.
+- **REST:**
+  - Public: `GET /packages/public`, `POST /packages/{id}/purchase` (booking honeypot and rate limit), `POST /package-purchases/{id}/intent|confirm` (token).
+  - Admin: `/packages` CRUD, `GET /package-purchases`, `POST /package-purchases/{id}/void`.
+  - The lapsed-license guard refuses `POST /packages`; buying stays open.
+- **Not in v1:** PayPal for package purchases. The store is card-only, like the booking widget's own payment step.
+- **Test:** `bookyzo-pro/scratchpad/smoke-qa-packages.php` (25 checks, Stripe mocked).
+
 ### B6. Discount codes — BUILT 2026-09-25 (QA report §6.1 A2)
 
 - **Free:**

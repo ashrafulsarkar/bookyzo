@@ -192,6 +192,63 @@ class BYZO_Stripe {
 	}
 
 	/**
+	 * A PaymentIntent for something other than a booking — an add-on's
+	 * package purchase (QA report §6.1 A2). Same account, currency and
+	 * error handling as a booking's; the metadata says what it's for, and
+	 * byzo_stripe_payment_succeeded hands it back when the webhook fires.
+	 *
+	 * @param float  $amount   In the site currency.
+	 * @param array  $metadata Flat string map.
+	 * @param string $email    Receipt email.
+	 * @return array|WP_Error { client_secret, payment_intent_id }
+	 */
+	public static function create_intent_for( $amount, $metadata, $email ) {
+		if ( ! BYZO_Payment_Settings::is_stripe_ready() ) {
+			return new WP_Error( 'byzo_stripe_not_configured', __( 'Online card payment is not available right now.', 'bookyzo' ), array( 'status' => 503 ) );
+		}
+		if ( $amount <= 0 ) {
+			return new WP_Error( 'byzo_nothing_to_charge', __( 'There is nothing to charge.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$stripe = BYZO_Payment_Settings::get()['gateways']['stripe'];
+		$body   = array(
+			'amount'        => self::to_minor_units( $amount ),
+			'currency'      => strtolower( BYZO_Settings::get()['currency'] ),
+			'receipt_email' => $email,
+		);
+		foreach ( (array) $metadata as $key => $value ) {
+			$body[ 'metadata[' . sanitize_key( $key ) . ']' ] = (string) $value;
+		}
+
+		$response = wp_remote_post(
+			self::API_BASE . '/payment_intents',
+			array(
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $stripe['secret_key'],
+					'Content-Type'  => 'application/x-www-form-urlencoded',
+				),
+				'body'    => $body,
+				'timeout' => 15,
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return new WP_Error( 'byzo_stripe_request_failed', __( 'Could not reach the payment provider. Please try again.', 'bookyzo' ), array( 'status' => 502 ) );
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		$data = json_decode( wp_remote_retrieve_body( $response ), true );
+		if ( $code < 200 || $code >= 300 || empty( $data['client_secret'] ) ) {
+			return new WP_Error( 'byzo_stripe_error', $data['error']['message'] ?? __( 'The payment provider rejected this request.', 'bookyzo' ), array( 'status' => 502 ) );
+		}
+
+		return array(
+			'client_secret'     => $data['client_secret'],
+			'payment_intent_id' => $data['id'],
+		);
+	}
+
+	/**
 	 * The inverse of to_minor_units(), for amounts Stripe reports back.
 	 */
 	public static function from_minor_units( $minor ) {

@@ -1,5 +1,6 @@
 import { createApp } from 'vue';
 import BookingWidget from './BookingWidget.vue';
+import PackageStore from './PackageStore.vue';
 import './widget.css';
 
 // Multiple embeds are supported on one page (e.g. two shortcodes, or a
@@ -13,4 +14,10 @@ document.querySelectorAll('.bookyzo-widget-mount').forEach((el) => {
     type: el.dataset.type || null,
   };
   createApp(BookingWidget, { config }).mount(el);
+});
+
+// Package store (QA report §6.1 A2) — only on a page where an add-on
+// rendered its mount point.
+document.querySelectorAll('.bookyzo-packages-mount').forEach((el) => {
+  createApp(PackageStore).mount(el);
 });

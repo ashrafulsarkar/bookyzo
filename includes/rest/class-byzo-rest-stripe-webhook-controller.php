@@ -59,6 +59,15 @@ class BYZO_REST_Stripe_Webhook_Controller extends BYZO_REST_Controller {
 	private function handle_payment_succeeded( $event ) {
 		$metadata = $event['data']['object']['metadata'] ?? array();
 
+		/**
+		 * Any succeeded PaymentIntent, for payments that aren't bookings —
+		 * e.g. an add-on's package purchase (QA report §6.1 A2), which it
+		 * recognises by its own metadata.
+		 *
+		 * @param array $intent The PaymentIntent object.
+		 */
+		do_action( 'byzo_stripe_payment_succeeded', $event['data']['object'] );
+
 		// Phase 2 step 14 (DETAILED-SPEC.md §3 B6, cart checkout) — a
 		// PaymentIntent Pro created for a cart carries `cart_id` instead
 		// of a single `booking_id`; every booking sharing that cart_id
