@@ -29,7 +29,9 @@ async function request(path, options = {}) {
 }
 
 export const getPublicBookableItems = (type) => request(`/bookable-items/public${type ? `?type=${encodeURIComponent(type)}` : ''}`);
-export const getSlots = (bookableItemId) => request(`/slots?bookable_item_id=${bookableItemId}`);
+// includeFull: full slots come back too (status "full"), for the waitlist.
+export const getSlots = (bookableItemId, includeFull = false) =>
+  request(`/slots?bookable_item_id=${bookableItemId}${includeFull ? '&include_full=1' : ''}`);
 
 // Services + "any available staff" (DETAILED-SPEC.md §3 B7, QA report
 // 2026-09-22 B9). /services/public is Pro's route — without Pro it 404s and
@@ -56,6 +58,8 @@ export const getTicketTiers = (bookableItemId) => request(`/ticket-tiers/public?
 // add-ons, booking fee, tax), so the Total shown is the Total charged.
 export const getQuote = (payload) => request('/bookings/quote', { method: 'POST', body: JSON.stringify(payload) });
 export const createBooking = (payload) => request('/bookings', { method: 'POST', body: JSON.stringify(payload) });
+// Only called when window.byzoWidget.waitlistEnabled (an add-on's route).
+export const joinWaitlist = (payload) => request('/waitlist', { method: 'POST', body: JSON.stringify(payload) });
 export const createBookingPaymentIntent = (bookingId, customerEmail) =>
   request(`/bookings/${bookingId}/payment-intent`, { method: 'POST', body: JSON.stringify({ customer_email: customerEmail }) });
 

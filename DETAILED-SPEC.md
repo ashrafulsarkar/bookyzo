@@ -372,7 +372,17 @@ Free and Pro are two independently installed/activated/updated WordPress plugins
 ### B2. Advanced availability
 - Multiple shifts: Pro's admin UI adds "+ Add shift" to the weekly grid, writing additional `shift_group` rows — **the schema already supports this in Free's own table** (see 1.2), Pro just unlocks the UI affordance and the slot generator's shift_group>0 handling. Same "don't gate the data model, gate the UI/capability" principle as B1.
 - Recurring bookings: a `wp_byzo_booking_series` table (Pro-only table) — parent record with RRULE-like fields (frequency, interval, count/until), child bookings in `wp_byzo_bookings` reference `series_id`
-- Waitlist: `wp_byzo_waitlist` table (Pro-only) — bookable_item_id, requested_date_range, customer contact, notified_at; cron checks for freed capacity and emails/SMS the next waitlist entry FIFO
+- **Waitlist — BUILT 2026-09-25 (QA report §6.2.6), per slot rather than the date range first sketched here.**
+  - **Table:** `wp_byzo_waitlist` (Pro, `BYZOP_DB_VERSION` 2.0→2.1). Columns: slot_id, bookable_item_id, contact, party_size, status (`waiting` → `notified` → `booked`, or `missed` / `expired` / `removed`), page_url (where they joined, forced to this site's host), created/notified/updated.
+  - **Free:** `BYZO_Capabilities::waitlist_enabled()` (filter `byzo_waitlist_enabled`, false in Free) turns on `GET /slots?include_full=1`, which lists full slots too with `status: full`, and `window.byzoWidget.waitlistEnabled`. StepSlot keeps full times as muted "· Full" chips and shades full-only days. It auto-selects the first day with a bookable time. Picking a full time swaps Continue for `WaitlistForm.vue` (honeypot included; not for "any available staff" service browsing).
+  - **Pro, `BYZOP_Waitlist`:**
+    - `join()`: 409 if the slot still fits the party, the same entry returned for a repeat email, and the party checked against the item's capacity.
+    - `process_slot()`: runs on `byzo_booking_status_changed` (pending/confirmed → cancelled/rejected), `byzo_booking_rescheduled` (the old slot), after each join, and in the hourly `byzop_waitlist_sweep`. It expires entries on started slots. It turns offers older than `OFFER_MINUTES` (60) into `missed`. It then emails the next waiting entries whose party fits the free places not already offered: one party at a time for a whole-slot item (`byzo_booking_claims_whole_slot`, i.e. tables), as many as fit otherwise, skipping a party too big for what's left.
+    - `byzo_booking_created`: marks a matching email's entry `booked`.
+  - **REST:** `POST /waitlist` is public (same `BYZO_Public_Guard` honeypot and rate limit as bookings), `GET /waitlist` and `DELETE /waitlist/{id}` are admin. The Waitlist screen gained a "Waiting for a full time" table.
+  - **Privacy:** export lists entries, erase deletes them.
+  - **Test:** `bookyzo-pro/scratchpad/smoke-qa-waitlist.php` (27 checks).
+
 
 ### B7 (Appointment). Services & "any available staff" auto-assignment — DESIGNED + BUILT 2026-09-11, ROADMAP.md Phase 2 step 5
 

@@ -95,6 +95,9 @@ class BYZO_REST_Slots_Controller extends BYZO_REST_Controller {
 				'from'             => $request->get_param( 'from' ),
 				'to'               => $request->get_param( 'to' ),
 				'open_only'        => true,
+				// Full slots too, marked status "full", when the site keeps a
+				// waitlist and the widget asks (QA report §6.2.6).
+				'include_full'     => $request->get_param( 'include_full' ) && BYZO_Capabilities::waitlist_enabled(),
 				// Past slots and ones inside the minimum advance notice stay
 				// hidden from customers; admins still see the whole day
 				// (walk-ins, phone bookings, rescheduling).

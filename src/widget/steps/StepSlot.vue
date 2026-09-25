@@ -39,8 +39,8 @@
           :key="slot.id"
           type="button"
           class="option-card"
-          :class="{ 'option-card--selected': selectedSlotId === slot.id }"
-          :disabled="isSoldOut(slot)"
+          :class="{ 'option-card--selected': selectedSlotId === slot.id, 'option-card--full': isFull(slot) }"
+          :disabled="isSoldOut(slot) && !isFull(slot)"
           @click="selectedSlotId = slot.id"
         >
           <span class="option-card-body">
@@ -100,8 +100,10 @@
                 class="cal-cell"
                 :class="{
                   'cal-cell--open': cell.available,
+                  'cal-cell--full': cell.available && cell.fullOnly,
                   'cal-cell--selected': cell.key === selectedDateKey,
                 }"
+                :title="cell.available && cell.fullOnly ? 'Full — waitlist only' : undefined"
                 :disabled="!cell.available"
                 @click="selectedDateKey = cell.key"
               >
@@ -128,10 +130,11 @@
                   :key="slot.id"
                   type="button"
                   class="chip"
-                  :class="{ selected: selectedSlotId === slot.id }"
+                  :class="{ selected: selectedSlotId === slot.id, 'chip--full': isFull(slot) }"
+                  :title="isFull(slot) ? 'Full — join the waitlist' : undefined"
                   @click="selectedSlotId = slot.id"
                 >
-                  {{ formatTime(slot.start_datetime) }}
+                  {{ formatTime(slot.start_datetime) }}<span v-if="isFull(slot)" class="chip-full-tag"> · Full</span>
                 </button>
               </div>
             </div>
@@ -141,9 +144,12 @@
       </template>
     </template>
 
+    <!-- A full time was picked: the waitlist replaces Continue. -->
+    <WaitlistForm v-if="selectedSlot && isFull(selectedSlot)" :slot="selectedSlot" :item="item" :party-size="partySize" />
+
     <div class="actions">
       <button type="button" class="btn btn-outline" @click="$emit('back')">Back</button>
-      <button type="button" class="btn btn-primary" :disabled="!selectedSlot" @click="confirm">Continue</button>
+      <button type="button" class="btn btn-primary" :disabled="!selectedSlot || isFull(selectedSlot)" @click="confirm">Continue</button>
     </div>
   </div>
 </template>
@@ -153,6 +159,7 @@ import { ref, computed, onMounted, onBeforeUnmount, nextTick, watch } from 'vue'
 import { getSlots, getSlotsForService } from '../api';
 import { copyFor } from '../copy';
 import WidgetLoading from '../WidgetLoading.vue';
+import WaitlistForm from './WaitlistForm.vue';
 
 const props = defineProps({
   item: { type: Object, required: true },
@@ -168,10 +175,22 @@ const partySize = ref(1);
 // list) reads this rather than the raw response, so choosing a party of
 // six removes the tables that can't seat six instead of letting the
 // visitor pick a time that will fail on submit.
+// Full slots only arrive when the site keeps a waitlist (QA report
+// §6.2.6); they stay listed, marked, so the visitor can join it. A full
+// table only if the table could seat the party at all.
+const waitlistOn = computed(() => Boolean(window.byzoWidget && window.byzoWidget.waitlistEnabled) && !props.item.service_id);
+
+function isFull(slot) {
+  return !!slot && slot.status === 'full';
+}
+
 const slots = computed(() =>
-  asksPartySizeFirst.value
-    ? allSlots.value.filter((s) => (s.capacity_remaining ?? 1) >= partySize.value)
-    : allSlots.value
+  allSlots.value.filter((s) => {
+    if (isFull(s)) {
+      return waitlistOn.value && (!asksPartySizeFirst.value || (props.item.capacity || 1) >= partySize.value);
+    }
+    return asksPartySizeFirst.value ? (s.capacity_remaining ?? 1) >= partySize.value : true;
+  })
 );
 const selectedDateKey = ref('');
 // Picking a time no longer advances the step on its own — the visitor
@@ -249,6 +268,9 @@ const availableDates = computed(() => {
   return seen;
 });
 
+// Days with at least one bookable (not full) time.
+const openDateKeys = computed(() => new Set(slots.value.filter((s) => !isFull(s)).map((s) => dateKey(s.start_datetime))));
+
 const dates = computed(() =>
   Array.from(availableDates.value.keys()).sort((a, b) => a.localeCompare(b))
 );
@@ -289,7 +311,7 @@ const monthCells = computed(() => {
   const cells = new Array(first.getDay()).fill(null);
   for (let day = 1; day <= daysInMonth; day += 1) {
     const key = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-    cells.push({ key, day, available: availableDates.value.has(key) });
+    cells.push({ key, day, available: availableDates.value.has(key), fullOnly: !openDateKeys.value.has(key) });
   }
   return cells;
 });
@@ -382,8 +404,10 @@ watch(dates, (list) => {
     return;
   }
   if (list.length > 0 && !list.includes(selectedDateKey.value)) {
-    selectedDateKey.value = list[0];
-    monthCursor.value = monthKey(availableDates.value.get(list[0]));
+    // The first day something can actually be booked, not a full one.
+    const first = list.find((key) => openDateKeys.value.has(key)) || list[0];
+    selectedDateKey.value = first;
+    monthCursor.value = monthKey(availableDates.value.get(first));
   }
 });
 
@@ -399,7 +423,7 @@ onMounted(async () => {
   try {
     allSlots.value = props.item.service_id && !props.item.staff_id
       ? onePerStartTime(await getSlotsForService(props.item.service_id))
-      : await getSlots(props.item.id);
+      : await getSlots(props.item.id, waitlistOn.value);
   } catch (e) {
     error.value = e.message;
   } finally {

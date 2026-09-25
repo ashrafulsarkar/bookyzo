@@ -109,4 +109,15 @@ class BYZO_Capabilities {
 	public static function marketing_enabled() {
 		return (bool) apply_filters( 'byzo_marketing_enabled', false );
 	}
+
+	/**
+	 * Whether a full slot can be waitlisted — the widget then shows full
+	 * times as "Full — join the waitlist" instead of hiding them (QA report
+	 * §6.2.6, FEATURES.md B2). Free has no waitlist; an add-on hooks this.
+	 *
+	 * @return bool
+	 */
+	public static function waitlist_enabled() {
+		return (bool) apply_filters( 'byzo_waitlist_enabled', false );
+	}
 }

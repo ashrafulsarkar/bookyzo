@@ -729,6 +729,66 @@
   color: #fff;
 }
 
+/* Waitlist (QA report §6.2.6): full times stay visible, muted and struck
+   through lightly, so it's clear they can't be booked but can be joined. */
+.bookyzo-widget .chip--full {
+  color: var(--byzo-text-muted);
+  background: var(--byzo-subtle);
+  border-style: dashed;
+}
+
+.bookyzo-widget .chip--full.selected {
+  color: var(--byzo-text);
+  background: var(--byzo-primary-light);
+  border-color: var(--byzo-primary);
+  border-style: solid;
+}
+
+.bookyzo-widget .chip-full-tag {
+  font-weight: 500;
+}
+
+.bookyzo-widget .cal-cell--full {
+  color: var(--byzo-text-muted);
+  font-weight: 500;
+  background: var(--byzo-subtle);
+  box-shadow: none;
+}
+
+.bookyzo-widget .option-card--full .name {
+  color: var(--byzo-text-muted);
+}
+
+.bookyzo-widget .waitlist {
+  margin-top: 16px;
+  padding: 16px;
+  border: 1px solid var(--byzo-border);
+  border-radius: var(--byzo-radius-sm);
+  background: var(--byzo-subtle);
+}
+
+.bookyzo-widget .waitlist-title {
+  margin: 0 0 4px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--byzo-text);
+}
+
+.bookyzo-widget .waitlist-sub {
+  margin: 0 0 14px;
+  font-size: 13px;
+  color: var(--byzo-text-muted);
+}
+
+.bookyzo-widget .waitlist-done .waitlist-sub {
+  margin-bottom: 0;
+}
+
+.bookyzo-widget .waitlist .optional {
+  font-weight: 400;
+  color: var(--byzo-text-muted);
+}
+
 .bookyzo-widget .error {
   color: var(--byzo-danger);
   background: var(--byzo-danger-bg);

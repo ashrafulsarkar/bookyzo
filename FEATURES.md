@@ -165,7 +165,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Per-staff individual schedules that differ from the business default
 - Custom availability rules per bookable item (overrides)
 - Recurring bookings (weekly class, monthly appointment series)
-- Waitlist with automatic notification when a slot opens up
+- **Waitlist with automatic notification when a slot opens up — DONE 2026-09-25 (QA report §6.2.6):** on a site with Pro, a full time stays listed in the booking widget, marked "Full". Picking it offers "Join the waitlist" (name, email, optional phone, party size). When a place frees up because someone cancels, is rejected or moves to another time, the first people in line whose party fits get an email linking back to the booking page. It's first come, first served from there; nothing is held. If an offer isn't taken within an hour, the next person is told. Booking that time with the same email marks the entry booked, and entries expire once the time has passed. The admin's Waitlist screen lists who's waiting for which time and can remove entries.
 - Group bookings (multiple attendees under one booking)
 
 ### B3. Advanced Booking Management

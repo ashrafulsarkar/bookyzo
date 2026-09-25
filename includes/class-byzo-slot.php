@@ -61,7 +61,11 @@ class BYZO_Slot {
 		$where  = array( 'bookable_item_id = %d', 'start_datetime >= %s', 'start_datetime < %s' );
 		$params = array( $bookable_item_id, "{$from} 00:00:00", ( new DateTime( $to, wp_timezone() ) )->modify( '+1 day' )->format( 'Y-m-d' ) . ' 00:00:00' );
 
-		if ( $open_only ) {
+		if ( $open_only && ! empty( $args['include_full'] ) ) {
+			// Bookable ones plus the full ones, for a waitlist to offer.
+			// Blocked/closed slots stay out either way.
+			$where[] = "( ( status = 'open' AND capacity_remaining > 0 ) OR status = 'full' )";
+		} elseif ( $open_only ) {
 			$where[]  = "status = 'open'";
 			$where[]  = 'capacity_remaining > 0';
 		}
