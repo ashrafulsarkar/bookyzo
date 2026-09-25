@@ -16,6 +16,11 @@
           <input ref="fileInput" type="file" name="customers_csv" accept=".csv,text/csv" class="hidden" @change="onFileChosen" />
         </form>
         <Button variant="outline" @click="fileInput?.click()">Import CSV</Button>
+        <!-- An add-on's own header actions (admin-extensions.js
+             extraCustomerListActions), e.g. a customer export. -->
+        <a v-for="action in extraCustomerListActions" :key="action.label" :href="action.href" class="inline-flex">
+          <Button variant="outline">{{ action.label }}</Button>
+        </a>
         <Button @click="openCreate">+ Add customer</Button>
       </template>
     </ByzoPageHeader>
@@ -153,6 +158,7 @@ import ByzoPagination from '@/components/base/ByzoPagination.vue';
 import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import { api } from '@/api/client';
 import { useClientPagination } from '@/composables/useClientPagination';
+import { extraCustomerListActions } from '@/lib/admin-extensions';
 
 const items = ref([]);
 const loading = ref(true);

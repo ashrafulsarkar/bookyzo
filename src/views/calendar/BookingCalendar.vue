@@ -33,7 +33,13 @@
       <p v-if="error" class="mt-4 text-sm text-destructive">{{ error }}</p>
     </div>
 
-    <BookingDetailModal v-if="activeBooking" :booking="activeBooking" @close="activeBooking = null" @updated="onBookingUpdated" />
+    <BookingDetailModal
+      v-if="activeBooking"
+      :booking="activeBooking"
+      @close="activeBooking = null"
+      @updated="onBookingUpdated"
+      @changed="loadBookings"
+    />
     <ManualBookingModal
       v-if="showManualBooking"
       :initial-bookable-item-id="itemFilter !== '__all__' ? itemFilter : null"

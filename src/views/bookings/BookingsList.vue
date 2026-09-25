@@ -91,6 +91,28 @@
         </Button>
       </div>
 
+      <!-- Bulk bar — only when an add-on registered bulk actions
+           (admin-extensions.js extraBookingBulkActions) and something is
+           selected. -->
+      <div
+        v-if="bulkActions.length && selectedIds.length"
+        class="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 px-4 py-2.5"
+      >
+        <span class="mr-2 text-sm font-medium">{{ selectedIds.length }} selected</span>
+        <Button
+          v-for="action in bulkActions"
+          :key="action.label"
+          size="sm"
+          variant="outline"
+          :class="action.danger && 'text-destructive hover:text-destructive'"
+          :disabled="bulkBusy"
+          @click="runBulk(action)"
+        >
+          {{ action.label }}
+        </Button>
+        <Button size="sm" variant="ghost" class="ml-auto text-muted-foreground" :disabled="bulkBusy" @click="selectedIds = []">Clear selection</Button>
+      </div>
+
       <ByzoLoading v-if="loading" />
 
       <Card v-else-if="bookings.length === 0" class="py-16 text-center text-sm text-muted-foreground">
@@ -103,6 +125,15 @@
             <TableRow>
               <!-- The number staff quote on the phone and type into Check-in's
                    manual field — it used to appear nowhere in the admin. -->
+              <TableHead v-if="bulkActions.length" class="w-10">
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 cursor-pointer align-middle"
+                  aria-label="Select every booking on this page"
+                  :checked="pageAllSelected"
+                  @change="togglePage($event.target.checked)"
+                />
+              </TableHead>
               <TableHead class="w-16">#</TableHead>
               <TableHead>Customer</TableHead>
               <TableHead>Bookable item</TableHead>
@@ -118,10 +149,24 @@
               class="cursor-pointer"
               @click="activeBooking = booking"
             >
+              <TableCell v-if="bulkActions.length" @click.stop>
+                <input
+                  type="checkbox"
+                  class="h-4 w-4 cursor-pointer align-middle"
+                  :aria-label="`Select booking #${booking.id}`"
+                  :checked="selectedIds.includes(booking.id)"
+                  @change="toggleOne(booking.id, $event.target.checked)"
+                />
+              </TableCell>
               <TableCell class="font-mono text-xs text-muted-foreground">{{ booking.id }}</TableCell>
               <TableCell>
                 <span class="block font-medium">{{ booking.customer_name }}</span>
                 <span class="block text-xs text-muted-foreground">{{ booking.customer_email }}</span>
+                <!-- Staff-only tags an add-on may set on a booking; Free
+                     itself never writes any, so this is normally absent. -->
+                <span v-if="tagList(booking).length" class="mt-1 flex flex-wrap gap-1">
+                  <span v-for="tag in tagList(booking)" :key="tag" class="rounded-full border border-border bg-muted/40 px-2 py-px text-[11px] text-muted-foreground">{{ tag }}</span>
+                </span>
               </TableCell>
               <TableCell class="text-muted-foreground">{{ itemName(booking.bookable_item_id) }}</TableCell>
               <TableCell class="text-muted-foreground">{{ booking.party_size }}</TableCell>
@@ -143,6 +188,7 @@
       :booking="activeBooking"
       @close="activeBooking = null"
       @updated="onBookingUpdated"
+      @changed="loadBookings"
     />
   </div>
 </template>
@@ -167,6 +213,7 @@ import { Calendar as CalendarIcon, X } from 'lucide-vue-next';
 import { parseDate } from '@internationalized/date';
 import { api } from '@/api/client';
 import { useClientPagination } from '@/composables/useClientPagination';
+import { extraBookingBulkActions as bulkActions } from '@/lib/admin-extensions';
 
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show', 'rejected'];
 
@@ -194,8 +241,48 @@ async function loadItems() {
   }
 }
 
+// Selection for an add-on's bulk actions (see the bulk bar). Kept across
+// pages, so "select, next page, select more" works; cleared whenever the
+// list reloads, since the rows may no longer match the filters.
+const selectedIds = ref([]);
+const bulkBusy = ref(false);
+
+const pageAllSelected = computed(
+  () => paginatedBookings.value.length > 0 && paginatedBookings.value.every((b) => selectedIds.value.includes(b.id))
+);
+
+function toggleOne(id, checked) {
+  selectedIds.value = checked ? [...new Set([...selectedIds.value, id])] : selectedIds.value.filter((x) => x !== id);
+}
+
+function togglePage(checked) {
+  const ids = paginatedBookings.value.map((b) => b.id);
+  selectedIds.value = checked ? [...new Set([...selectedIds.value, ...ids])] : selectedIds.value.filter((x) => !ids.includes(x));
+}
+
+async function runBulk(action) {
+  bulkBusy.value = true;
+  try {
+    const result = await action.run([...selectedIds.value]);
+    toast.success(result?.message || `${action.label}: done.`);
+  } catch (e) {
+    toast.error(e.message || `Could not ${action.label.toLowerCase()} these bookings.`);
+  } finally {
+    bulkBusy.value = false;
+  }
+  await loadBookings();
+}
+
+function tagList(booking) {
+  return String(booking.tags || '')
+    .split(',')
+    .map((t) => t.trim())
+    .filter(Boolean);
+}
+
 async function loadBookings() {
   loading.value = true;
+  selectedIds.value = [];
   try {
     const params = new URLSearchParams({ per_page: '100' });
     if (filters.from) params.set('from', filters.from);

@@ -56,6 +56,23 @@ export const extraAppearanceSection = ref(null);
 // own save. null = no such step, and Free's dialog is exactly as before.
 export const extraItemEditStep = ref(null);
 
+// Bookings screen hooks (QA report 2026-09-22 §4.9) — an add-on's bulk
+// actions and per-booking tools live on the Bookings list and in the
+// booking popup itself, not on a second bookings list of their own.
+// - bookingBulkActions: [{ label, danger?, run(ids) -> Promise<{ message? }> }].
+//   Any at all turns on the list's checkbox column and a bar of these
+//   buttons for the selection; none, and the list has no checkboxes.
+// - bookingDetailSection: a component BookingDetailModal.vue renders under
+//   its own sections, given `booking`. It emits `updated(booking)` when it
+//   changed that booking, and `changed` when it changed others (created
+//   one, freed a table…) so the list behind it reloads.
+export const extraBookingBulkActions = reactive([]);
+export const extraBookingDetailSection = ref(null);
+
+// Extra buttons in the Customers screen header: [{ label, href }] — e.g. an
+// add-on's customer export.
+export const extraCustomerListActions = reactive([]);
+
 export function registerExtension(extension = {}) {
   (extension.routes || []).forEach((route) => router.addRoute(route));
   extraNavItems.push(...(extension.navItems || []));
@@ -66,4 +83,9 @@ export function registerExtension(extension = {}) {
   if (extension.itemEditStep) {
     extraItemEditStep.value = extension.itemEditStep;
   }
+  extraBookingBulkActions.push(...(extension.bookingBulkActions || []));
+  if (extension.bookingDetailSection) {
+    extraBookingDetailSection.value = extension.bookingDetailSection;
+  }
+  extraCustomerListActions.push(...(extension.customerListActions || []));
 }

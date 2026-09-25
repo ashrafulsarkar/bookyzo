@@ -1,6 +1,11 @@
 <template>
   <Dialog :open="true" @update:open="(v) => { if (!v) $emit('close'); }">
-    <DialogContent class="max-w-md">
+    <!-- Scrolls inside the viewport: an open Reschedule panel plus an
+         add-on's section (notes, duplicate…) can outgrow a laptop screen.
+         `[&>*]:min-w-0`: DialogContent is a grid, and the header's
+         nowrap date line sized its column to the full text — every box in
+         the popup ran ~44px past its right edge instead of truncating. -->
+    <DialogContent class="max-h-[90vh] max-w-md overflow-y-auto [&>*]:min-w-0">
       <DialogHeader>
         <div class="flex items-start justify-between gap-3 pr-6">
           <div class="min-w-0">
@@ -114,6 +119,17 @@
           </div>
         </div>
 
+        <!-- An add-on's own tools for this booking (admin-extensions.js
+             extraBookingDetailSection, QA report §4.9) — e.g. staff-only
+             notes and tags. Absent unless one is registered. -->
+        <component
+          :is="extraBookingDetailSection"
+          v-if="extraBookingDetailSection"
+          :booking="booking"
+          @updated="(updated) => emit('updated', updated)"
+          @changed="emit('changed')"
+        />
+
         <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
       </div>
 
@@ -170,6 +186,7 @@ import ByzoBadge from '@/components/base/ByzoBadge.vue';
 import { api } from '@/api/client';
 import { formatTime } from '@/lib/date';
 import { formatTotal } from '@/lib/money';
+import { extraBookingDetailSection } from '@/lib/admin-extensions';
 
 // Mirrors BYZO_Booking::TRANSITIONS server-side (includes/class-byzo-booking.php)
 // — the server is the actual source of truth/enforcement, this is just so
@@ -193,7 +210,7 @@ const declineTransitions = ['cancelled', 'no_show', 'rejected'];
 const props = defineProps({
   booking: { type: Object, required: true },
 });
-const emit = defineEmits(['close', 'updated']);
+const emit = defineEmits(['close', 'updated', 'changed']);
 
 const updating = ref(false);
 const markingPaid = ref(false);
