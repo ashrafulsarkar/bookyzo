@@ -46,11 +46,24 @@ export const extraPaymentGatewayComponents = reactive({});
 // (if ever) an add-on registers one, so Free never renders an empty section.
 export const extraAppearanceSection = ref(null);
 
+// One extra step BookableItemEditDialog.vue inserts between Pricing and
+// Review (QA report 2026-09-22 §4.8) — so settings an add-on keeps per
+// item (fees, tax, commission…) are edited with the item instead of on a
+// screen of their own. Shape:
+//   { label, component, initial(item) -> data, save(itemId, data), summary?(data, { currency }) -> [{ label, value }] }
+// The dialog owns `data` (so it survives Back/Continue), hands it to the
+// component as `modelValue` to edit in place, and calls save() after its
+// own save. null = no such step, and Free's dialog is exactly as before.
+export const extraItemEditStep = ref(null);
+
 export function registerExtension(extension = {}) {
   (extension.routes || []).forEach((route) => router.addRoute(route));
   extraNavItems.push(...(extension.navItems || []));
   Object.assign(extraPaymentGatewayComponents, extension.paymentGatewayComponents || {});
   if (extension.appearanceSection) {
     extraAppearanceSection.value = extension.appearanceSection;
+  }
+  if (extension.itemEditStep) {
+    extraItemEditStep.value = extension.itemEditStep;
   }
 }

@@ -34,6 +34,9 @@ const props = defineProps({
   error: { type: String, default: '' },
   submitLabel: { type: String, default: 'Create bookable item' },
   savingLabel: { type: String, default: 'Creating…' },
+  // Rows an add-on's own step contributes (admin-extensions.js
+  // extraItemEditStep.summary), listed after Price.
+  extraRows: { type: Array, default: () => [] },
 });
 defineEmits(['create', 'back']);
 
@@ -94,6 +97,7 @@ const rows = computed(() => {
     list.push({ label: 'Exceptions', value: exceptionsSummary.value });
   }
   list.push({ label: 'Price', value: formatMoney(d.price, { currency: d.currency, emptyLabel: 'Free' }) });
+  list.push(...props.extraRows);
   if (d.status) {
     list.push({ label: 'Status', value: STATUS_LABELS[d.status] || d.status });
   }

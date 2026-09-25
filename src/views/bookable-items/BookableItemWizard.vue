@@ -62,16 +62,28 @@
           @next="onPricingNext"
           @back="step = 'availability'"
         />
+        <!-- An add-on's own per-item settings (admin-extensions.js
+             extraItemEditStep, QA report §4.8), e.g. Pro's fees, tax and
+             commission. Only exists while one is registered; accumulated
+             like every other step and saved with the rest from Review. -->
+        <div v-else-if="step === 'extra' && extraItemEditStep" class="flex flex-col gap-6">
+          <component :is="extraItemEditStep.component" :model-value="extraData" :item="{ id: itemId, ...wizardData }" :currency="currency" />
+          <div class="flex justify-between">
+            <Button variant="outline" @click="step = 'pricing'">Back</Button>
+            <Button @click="step = 'review'">Continue</Button>
+          </div>
+        </div>
         <ReviewStep
           v-else-if="step === 'review'"
           :class="STEP_CARD_CLASS"
           :data="{ ...wizardData, currency }"
+          :extra-rows="extraRows"
           :saving="saving"
           :error="saveError"
           :submit-label="isEdit ? 'Save changes' : 'Create bookable item'"
           :saving-label="isEdit ? 'Saving…' : 'Creating…'"
           @create="submit"
-          @back="step = 'pricing'"
+          @back="step = extraItemEditStep ? 'extra' : 'pricing'"
         />
       </template>
     </DialogScrollContent>
@@ -91,6 +103,7 @@ import AvailabilityStep from './steps/AvailabilityStep.vue';
 import PricingStep from './steps/PricingStep.vue';
 import ReviewStep from './steps/ReviewStep.vue';
 import { api } from '@/api/client';
+import { extraItemEditStep } from '@/lib/admin-extensions';
 
 // ONE popup for both Add and Edit — an edit is the exact same step-by-step
 // flow with everything pre-filled from the loaded item (and the Type step
@@ -123,19 +136,32 @@ const STEP_CARD_CLASS = 'border-0 shadow-none [&>*]:!px-0 [&>*:first-child]:!pt-
 // only possible action was clicking Continue past it. The type still
 // shows on Details and Review, where it's information rather than a
 // dead choice.
-const STEP_ORDER = computed(() =>
-  isEdit.value
-    ? ['details', 'availability', 'pricing', 'review']
-    : ['type', 'details', 'availability', 'pricing', 'review']
-);
+const STEP_ORDER = computed(() => {
+  const steps = ['details', 'availability', 'pricing', ...(extraItemEditStep.value ? ['extra'] : []), 'review'];
+  return isEdit.value ? steps : ['type', ...steps];
+});
 const step = ref('type');
 const currentIndex = computed(() => STEP_ORDER.value.indexOf(step.value));
 const stepLabels = computed(() => {
   const availabilityLabel = wizardData.type === 'event' ? 'Dates' : 'Availability';
-  const labels = ['Details', availabilityLabel, 'Pricing', 'Review'];
+  const labels = ['Details', availabilityLabel, 'Pricing', ...(extraItemEditStep.value ? [extraItemEditStep.value.label] : []), 'Review'];
 
   return isEdit.value ? labels : ['Type', ...labels];
 });
+
+// The add-on step's working copy (see the template), seeded by its own
+// initial() from the loaded item on edit, or from an empty one on add.
+const extraData = reactive({});
+const extraRows = computed(() =>
+  extraItemEditStep.value && extraItemEditStep.value.summary ? extraItemEditStep.value.summary(extraData, { currency: currency.value }) : []
+);
+
+function seedExtraData(item) {
+  Object.keys(extraData).forEach((key) => delete extraData[key]);
+  if (extraItemEditStep.value && extraItemEditStep.value.initial) {
+    Object.assign(extraData, extraItemEditStep.value.initial(item));
+  }
+}
 
 // Accumulated across the steps and sent to the server ONCE, from Review.
 // `schedules` / `exceptions` / `occurrences` are null (not []) until the
@@ -189,6 +215,9 @@ const original = reactive({ exceptionIds: [], occurrenceIds: [] });
 // item behind it.
 const createdId = ref(null);
 const createdType = ref('');
+// …and whether its schedule landed too, so closing after a failed add-on
+// step (the last save) names that, not the schedule.
+const createdScheduleSaved = ref(false);
 
 // Guards against a slow response for item A landing after the owner has
 // already closed this and opened item B.
@@ -218,6 +247,8 @@ function resetWizard() {
   saveError.value = '';
   createdId.value = null;
   createdType.value = '';
+  createdScheduleSaved.value = false;
+  seedExtraData({});
 }
 
 async function loadDefaults() {
@@ -298,6 +329,7 @@ async function loadItem(id) {
       exceptions,
       occurrences,
     });
+    seedExtraData(item);
     original.exceptionIds = (exceptions || []).map((x) => x.id);
     original.occurrenceIds = (occurrences || []).map((o) => o.id);
   } catch (e) {
@@ -327,7 +359,21 @@ function onAvailabilityNext(availability) {
 
 function onPricingNext(pricing) {
   Object.assign(wizardData, pricing);
-  step.value = 'review';
+  step.value = extraItemEditStep.value ? 'extra' : 'review';
+}
+
+// Runs after the item and its schedule are saved. The item exists by
+// then, so a failure here says which part is missing rather than a
+// generic "could not save" — and a retry re-sends it, harmlessly.
+async function saveExtra(id) {
+  if (!extraItemEditStep.value || !extraItemEditStep.value.save) {
+    return;
+  }
+  try {
+    await extraItemEditStep.value.save(id, { ...extraData });
+  } catch (e) {
+    throw new Error(`The item was saved, but its ${extraItemEditStep.value.label.toLowerCase()} weren't: ${e.message || 'unknown error'}`);
+  }
 }
 
 function buildPayload() {
@@ -422,6 +468,7 @@ async function submit() {
     if (isEdit.value) {
       const updated = await api.put(`/bookable-items/${props.itemId}`, payload);
       await syncSchedule(props.itemId);
+      await saveExtra(props.itemId);
       toast.success(`"${updated.name}" saved.`);
       emit('saved', updated);
     } else {
@@ -433,6 +480,7 @@ async function submit() {
         await api.delete(`/bookable-items/${createdId.value}`);
         createdId.value = null;
         createdType.value = '';
+        createdScheduleSaved.value = false;
       }
 
       let created;
@@ -445,9 +493,12 @@ async function submit() {
       }
 
       await syncSchedule(created.id);
+      createdScheduleSaved.value = true;
+      await saveExtra(created.id);
 
       createdId.value = null;
       createdType.value = '';
+      createdScheduleSaved.value = false;
       toast.success(`"${created.name}" created.`);
       emit('saved', created);
     }
@@ -495,7 +546,10 @@ function close() {
   // shows up where the owner can finish it via Edit instead of silently
   // vanishing until the next reload.
   if (createdId.value) {
-    const missing = wizardData.type === 'event' ? 'dates were' : 'availability was';
+    let missing = wizardData.type === 'event' ? 'dates were' : 'availability was';
+    if (createdScheduleSaved.value && extraItemEditStep.value) {
+      missing = `${extraItemEditStep.value.label.toLowerCase()} were`;
+    }
     toast.warning(`"${wizardData.name}" was created, but its ${missing} not saved — open it from the list to finish setting it up.`);
     emit('saved', { id: createdId.value, name: wizardData.name, type: createdType.value });
   }
