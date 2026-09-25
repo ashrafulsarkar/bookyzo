@@ -19,9 +19,23 @@
 
     <nav class="flex flex-1 flex-col gap-0.5 overflow-y-auto p-3">
       <template v-for="group in groupedSections" :key="group.section">
-        <div class="byzo-sidebar-section-label">{{ group.section }}</div>
+        <div v-if="group.section === ALWAYS_OPEN" class="byzo-sidebar-section-label">{{ group.section }}</div>
+        <button
+          v-else
+          type="button"
+          class="byzo-sidebar-section-label byzo-sidebar-section-toggle"
+          :aria-expanded="isOpen(group)"
+          :aria-controls="`byzo-nav-${slug(group.section)}`"
+          @click="toggle(group)"
+        >
+          <span>{{ group.section }}</span>
+          <span v-if="!isOpen(group)" class="byzo-sidebar-section-count">{{ group.items.length }}</span>
+          <svg class="byzo-sidebar-chevron" :class="{ 'is-open': isOpen(group) }" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6" /></svg>
+        </button>
         <router-link
           v-for="item in group.items"
+          v-show="group.section === ALWAYS_OPEN || isOpen(group)"
+          :id="item === group.items[0] ? `byzo-nav-${slug(group.section)}` : undefined"
           :key="item.to"
           :to="item.to"
           class="byzo-sidebar-item flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
@@ -69,8 +83,52 @@ const icon = (paths) => `<svg width="18" height="18" viewBox="0 0 24 24" fill="n
 // vary (mobile admin bar, folded/collapsed menu, RTL, third-party admin
 // themes) and shift live via CSS-transitioned classes on <body> rather
 // than a JS event we could subscribe to.
-import { computed, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
+import { useRoute } from 'vue-router';
 import { extraNavItems } from '../../lib/admin-extensions';
+
+// Collapsible sections (QA report 2026-09-22 §4.11 — with Pro on, the rail
+// was ~28 rows, longer than most screens). Overview is always open; any
+// other section is open when it holds the current screen or when the
+// admin opened it, which is remembered per browser. The WP submenu is
+// deliberately left as it is (user decision 2026-09-25).
+const ALWAYS_OPEN = 'Overview';
+const STORAGE_KEY = 'byzo-sidebar-open-sections';
+const route = useRoute();
+
+function readOpen() {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(STORAGE_KEY) || '[]');
+    return Array.isArray(saved) ? saved : [];
+  } catch {
+    return [];
+  }
+}
+const openSections = ref(readOpen());
+
+function holdsCurrentScreen(group) {
+  return group.items.some((item) => route.path === item.to || (item.to !== '/' && route.path.startsWith(`${item.to}/`)));
+}
+
+function isOpen(group) {
+  return openSections.value.includes(group.section) || holdsCurrentScreen(group);
+}
+
+function toggle(group) {
+  const open = isOpen(group);
+  // Closing the section you're in is allowed; it just stays open until
+  // you leave it, since hiding the row you're on would be disorienting.
+  openSections.value = open ? openSections.value.filter((s) => s !== group.section) : [...openSections.value, group.section];
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(openSections.value));
+  } catch {
+    // Private mode / blocked storage: the choice just isn't remembered.
+  }
+}
+
+function slug(section) {
+  return section.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+}
 
 let resizeHandler = null;
 let bodyClassObserver = null;
@@ -200,6 +258,42 @@ const groupedSections = computed(() =>
   padding-top: 0.25rem;
 }
 
+.byzo-sidebar-section-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  width: 100%;
+  margin: 0;
+  text-align: left;
+  font-family: inherit;
+  background: none;
+  border: 0;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.byzo-sidebar-section-toggle:hover {
+  color: var(--byzo-text);
+}
+
+.byzo-sidebar-section-count {
+  padding: 0 0.375rem;
+  font-size: 0.625rem;
+  line-height: 1rem;
+  letter-spacing: 0;
+  border-radius: 999px;
+  background: var(--byzo-surface-alt);
+}
+
+.byzo-sidebar-chevron {
+  margin-left: auto;
+  transition: transform 0.15s ease;
+}
+
+.byzo-sidebar-chevron.is-open {
+  transform: rotate(90deg);
+}
+
 .byzo-sidebar-item {
   color: var(--byzo-text-muted);
 }
@@ -283,6 +377,12 @@ const groupedSections = computed(() =>
   .byzo-sidebar-item {
     flex: 0 0 auto;
     white-space: nowrap;
+  }
+
+  /* No sections to fold in a single scrolling strip — every item shows,
+     whatever the rail's open/closed state is (beats v-show's inline style). */
+  .byzo-sidebar nav .byzo-sidebar-item {
+    display: flex !important;
   }
 }
 </style>
