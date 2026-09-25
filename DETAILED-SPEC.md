@@ -332,6 +332,16 @@ Enforced centrally in one place — `BYZO_Capabilities::max_bookable_items_per_t
 
 ## 3. Pro Plugin — Feature-by-Feature Breakdown
 
+### License states — what a lapsed license does (built 2026-09-25, QA report B14)
+
+`byzop_license_state()` returns `active`, `lapsed` or `none`. `byzop_is_licensed()`, the gate every Pro feature, route and nav item already used, now means "not `none`", so a lapsed site keeps all of them. The state comes from three options: `byzop_license_key`, `byzop_license_status` (`valid` / `expired` / empty), and **`byzop_license_expires`** (new). That last one is the ISO `expires_at` the license server returns on activation, empty for a lifetime key. `valid` with a date that has passed counts as lapsed with no network call. **`BYZOP_License::refresh()`** runs daily (`byzop_license_refresh`, scheduled whenever a key is stored, first within a minute for a key activated before this existed). It can also be run on demand (`POST /license/refresh`, the License screen's "Check again"). It re-POSTs `/api/license/activate`, which is idempotent for an already-registered domain and is the only endpoint that returns the date:
+- **Success** → `valid` with the new date. This is how a renewal comes back.
+- **Not active, stored date passed** → `expired` (lapsed).
+- **Not active, date not passed or unknown** → empty status. That means revoked or suspended, and Pro switches off, since the server words both "not active" cases the same.
+- **Unreachable server** → no change.
+
+**`BYZOP_License_Guard`** (`rest_pre_dispatch`, hooked with the other licensed features, acting only while lapsed) refuses creation with a 403 `byzop_license_lapsed` that explains and points at "Check again". It covers POST to `/services`, `/pricing-rules`, `/addons`, `/custom-fields`, `/webhooks`, `/ticket-tiers`, `/class-series`, `/campaigns/send`, `/calendar-sync/{id}/connect`, `/wc-bridge/{id}/enable`, Free's `/bookable-items` when the new item would be active and that type already has an active item, and a `/pro-settings` write that adds a reminder rule (no id, or an id not saved yet). Everything else stays open, including operations that happen to POST: walk-in entries, check-in, bulk status, combining tables, campaign preview, PayPal/WooCommerce checkout. `BYZOP_Capabilities` stays hooked while lapsed on purpose, so existing extra items and multi-shift schedules keep working and stay editable. A (non-dismissible) admin notice on Bookyzo screens and the Plugins page says when it expired; `window.byzopAdmin.licenseState` feeds the License screen's "Expired" state. Test: `bookyzo-pro/scratchpad/smoke-qa-b14-license-lapse.php` (31 checks, including a mocked server for every refresh outcome).
+
 ### Shared Vue admin app — the actual mechanism (decided/built 2026-09-11, Phase 2 step 1)
 
 Free and Pro are two independently installed/activated/updated WordPress plugins, so "one shared Vue 3 admin app" (the standing rule in bookyzo-dev/bookyzo-design SKILL.md and this doc's own earlier notes) can't mean one literal build spanning both plugin folders — Free's WordPress.org zip is built and shipped long before any given customer installs Pro. The resolved mechanism, entirely **runtime**, not build-time:

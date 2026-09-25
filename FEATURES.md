@@ -150,6 +150,8 @@ Self-service so a business stops fielding "can I reschedule?" calls/emails for e
 
 Pro should unlock everything a growing/multi-location business actually needs — the things that create real operational pain when missing.
 
+**When a Pro license expires (decided 2026-09-25, QA report B14):** nothing the site already uses switches off. Extra bookable items stay bookable, and services, pricing rules, reminders, the floor plan, check-in, payments and every other Pro screen keep working, including editing and deleting what exists. What stops is creating new Pro things: services, pricing rules, add-ons, form fields, ticket tiers, webhooks, class series, calendar connections, WooCommerce-linked items, campaigns, reminder rules, and active bookable items beyond Free's one per type. Automatic updates stop too. A revoked or suspended license (refund, abuse) is different: that switches Pro off completely. Renewing takes effect on the next daily check, or straight away with "Check again" on the License screen.
+
 ### B1. Multi-Everything
 - **Unlimited bookable items per type** (multiple staff, multiple tables, multiple events, multiple bookable items — Free allows exactly one of each; this is the primary volume-based upgrade wall, hit the day a business hires a 2nd staff member or adds a 2nd table)
 - ~~All booking types active at once~~ — **moved to Free 2026-09-02.** All four types are Free now; Pro's differentiator is depth per type (unlimited bookable items + the B7 type-specific modules), not type access.
