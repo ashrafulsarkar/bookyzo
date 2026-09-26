@@ -72,6 +72,11 @@ class BYZO_Settings {
 			// hardcoded/always-shown); a merchant who wants to require
 			// online payment turns this off explicitly.
 			'allow_pay_in_person'        => true,
+			// Added 2026-09-26 — an Event booking for more than one ticket
+			// asks for each ticket holder's name (email optional) instead of
+			// one contact for the whole purchase (StepDetails.vue). Off by
+			// default: it adds a field per ticket to the booking form.
+			'collect_attendee_details'   => false,
 		);
 
 		$settings = wp_parse_args( get_option( 'byzo_settings', array() ), $defaults );
@@ -142,7 +147,7 @@ class BYZO_Settings {
 			$patch['default_end_time'] = $time;
 		}
 
-		foreach ( array( 'require_phone', 'auto_confirm', 'send_confirmation_email', 'send_admin_notification', 'customer_accounts_enabled', 'allow_pay_in_person' ) as $bool_field ) {
+		foreach ( array( 'require_phone', 'auto_confirm', 'send_confirmation_email', 'send_admin_notification', 'customer_accounts_enabled', 'allow_pay_in_person', 'collect_attendee_details' ) as $bool_field ) {
 			if ( isset( $data[ $bool_field ] ) ) {
 				$patch[ $bool_field ] = (bool) $data[ $bool_field ];
 			}

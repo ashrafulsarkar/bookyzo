@@ -149,7 +149,6 @@ Initial release.
 * `byzo_dev_server_url` — ( string $url ) Vite dev server URL used only in local development.
 * `byzo_unit_price` — ( float $price, int $bookable_item_id, array $slot ) Per-booking unit price adjustment applied right after service-price resolution and before tax. Default: unmodified `$price`.
 * `byzo_pdf_invoice_enabled` — ( bool $enabled ) Whether a downloadable PDF invoice is available from the customer dashboard. Default `false`.
-* `byzo_collect_attendee_details` — ( bool $enabled ) Whether an Event booking with party_size > 1 collects each ticket's own name/email on the widget. Default `false`.
 * `byzo_widget_after_mount` — ( string $html, array $config ) HTML appended right after the booking widget's own mount markup — lets an add-on inject unrelated page-level snippets (e.g. marketing pixel base code) without touching the widget markup itself. Default `''`.
 * `byzo_custom_fields_for_bookable_item` — ( array $fields, int $bookable_item_id ) Custom form fields to render on the booking widget for a given bookable item, each `{ id, label, field_type, options, required }`. Default `array()`.
 * `byzo_addons_for_bookable_item` — ( array $addons, int $bookable_item_id ) Add-ons to render on the booking widget for a given bookable item, each `{ id, name, price }`. Default `array()`.

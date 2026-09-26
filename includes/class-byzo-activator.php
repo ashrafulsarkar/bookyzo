@@ -167,8 +167,8 @@ class BYZO_Activator {
 		// (B6, `wp_byzo_addons`) actually writes to it, same "don't gate
 		// the data model" pattern as `custom_fields` below. `attendees`
 		// added 2026-09-06 (Phase 1.7 step 1, DETAILED-SPEC.md §1.4) —
-		// reserved the same way; only consumed once Phase 2 step 20 flips
-		// the `byzo_collect_attendee_details` filter on. `service_id` added
+		// reserved the same way; filled once the site turns on the
+		// `collect_attendee_details` setting. `service_id` added
 		// 2026-09-11 (Phase 2 step 5, BYZO_DB_VERSION 1.7->1.8,
 		// DETAILED-SPEC.md §3 B7) — which Pro-owned wp_byzo_services row this
 		// booking was for (NULL for every booking made the way Free already

@@ -98,6 +98,16 @@
 
             <div class="flex flex-col gap-1.5">
               <label class="flex items-center gap-2 text-sm">
+                <Switch v-model="form.collect_attendee_details" />
+                {{ __('Ask for each ticket holder\'s name on event bookings', 'bookyzo') }}
+              </label>
+              <p class="text-xs text-muted-foreground">
+                {{ __('When someone books more than one ticket for an event, the booking form asks for a name (and optionally an email) for every ticket instead of one contact for the whole order.', 'bookyzo') }}
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <label class="flex items-center gap-2 text-sm">
                 <Switch v-model="form.allow_pay_in_person" />
                 {{ __('Let customers choose "Pay in person instead" and skip online payment', 'bookyzo') }}
               </label>
@@ -212,6 +222,7 @@ const form = ref({
   // Added 2026-09-22 — gates StepPayment.vue's "Pay in person instead".
   allow_pay_in_person: true,
   pending_booking_hold_hours: 24,
+  collect_attendee_details: false,
 });
 // The currencies most sites use, plus whatever this site already saved —
 // the field was free text, so an existing value must never disappear.

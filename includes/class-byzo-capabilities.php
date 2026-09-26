@@ -49,17 +49,6 @@ class BYZO_Capabilities {
 	}
 
 	/**
-	 * Whether an Event booking with party_size > 1 collects each ticket's
-	 * own name/email instead of one contact name for the whole purchase
-	 * (Phase 2 step 20, `FEATURES.md` B4). Free's widget code path for
-	 * this already exists (conditionally rendered) regardless of this
-	 * flag; it's just never shown while it's `false`. Free = false.
-	 */
-	public static function collect_attendee_details_enabled() {
-		return (bool) apply_filters( 'byzo_collect_attendee_details', false );
-	}
-
-	/**
 	 * Whether a downloadable QR e-ticket is available from the customer
 	 * dashboard (Phase 2 step 12 continued, `FEATURES.md` B7 Event) —
 	 * same shape as pdf_invoice_enabled() above: the dashboard link is

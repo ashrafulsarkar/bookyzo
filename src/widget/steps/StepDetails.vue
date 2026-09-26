@@ -326,8 +326,8 @@ onMounted(async () => {
 // earlier step asked, otherwise this step's own field.
 const quantity = computed(() => Math.max(1, Number(props.partySize ?? form.party_size) || 1));
 
-// Phase 2 step 20 (DETAILED-SPEC.md §3 B4) — window.byzoWidget.collectAttendeeDetailsEnabled
-// (added alongside restUrl/stripeEnabled/etc. by BYZO_Public_Widget::enqueue_assets()).
+// Phase 2 step 20 (DETAILED-SPEC.md §3 B4) — window.byzoWidget.collectAttendeeDetailsEnabled,
+// the site's "Ask for each ticket holder's name" setting (BYZO_Public_Widget::enqueue_assets()).
 const collectAttendeeDetailsEnabled = Boolean(window.byzoWidget && window.byzoWidget.collectAttendeeDetailsEnabled);
 const showAttendeeDetails = computed(() => collectAttendeeDetailsEnabled && 'event' === props.item.type && quantity.value > 1);
 

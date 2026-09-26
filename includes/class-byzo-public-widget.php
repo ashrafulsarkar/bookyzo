@@ -251,9 +251,9 @@ class BYZO_Public_Widget {
 		// Phase 2 step 20 (DETAILED-SPEC.md §3 B4) — whether an Event
 		// booking with party_size > 1 collects each ticket's own
 		// name/email instead of one contact name for the whole purchase.
-		// Site-wide, so it's exposed here once rather than a per-request
-		// fetch, same shape as customerAccountsEnabled above.
-		$collect_attendee_details = (bool) BYZO_Capabilities::collect_attendee_details_enabled();
+		// A site setting (Settings → General), exposed here once rather
+		// than a per-request fetch, same shape as customerAccountsEnabled.
+		$collect_attendee_details = ! empty( BYZO_Settings::get()['collect_attendee_details'] );
 
 		// QA report 2026-09-22 B10 — whether the confirmation screen shows
 		// the QR e-ticket (confirmed event bookings) and an invoice link
