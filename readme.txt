@@ -149,7 +149,6 @@ Initial release.
 * `byzo_client_ip` — ( string $ip ) The IP address used for rate limiting.
 * `byzo_dev_server_url` — ( string $url ) Vite dev server URL used only in local development.
 * `byzo_unit_price` — ( float $price, int $bookable_item_id, array $slot ) Per-booking unit price adjustment applied right after service-price resolution and before tax. Default: unmodified `$price`.
-* `byzo_calendar_feed_enabled` — ( bool $enabled ) Whether the subscribable per-bookable-item `.ics` calendar feed REST route is available. Default `false`.
 * `byzo_pdf_invoice_enabled` — ( bool $enabled ) Whether a downloadable PDF invoice is available from the customer dashboard. Default `false`.
 * `byzo_collect_attendee_details` — ( bool $enabled ) Whether an Event booking with party_size > 1 collects each ticket's own name/email on the widget. Default `false`.
 * `byzo_widget_after_mount` — ( string $html, array $config ) HTML appended right after the booking widget's own mount markup — lets an add-on inject unrelated page-level snippets (e.g. marketing pixel base code) without touching the widget markup itself. Default `''`.

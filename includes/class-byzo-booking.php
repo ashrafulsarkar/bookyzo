@@ -1802,7 +1802,7 @@ class BYZO_Booking {
 	 * continued, DETAILED-SPEC.md §3 B7 Event) — same no-capability-gate
 	 * shape as combine_tables()/update_notes_tags(): a plain data-layer
 	 * method Free never calls, only Pro's `POST /bookings/check-in` route
-	 * does (after verifying the scanned BYZO_Ticket_Token itself), so
+	 * does (after verifying the scanned ticket token itself), so
 	 * it's Pro-only in practice without needing a filter check here.
 	 * Refuses a SECOND check-in with a specific error carrying the
 	 * original timestamp — a double-scan at a busy door must never look

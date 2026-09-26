@@ -51,28 +51,12 @@ class BYZO_Capabilities {
 	}
 
 	/**
-	 * Whether the subscribable per-bookable-item `.ics` calendar feed
-	 * (Phase 2 step 15, `FEATURES.md` B9) is reachable at all — a genuine
-	 * capability gate (unlike e.g. `internal_notes`/commission tracking,
-	 * which have no Free/Pro behavioral difference to gate): this is a
-	 * business-scale "subscribe your whole bookable item's schedule into
-	 * an external tool" integration, not a single customer's own
-	 * "add this one booking to my calendar" convenience (that one's
-	 * already Free, see A6). Free = false. `BYZO_REST_Calendar_Feed_Controller`
-	 * checks this on every request, not just at token-generation time, so
-	 * a lapsed license immediately 403s even a previously-valid feed URL.
-	 */
-	public static function calendar_feed_enabled() {
-		return (bool) apply_filters( 'byzo_calendar_feed_enabled', false );
-	}
-
-	/**
 	 * Whether a downloadable PDF invoice is available from the customer
 	 * dashboard (Phase 2 step 18, `FEATURES.md` B4) — genuinely Pro-
 	 * exclusive infrastructure (a PDF-rendering library only Pro ships),
-	 * not a re-skin of a Free feature, so a real gate is correct here,
-	 * same class of decision as `calendar_feed_enabled()` above. Free =
-	 * false; the dashboard link is simply absent, never shown disabled.
+	 * not a re-skin of a Free feature, so a real gate is correct here.
+	 * Free = false; the dashboard link is simply absent, never shown
+	 * disabled.
 	 */
 	public static function pdf_invoice_enabled() {
 		return (bool) apply_filters( 'byzo_pdf_invoice_enabled', false );
