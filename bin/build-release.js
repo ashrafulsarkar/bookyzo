@@ -45,11 +45,13 @@ function readDistignore() {
 
 function isIgnored(relativePath, patterns) {
   const topLevel = relativePath.split(path.sep)[0];
+  const name = path.basename(relativePath);
   return patterns.some((pattern) => {
     if (pattern.includes('*')) {
-      // Only the simple *.ext patterns .distignore actually uses.
-      const suffix = pattern.replace('*', '');
-      return relativePath.endsWith(suffix);
+      // A file-name glob (`*.zip`, `BOOKYZO-QA-REPORT-*.md`): `*` stands
+      // for any run of characters within the name.
+      const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+      return new RegExp(`^${escaped}$`).test(name);
     }
     return topLevel === pattern || relativePath === pattern;
   });

@@ -12,25 +12,23 @@
 .editorconfig
 .claude
 .dev-server-running
+# WordPress.org banners, icons and screenshots go to the SVN assets/
+# folder, not into the plugin.
+.wordpress-org
 DETAILED-SPEC.md
 ROADMAP.md
 FEATURES.md
 README.md
 bin
-components.json
-jsconfig.json
 node_modules
 release
-package.json
-package-lock.json
-postcss.config.js
-tailwind.config.js
-vite.config.js
-vite.widget.config.js
-vite.account.config.js
-src
 scratchpad
 *.zip
 *.log
 # Local QA notes, never shipped.
-BOOKYZO-QA-REPORT-2026-09-22.md
+BOOKYZO-QA-REPORT-*.md
+# src/ and the build setup (package.json, package-lock.json, the vite,
+# tailwind, postcss, jsconfig and components.json configs) DO ship: the
+# assets/ bundles are minified, and WordPress.org requires the source
+# that builds them to be in the plugin (Guideline 4). readme.txt's FAQ
+# says how to rebuild.
