@@ -25,6 +25,46 @@ Apply this from the start in Bookyzo, don't wait for a rejection to learn it aga
 - Before adding ANY restriction, grep for restriction vocabulary as a self-check (the exact heuristic that caught both real violations in the sister plugin): `free version|pro |premium|upgrade|unlock|licen[cs]|trial|paid|limited|restrict|only .* can be|locked` plus numeric caps like `limit'? => [0-9]+`. If a numeric cap exists for a genuine technical reason (e.g. a dropdown performance guard), make it filterable and comment *why* it exists, don't just leave a bare number.
 - Data model / DB schema should generally NOT be Free-vs-Pro gated at the table level — build the full schema in Free where it's cheap to do so (e.g. `shift_group` column exists in Free's own `wp_byzo_schedules` table even though Free's UI only ever writes `shift_group = 0`), and let Pro unlock the *UI affordance* and generation logic. This avoids painful schema migrations later and avoids the "code path exists but is artificially blocked" trap entirely, since the code path for extra shifts genuinely doesn't run without Pro's UI ever writing those rows.
 - **Before adding any Pro-shaped feature or gating logic, check whether `bookyzo-pro` already owns that territory** (once the Pro plugin exists) — grep it first. The sister plugin once built a whole parallel, disconnected Pro-gating stub in the Free plugin because this check was skipped; caught late, had to be unwound.
+- **A finished feature in Free behind a boolean filter that Pro flips is locked functionality**, even with nothing visible. Anyone can `add_filter( 'byzo_x_enabled', '__return_true' )` and get it free. Found and fixed in the 2026-09-26 audit: the `.ics` calendar feed and package store moved into Pro, and "use business hours" and per-ticket attendee names became Free (the second one as a setting). The rule: the *work* of a Pro feature lives in Pro. Free may only offer hooks and a place to render what an add-on hands it (custom fields, add-ons, tiers via filters that return arrays).
+- **A control that shows in Free and always fails on save is a visible lock.** Examples: "+ Add shift" with a 403 behind it, or a switch answering "not available on your current plan". Hide the control at the cap (the app gets `byzoAdmin.maxShiftsPerDay`), or make the feature free.
+- The Get Pro page is hidden behind `byzo_show_get_pro()` (default `false`, owner's call 2026-09-27) until Pro can actually be bought. Wire `byzo_get_pro_url()` to the real purchase page before flipping it back.
+
+## WordPress.org submission checklist (Free plugin)
+
+These come from wordpress.org/plugins/developers/add, the Detailed Plugin Guidelines, and the 2026-09-26/27 audit. Keep every one true on every release. Reviewers read the code by hand; Plugin Check only catches part of it.
+
+**Reviewers reject outright for:** unescaped output, unsanitized input, **form data without a nonce**, and anything against the guidelines.
+- **Every form POST carries a nonce**, guest forms too. Customer register/login/logout build theirs with `BYZO_Customer_Auth::form_url()` (the nonce rides on the form's URL, so the Vue app needs no hidden field), and a stale nonce sends the visitor back with the `expired` error instead of a bare `wp_die()`. The guest cancel form uses `wp_nonce_field()`, and a stale nonce there just skips the cancel. A signed token does not replace the nonce.
+- Sanitize every `$_GET`/`$_POST`/`$_REQUEST`/`$_FILES` read with `wp_unslash()` + the right sanitizer. Passwords are the one exception: use them exactly as typed and give that line an ignore comment with the reason. For uploads, check `is_uploaded_file()`.
+- Every `phpcs:ignore`/`disable` names the exact sniff and gives a reason after `--`. Reviewers read these.
+
+**Slug and headers:**
+- **The slug comes from the `Plugin Name` header** ("Bookyzo – Booking & Appointments" becomes `bookyzo-booking-appointments`). It must be `bookyzo` to match the text domain and folder. Change it on the submission page right after uploading; that's allowed once, before review. **After approval it can never change.** The display name can change later.
+- `Version` in the header equals `Stable tag` in readme.txt. `Tested up to` = the current WordPress major (check api.wordpress.org/core/version-check/1.7/).
+- `Requires at least` must be true: the bundles need the `wp_script_attributes` filter (6.3) to load as `type="module"`, so the minimum is **6.3**. Before using any newer WP API, bump it or add a fallback. `Requires PHP` is 7.4, so no `?->`, `match`, `str_contains`, attributes or enums in shipped PHP.
+- Plugin URI / Author URI must resolve. Remove the header rather than point it at an unregistered domain.
+- Global variables at file scope (uninstall.php, the main file) take the `byzo_` prefix.
+
+**readme.txt:**
+- Tags ≤ 5, short description ≤ 150 characters, Contributors = real wordpress.org usernames.
+- An `== External services ==` section says, for every outside service (Stripe API + Stripe.js, the Google Calendar link), what is sent, when, and links its Terms and Privacy pages. Add to it whenever a new remote call or remote script appears.
+- Never describe Pro as "planned" in one place and as existing in another. Keep the Free/Pro wording consistent.
+
+**Guideline 4 (human-readable code):** `assets/` is minified, so the source must ship or be linked publicly. The repo is private for now, so `src/`, `package.json`, `package-lock.json` and the Vite/Tailwind/PostCSS configs ship (see `.distignore`), and readme's FAQ says how to rebuild. `jsconfig.json`/`components.json` are excluded because the build never reads them. **Plan: once approved, the owner makes the repo public, the source link goes in readme.txt, and `src/` + configs can go back into `.distignore`.**
+
+**Zip contents** (`npm run build:release` → `release/bookyzo.zip`): no `.wordpress-org/` (those images go to SVN `assets/` after approval), no `BOOKYZO-QA-REPORT-*.md`, no scratchpad/tests/specs. `bin/build-release.js` reads `*` anywhere in a `.distignore` name pattern.
+
+**Translations in the Vue bundles:** `wp i18n make-pot` reads the *built* files, and the minifier drops ordinary comments. So a string with a placeholder gets `/*! translators: %s: … */` written right before its `__()`/`_n()` call (inside template `{{ }}` too). The builds keep those legal comments, and `vite.translator-comments.js` turns them into `/* translators: */`. Keep each annotated call in **its own statement**, not an object literal. Compress stays off because it merges statements and moves notes onto the wrong strings. `npm run build:release` must end with zero make-pot warnings.
+
+**Admin bundle:** one chunk on purpose (script translations load per built file, and Pro joins the one running app), so `chunkSizeWarningLimit` is 700 kB. Don't code-split the admin app.
+
+**Uninstall:** it only purges when `delete_data_on_uninstall` is on (Settings → General switch), and then it drops every table and every option the plugin writes (payment keys included). Add any new option or table to `uninstall.php`.
+
+**Before every submission/release:**
+1. `npm run build:release`: zero warnings.
+2. Plugin Check on `release/bookyzo`, with `--include-experimental`, via a clone DB with plugin-check active (see the `bookyzo-wporg-guideline-audit-2026-09-26` memory for the command): **0 errors**. The remaining warnings should only be DirectQuery / NoCaching / UnescapedDBParameter on custom tables, and template-scope variables.
+3. `bash scratchpad/run-suite.sh`: all pass (the runner now also fails on `Parse error`).
+4. Re-run the Guideline 5 grep above, and check that no control in Free can only fail.
 
 ## Vue admin shell
 
