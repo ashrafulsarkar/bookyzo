@@ -29,7 +29,7 @@ Appointments, table reservations, event tickets and generic time-slot bookings �
 * **Event** — a specific date/time occurrence you create yourself (a class, a workshop, a ticketed show), sold by ticket quantity
 * **Slot** — a generic recurring time slot with room for more than one booking at once (a rental, a group session, anything that doesn't fit the other three)
 
-Add a bookable item, set a name/price/photo, and configure the availability that fits its type — a weekly schedule with exceptions for Appointment/Table/Slot, or specific dates you add yourself for Event. Available time slots (or your entered event dates) are kept up to date automatically in the background.
+Add a bookable item, set a name/price/photo, and configure the availability that fits its type — a weekly schedule with exceptions for Appointment/Table/Slot (its own, or your shared business hours), or specific dates you add yourself for Event. Available time slots (or your entered event dates) are kept up to date automatically in the background. For events, the booking form can optionally ask for each ticket holder's name when someone books several tickets.
 
 = Booking calendar =
 
@@ -71,6 +71,27 @@ Customers can optionally create an account (turn it on under **Bookyzo → Setti
 
 The free plugin is genuinely usable on its own — one active bookable item per type (so up to four: one appointment staff member, one table, one event, one slot type) with no locked-out UI. Bookyzo Pro, a separate paid add-on, is for businesses that outgrow that: unlimited bookable items per type, multiple daily shifts, services with per-staff pricing and "any available staff" booking, deposits and PayPal, SMS/WhatsApp reminders on your own schedule, seasonal and dynamic pricing, add-ons and booking fees, custom form fields, a table floor plan, event ticket tiers with QR e-tickets and a check-in scanner, staff calendar sync, an analytics dashboard, and WooCommerce checkout.
 
+== External services ==
+
+Bookyzo runs on your own site and stores bookings in your own database. It connects to these outside services only in the cases described.
+
+= Stripe (online card payments) =
+
+Used only if you turn on Stripe under **Bookyzo → Payments** and enter your own Stripe API keys.
+
+* When a customer chooses to pay online, the booking widget loads Stripe.js from `https://js.stripe.com/v3/` and the card details go straight from the customer's browser to Stripe. They never pass through your site.
+* Your site sends Stripe the amount, the currency, the booking's ID and the customer's email address (for Stripe's receipt), to create the payment, and later asks Stripe whether that payment succeeded.
+* When you refund a booking paid by card, your site sends Stripe the payment's reference and the amount to refund.
+* Stripe calls your site's webhook address to report payments it has completed.
+
+Stripe is provided by Stripe, Inc.: [Services Agreement](https://stripe.com/legal/ssa), [Privacy Policy](https://stripe.com/privacy).
+
+= Google Calendar (add to calendar link) =
+
+The booking confirmation screen and emails include an "Add to Google Calendar" link. Nothing is sent to Google unless the customer clicks it; the link then opens Google Calendar with the bookable item's name and the booking's time filled in.
+
+Google Calendar is provided by Google LLC: [Terms of Service](https://policies.google.com/terms), [Privacy Policy](https://policies.google.com/privacy).
+
 == Installation ==
 
 1. Upload the plugin to `/wp-content/plugins/` or install it via the Plugins screen.
@@ -107,7 +128,11 @@ Yes. Free includes all four booking types: Appointment (one staff member, one cu
 
 = What happens if I need a second staff member, table, or event? =
 
-Free supports one active bookable item per type at a time. This maps to when most small businesses genuinely need to upgrade — hiring a second staff member, adding a second table, running a second event alongside the first. A Pro version with these is planned for a future release.
+The free plugin supports one active bookable item per type at a time. That fits a business with one staff member, one table, one event and one kind of slot; when you add a second of the same type, Bookyzo Pro (a separate paid add-on) removes the limit. Nothing already set up stops working either way.
+
+= Where is the source code for the JavaScript? =
+
+The admin app, the booking widget and the account page are Vue apps, built with Vite. Their source is included with the plugin in the `src/` folder, along with `package.json` and the Vite configuration. Run `npm install` and then `npm run build` to rebuild the files in `assets/`.
 
 == Screenshots ==
 
