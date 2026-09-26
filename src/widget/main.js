@@ -1,6 +1,5 @@
 import { createApp } from 'vue';
 import BookingWidget from './BookingWidget.vue';
-import PackageStore from './PackageStore.vue';
 import { installI18n } from '../lib/i18n';
 import './widget.css';
 
@@ -15,10 +14,4 @@ document.querySelectorAll('.bookyzo-widget-mount').forEach((el) => {
     type: el.dataset.type || null,
   };
   installI18n(createApp(BookingWidget, { config })).mount(el);
-});
-
-// Package store (QA report §6.1 A2) — only on a page where an add-on
-// rendered its mount point.
-document.querySelectorAll('.bookyzo-packages-mount').forEach((el) => {
-  installI18n(createApp(PackageStore)).mount(el);
 });

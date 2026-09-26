@@ -554,8 +554,8 @@ The last of Appointment Pro's four `FEATURES.md` bullets — the other three (st
 - **Free:**
   - `BYZO_Stripe::create_intent_for( $amount, $metadata, $email )`, a PaymentIntent for anything.
   - The Stripe webhook fires `byzo_stripe_payment_succeeded` with every succeeded intent.
-  - `BYZO_Public_Widget::render_packages_store()` outputs a `.bookyzo-packages-mount` on the widget bundle. Free registers no shortcode for it.
-  - `PackageStore.vue` in the widget bundle: list → name/email (honeypot) → Stripe card → code shown.
+  - **Store moved to Pro 2026-09-26 (WP.org Guideline 5 audit):** `[bookyzo_packages]` (`BYZOP_Packages::render_store()`) prints a `.bookyzo-packages-mount` and enqueues Pro's own store bundle (`bookyzo-pro/vite.store.config.js` → `assets/store/`, Vue bundled in). It calls Free's now-public `BYZO_Public_Widget::enqueue_assets()` for the widget's stylesheet and `window.byzoWidget` config, and its script depends on `byzo-widget`. Free's `render_packages_store()` and the store in Free's widget bundle are gone: a whole Pro storefront shipped in Free.
+  - `PackageStore.vue` (now `bookyzo-pro/src/store/`): list → name/email (honeypot) → Stripe card → code shown.
 - **Pro `BYZOP_Packages`:**
   - Registers `[bookyzo_packages]`.
   - `start_purchase()` checks the package, the email and that Stripe is ready. It creates a pending purchase and returns an HMAC `token` (id + email, `wp_salt('auth')`). A zero-price package is issued immediately.

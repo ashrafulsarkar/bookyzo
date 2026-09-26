@@ -107,16 +107,6 @@ class BYZO_Public_Widget {
 	}
 
 	/**
-	 * The package store's mount point, on the same widget bundle (QA report
-	 * §6.1 A2). Free sells no packages and registers no shortcode for this;
-	 * an add-on that does calls it.
-	 */
-	public static function render_packages_store() {
-		self::enqueue_assets();
-		return '<div class="bookyzo-packages-mount"></div>';
-	}
-
-	/**
 	 * @param array $config {
 	 *     @type string|int $bookable_item_id Optional — pins the widget to one bookable item, skipping the picker step.
 	 *     @type string     $type             Optional — filters the picker to one booking type (DETAILED-SPEC.md §A5).
@@ -171,7 +161,14 @@ class BYZO_Public_Widget {
 		return '<p class="bookyzo-admin-notice" style="margin:0 0 12px;padding:10px 12px;border-left:4px solid #d97706;background:#fffbeb;color:#78350f;font-size:14px;">' . esc_html( $message ) . ' <em>' . esc_html__( 'Only site admins see this message.', 'bookyzo' ) . '</em></p>';
 	}
 
-	private static function enqueue_assets() {
+	/**
+	 * Loads the booking widget's script, stylesheet (with the Appearance
+	 * settings) and window.byzoWidget config. Public so an add-on that puts
+	 * its own front-end piece on a page can match the widget's look and
+	 * read the same config (REST URL, currency, Stripe key) — its script
+	 * depends on the `byzo-widget` handle to run after that config.
+	 */
+	public static function enqueue_assets() {
 		$manifest = self::read_manifest();
 		if ( ! $manifest || empty( $manifest[ self::ENTRY ] ) ) {
 			// Silently no-op rather than fatal — a shortcode/block on a
