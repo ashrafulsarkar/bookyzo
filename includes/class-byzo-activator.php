@@ -45,11 +45,7 @@ class BYZO_Activator {
 		// `uses_business_hours` added 2026-09-11 (Phase 2 step 4,
 		// BYZO_DB_VERSION 1.6->1.7) — when true, this item's own
 		// wp_byzo_schedules rows are ignored and BYZO_Slot_Generator reads
-		// byzo_settings.business_hours instead
-		// (BYZO_Capabilities::business_hours_link_enabled(), Free=false/
-		// Pro=true). Column exists in Free's own schema regardless —
-		// "don't gate the data model" — the capability check lives in
-		// BYZO_Bookable_Item::validate(). `commission_type`/`commission_rate`
+		// byzo_settings.business_hours instead. `commission_type`/`commission_rate`
 		// added 2026-09-12 (Phase 2 step 12 continued, BYZO_DB_VERSION
 		// 2.0->2.1, DETAILED-SPEC.md §3 B7 Appointment) — purely
 		// informational config feeding a Pro report, no booking/slot

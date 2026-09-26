@@ -50,6 +50,7 @@ The free version should be genuinely usable for a small single-location business
 - Weekly recurring schedule per bookable item
 - Holiday / blackout date exceptions
 - One shift/time-block per day (Free); multiple shifts reserved for Pro
+- **Follow the business hours — made free 2026-09-26 (WordPress.org Guideline 5 audit):** an item can use the shared business hours (Settings → Business hours) instead of its own weekly schedule, and follows them as they change. This used to be a Pro switch that also showed in Free and refused to save there.
 - Minimum advance booking notice (e.g. "must book at least 2 hours ahead")
 - Maximum advance booking window (e.g. "up to 30 days ahead")
 - Buffer time between bookings
@@ -252,7 +253,7 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Google Calendar / Outlook two-way sync
 - **Webhooks — DONE 2026-09-12, Phase 2 step 15:** fire an HMAC-signed HTTP callback on `booking_created`/`booking_status_changed` for custom integrations — new "Integrations" admin screen, `wp_byzo_webhooks`.
 - **Marketing pixel integration (Facebook Pixel, Google Analytics, Google Tag Manager) — DONE 2026-09-12, Phase 2 step 15:** base tracking snippets only, injected on the booking widget via a new Free-side `byzo_widget_after_mount` filter; deeper conversion-event tracking flagged as a future piece.
-- **Subscribable calendar feed — DONE 2026-09-12, Phase 2 step 15:** one token-gated `.ics` URL per bookable item, for feeding into Airbnb/Booking.com-style external calendars — new "Integrations" screen shows a copyable link per item.
+- **Subscribable calendar feed — DONE 2026-09-12, Phase 2 step 15:** one token-gated `.ics` URL per bookable item, for feeding into Airbnb/Booking.com-style external calendars — new "Integrations" screen shows a copyable link per item. The feed itself moved from Free into Pro on 2026-09-26: it used to ship complete in Free behind a filter Pro switched on, which WordPress.org counts as locked functionality.
 
 ### B10. Branding & Customization
 - ~~White-label booking widget (remove plugin branding)~~ — **DROPPED 2026-09-22 (owner decision, QA report B13):** no plugin branding is shown on the widget or account pages, so there is nothing to remove. Not planned; the Get Pro comparison lists only "Custom CSS for the booking widget".

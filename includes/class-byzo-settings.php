@@ -53,8 +53,7 @@ class BYZO_Settings {
 			'customer_accounts_enabled' => false,
 			// Added 2026-09-11 (Phase 2 step 4, DETAILED-SPEC.md §A2) — the
 			// shared weekly schedule a bookable item can link to instead of
-			// keeping its own (`bookable_items.uses_business_hours`, Pro-only
-			// per BYZO_Capabilities::business_hours_link_enabled()). Same row
+			// keeping its own (`bookable_items.uses_business_hours`). Same row
 			// shape as a bookable item's own schedule (weekday/start_time/
 			// end_time/shift_group) so it reuses ByzoWeeklyScheduleGrid.vue
 			// unchanged. Empty array = not configured yet.

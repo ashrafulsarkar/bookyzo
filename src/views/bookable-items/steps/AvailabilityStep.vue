@@ -47,10 +47,8 @@
       <template v-else>
         <!-- Phase 2 step 4 (DETAILED-SPEC.md §A2) — link to the shared
              business-hours default instead of this item's own schedule.
-             Visible in Free too (the real wall is server-side, same
-             pattern as the shift-count cap) — not shown during onboarding
-             (`compact`), since business hours aren't necessarily
-             configured yet at that point in the flow. -->
+             Not shown during onboarding (`compact`), since business hours
+             aren't necessarily configured yet at that point in the flow. -->
         <label v-if="!compact" class="mb-4 flex items-center gap-2 text-sm">
           <Switch v-model="usesBusinessHours" />
           {{ __('Use business hours instead of a custom schedule', 'bookyzo') }}

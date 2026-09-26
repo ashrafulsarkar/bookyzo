@@ -37,20 +37,6 @@ class BYZO_Capabilities {
 	}
 
 	/**
-	 * Whether a bookable item may link its schedule to the shared
-	 * business-hours default (`bookable_items.uses_business_hours`)
-	 * instead of keeping its own independent weekly schedule. Free =
-	 * false (FEATURES.md §B2 "per-staff individual schedules that differ
-	 * from the business default" — Free's own per-item schedules already
-	 * differ independently; this flag is about explicitly following the
-	 * business default, a Pro-only convenience for staff who DON'T
-	 * differ). Pro overrides via `byzo_business_hours_link_enabled`.
-	 */
-	public static function business_hours_link_enabled() {
-		return (bool) apply_filters( 'byzo_business_hours_link_enabled', false );
-	}
-
-	/**
 	 * Whether a downloadable PDF invoice is available from the customer
 	 * dashboard (Phase 2 step 18, `FEATURES.md` B4) — genuinely Pro-
 	 * exclusive infrastructure (a PDF-rendering library only Pro ships),

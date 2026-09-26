@@ -968,8 +968,7 @@ class BYZO_Booking {
 		// (Free=false) is the master on/off switch — the byzo_deposit_amount
 		// filter is only even consulted once it's on, same two-filter
 		// shape (a boolean gate + a value resolver) B7's service pricing
-		// already established with business_hours_link_enabled/
-		// byzo_service_price. Clamped to [0, payment_amount] so a
+		// already established with byzo_service_price. Clamped to [0, payment_amount] so a
 		// misconfigured Pro filter can never charge more than the booking
 		// is actually worth or go negative.
 		$deposit_amount = null;
