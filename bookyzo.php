@@ -1,7 +1,6 @@
 <?php
 /**
  * Plugin Name:       Bookyzo – Booking & Appointments
- * Plugin URI:         https://bookyzo.com
  * Description:        Appointments, table reservations, event tickets and generic time-slot bookings on your WordPress site — a customer-facing booking widget, email reminders, and optional Stripe payments.
  * Version:            1.0.0
  * Requires at least:  6.0

@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader :title="__('Get Pro', 'bookyzo')" :subtitle="__('Unlock unlimited bookable items and every growth feature.', 'bookyzo')">
+    <ByzoPageHeader :title="__('Get Pro', 'bookyzo')" :subtitle="__('Unlimited bookable items and every growth feature, in the Bookyzo Pro add-on.', 'bookyzo')">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="m12 15 3.5-3.5L12 8" />
@@ -15,16 +15,11 @@
     </ByzoPageHeader>
 
     <div class="px-6 pb-8 flex flex-col gap-4">
-      <!-- NOTE: placeholder href="#" below — must be wired to a real purchase
-           URL (or removed again) before any WP.org submission; a dead link
-           here is a Guideline 5 (Trialware) rejection risk, see bookyzo-dev skill. -->
-      <div v-if="!getProUrl" class="rounded-lg border px-4 py-3 text-sm flex items-center justify-between gap-4" style="border-color: var(--byzo-border); background: var(--byzo-surface-alt); color: var(--byzo-text-muted)">
-        <span>
-          {{ __('Unlock unlimited bookable items and every growth feature with Bookyzo Pro. If you already have a license key, install & activate the Bookyzo Pro plugin, then enter it under Bookyzo → License.', 'bookyzo') }}
-        </span>
-        <a href="#" class="shrink-0">
-          <Button style="background: var(--byzo-danger); border-color: var(--byzo-danger)">{{ __('Purchase Bookyzo Pro', 'bookyzo') }}</Button>
-        </a>
+      <!-- The buy button lives in the header and only shows once
+           byzo_get_pro_url() has a real address; until then this note is
+           all there is, never a link to nowhere. -->
+      <div class="rounded-lg border px-4 py-3 text-sm" style="border-color: var(--byzo-border); background: var(--byzo-surface-alt); color: var(--byzo-text-muted)">
+        {{ __('Bookyzo Pro is a separate add-on. If you already have a license key, install and activate the Bookyzo Pro plugin, then enter the key under Bookyzo → License.', 'bookyzo') }}
       </div>
 
       <Card>
@@ -84,7 +79,7 @@ const rows = [
   { label: i18n.__('Recurring class series', 'bookyzo'), free: '—', pro: '✓' },
   { label: i18n.__('Table floor plan editor & walk-in waitlist', 'bookyzo'), free: '—', pro: '✓' },
   { label: i18n.__('Event ticket tiers, QR e-tickets & check-in scanner', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('Analytics dashboard & CSV exports', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Analytics dashboard & report exports', 'bookyzo'), free: '—', pro: '✓' },
   { label: i18n.__('Staff calendar sync (Google / Outlook)', 'bookyzo'), free: '—', pro: '✓' },
   { label: i18n.__('Webhooks, marketing pixels & calendar feeds', 'bookyzo'), free: '—', pro: '✓' },
   { label: i18n.__('Custom form field builder', 'bookyzo'), free: '—', pro: '✓' },
