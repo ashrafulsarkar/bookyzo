@@ -48,7 +48,7 @@
       </template>
 
       <router-link
-        v-if="!proLicensed && !staffMode"
+        v-if="showGetPro && !staffMode"
         :to="getProItem.to"
         class="byzo-sidebar-item byzo-sidebar-item--accent flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
         active-class="byzo-sidebar-item--active"
@@ -217,13 +217,11 @@ const SECTION_LABELS = {
 
 // A real, separate "Get Pro" page — never a locked/disabled preview of an
 // actual feature, see GetPro.vue's own docblock and the bookyzo-design
-// skill's explicit rule on this. Shown whenever we're not CONFIRMED
-// licensed (proLicensed defaults to false/shown if the flag is somehow
-// missing, since hiding a legitimate free user's upgrade path is worse
-// than one extra link for an already-licensed site) — PHP only registers
-// the WP admin page + Vue route it points to under that same condition
-// (BYZO_Plugin::routes()), so this can never link to a 404.
-const proLicensed = !!(window.byzoAdmin && window.byzoAdmin.proLicensed);
+// skill's explicit rule on this. Shown only while PHP's byzo_show_get_pro()
+// says so (hidden for now, and never on a licensed Pro site); the same
+// call decides the WP submenu page (BYZO_Plugin::routes()) and the
+// Plugins-screen link, so this can never link to a 404.
+const showGetPro = !!(window.byzoAdmin && window.byzoAdmin.showGetPro);
 const getProItem = {
   to: '/get-pro',
   label: i18n.__('Get Pro', 'bookyzo'),

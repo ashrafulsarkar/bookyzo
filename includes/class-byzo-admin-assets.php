@@ -205,7 +205,7 @@ class BYZO_Admin_Assets {
 		$currency = class_exists( 'BYZO_Settings' ) ? BYZO_Settings::get()['currency'] : 'USD';
 
 		return sprintf(
-			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s, maxShiftsPerDay: %s, proLicensed: %s, getProUrl: %s, documents: %s, staff: %s };',
+			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s, maxShiftsPerDay: %s, proLicensed: %s, showGetPro: %s, getProUrl: %s, documents: %s, staff: %s };',
 			wp_json_encode( admin_url( 'admin-post.php' ) ),
 			// Nonce action string must stay in sync with
 			// BYZO_Booking_Export::NONCE — not referencing the constant
@@ -231,6 +231,10 @@ class BYZO_Admin_Assets {
 			// sidebar link and the page it points to can never disagree
 			// about whether Get Pro should exist right now.
 			wp_json_encode( byzo_is_pro_licensed() ),
+			// Whether the Get Pro page is offered at all (byzo_show_get_pro(),
+			// hidden for now) — the same call BYZO_Plugin uses for its submenu
+			// page and Plugins-screen link, so they always agree.
+			wp_json_encode( byzo_show_get_pro() ),
 			wp_json_encode( byzo_get_pro_url() ),
 			// Which booking documents exist (the email template editor lists
 			// {ticket_link}/{invoice_link} only when they do).

@@ -146,7 +146,7 @@ class BYZO_Plugin {
 	 * Action links on the Plugins page row: Get Pro | Dashboard | Deactivate.
 	 * "Get Pro" links to GetPro.vue's own screen (never a raw purchase URL —
 	 * that's byzo_get_pro_url()'s own job) and disappears once
-	 * byzo_is_pro_licensed() is true; "Dashboard" always stays. Same pattern
+	 * byzo_show_get_pro() is false (hidden for now); "Dashboard" always stays. Same pattern
 	 * as the sister license-envato plugin's Admin::plugin_menu_links()
 	 * (its always-present link is "Settings" — Bookyzo has no separate
 	 * settings page of its own, so "Dashboard" is the equivalent landing
@@ -158,7 +158,7 @@ class BYZO_Plugin {
 	public function plugin_action_links( $actions ) {
 		$links = array();
 
-		if ( ! byzo_is_pro_licensed() ) {
+		if ( byzo_show_get_pro() ) {
 			$links[] = '<a href="' . esc_url( admin_url( 'admin.php?page=bookyzo-get-pro' ) ) . '" style="color:#d63638;font-weight:700;">' . esc_html__( 'Get Pro', 'bookyzo' ) . '</a>';
 		}
 
@@ -342,12 +342,10 @@ class BYZO_Plugin {
 		// preview of any actual feature — is the honest pattern the
 		// bookyzo-design skill explicitly calls out as fine (mirrors
 		// license-envato's own Get Pro comparison page). Only registered
-		// at all while Bookyzo isn't fully Pro-licensed: once it is, this
-		// row (and its WP submenu page) simply stops existing rather than
-		// staying around disabled, same "absent, not half-functioning"
-		// rule this project already applies to every other capability
-		// gate.
-		if ( ! byzo_is_pro_licensed() ) {
+		// while byzo_show_get_pro() says so — hidden for now, and never on
+		// a licensed Pro site: the row and its WP submenu page simply
+		// don't exist rather than staying around disabled.
+		if ( byzo_show_get_pro() ) {
 			$routes['bookyzo-get-pro'] = array(
 				'route' => '/get-pro',
 				'label' => __( 'Get Pro', 'bookyzo' ),

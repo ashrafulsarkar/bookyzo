@@ -15,11 +15,16 @@
     </ByzoPageHeader>
 
     <div class="px-6 pb-8 flex flex-col gap-4">
-      <!-- The buy button lives in the header and only shows once
-           byzo_get_pro_url() has a real address; until then this note is
-           all there is, never a link to nowhere. -->
-      <div class="rounded-lg border px-4 py-3 text-sm" style="border-color: var(--byzo-border); background: var(--byzo-surface-alt); color: var(--byzo-text-muted)">
-        {{ __('Bookyzo Pro is a separate add-on. If you already have a license key, install and activate the Bookyzo Pro plugin, then enter the key under Bookyzo → License.', 'bookyzo') }}
+      <!-- NOTE: placeholder href="#" below — wire it to the real purchase
+           URL (byzo_get_pro_url()) before this page is shown again; the
+           whole page is hidden for now, see byzo_show_get_pro(). -->
+      <div v-if="!getProUrl" class="rounded-lg border px-4 py-3 text-sm flex items-center justify-between gap-4" style="border-color: var(--byzo-border); background: var(--byzo-surface-alt); color: var(--byzo-text-muted)">
+        <span>
+          {{ __('Bookyzo Pro is a separate add-on. If you already have a license key, install and activate the Bookyzo Pro plugin, then enter the key under Bookyzo → License.', 'bookyzo') }}
+        </span>
+        <a href="#" class="shrink-0">
+          <Button style="background: var(--byzo-danger); border-color: var(--byzo-danger)">{{ __('Purchase Bookyzo Pro', 'bookyzo') }}</Button>
+        </a>
       </div>
 
       <Card>

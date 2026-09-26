@@ -64,6 +64,19 @@ function byzo_is_pro_licensed() {
 }
 
 /**
+ * Whether the "Get Pro" page is offered at all: its sidebar row, its WP
+ * submenu page and the Plugins-screen link. Hidden for now (owner's
+ * decision 2026-09-27) until Pro can actually be bought; change the
+ * default to true, or return true from the `byzo_show_get_pro` filter,
+ * to bring it back. Never shown to a site already running licensed Pro.
+ *
+ * @return bool
+ */
+function byzo_show_get_pro() {
+	return (bool) apply_filters( 'byzo_show_get_pro', false ) && ! byzo_is_pro_licensed();
+}
+
+/**
  * Where the Free plugin's "Get Pro" page sends a site owner to actually
  * buy Bookyzo Pro. NO real sales/purchase URL exists yet for this product
  * (per project notes: the "bookyzo" domain itself was only ever checked
