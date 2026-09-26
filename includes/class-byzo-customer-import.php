@@ -35,14 +35,17 @@ class BYZO_Customer_Import {
 
 		$redirect = wp_get_referer() ?: admin_url( 'admin.php?page=bookyzo-customers' );
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing -- nonce already verified above via check_admin_referer().
-		if ( empty( $_FILES['customers_csv']['tmp_name'] ) || UPLOAD_ERR_OK !== $_FILES['customers_csv']['error'] ) {
+		// phpcs:disable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- nonce verified above via check_admin_referer(); tmp_name is PHP's own path for the upload, checked with is_uploaded_file(), and only opened for reading.
+		$tmp_name = isset( $_FILES['customers_csv']['tmp_name'] ) ? (string) $_FILES['customers_csv']['tmp_name'] : '';
+		$error    = isset( $_FILES['customers_csv']['error'] ) ? (int) $_FILES['customers_csv']['error'] : UPLOAD_ERR_NO_FILE;
+		// phpcs:enable WordPress.Security.NonceVerification.Missing, WordPress.Security.ValidatedSanitizedInput.InputNotSanitized
+		if ( '' === $tmp_name || UPLOAD_ERR_OK !== $error || ! is_uploaded_file( $tmp_name ) ) {
 			wp_safe_redirect( add_query_arg( 'byzo_import_error', 'no_file', $redirect ) );
 			exit;
 		}
 
-		// phpcs:ignore WordPress.Security.NonceVerification.Missing, WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- nonce already verified above; a raw upload handle, not a filesystem write.
-		$handle = fopen( $_FILES['customers_csv']['tmp_name'], 'r' );
+		// phpcs:ignore WordPress.WP.AlternativeFunctions.file_system_operations_fopen -- a raw read handle on the upload, not a filesystem write.
+		$handle = fopen( $tmp_name, 'r' );
 		if ( ! $handle ) {
 			wp_safe_redirect( add_query_arg( 'byzo_import_error', 'unreadable', $redirect ) );
 			exit;

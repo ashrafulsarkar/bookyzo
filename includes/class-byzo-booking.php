@@ -1052,14 +1052,14 @@ class BYZO_Booking {
 		$take        = self::claims_whole_slot( $item ) ? 'capacity_remaining' : '%d';
 		$params      = self::claims_whole_slot( $item ) ? array( $slot_id, $party_size ) : array( $party_size, $slot_id, $party_size );
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name and a fixed column expression, not user input.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- table name and a fixed column expression, not user input; $take is either a column name or one more %d, and $params always matches it.
 		$claimed = $wpdb->query(
 			$wpdb->prepare(
 				"UPDATE {$slots_table} SET capacity_remaining = capacity_remaining - {$take} WHERE id = %d AND status = 'open' AND capacity_remaining >= %d",
 				$params
 			)
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 
 		if ( ! $claimed ) {
 			return false;
@@ -1098,7 +1098,7 @@ class BYZO_Booking {
 			$amount = (int) $party_size;
 		}
 
-		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name and a fixed SET clause, not user input.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber -- table name and a fixed SET clause, not user input; $set holds exactly one %d, matching $amount.
 		$wpdb->query(
 			$wpdb->prepare(
 				"UPDATE {$slots_table}
@@ -1109,7 +1109,7 @@ class BYZO_Booking {
 				$slot_id
 			)
 		);
-		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.ReplacementsWrongNumber
 	}
 
 	/**

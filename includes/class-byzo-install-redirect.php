@@ -19,6 +19,7 @@ class BYZO_Install_Redirect {
 
 		delete_transient( 'byzo_activation_redirect' );
 
+		// phpcs:ignore WordPress.Security.NonceVerification.Recommended -- only checks whether core's own bulk-activate flag is present; nothing is read from it or written.
 		if ( wp_doing_ajax() || is_network_admin() || isset( $_GET['activate-multi'] ) ) {
 			return;
 		}

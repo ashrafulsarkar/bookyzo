@@ -17,15 +17,15 @@ defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
 // delete_data_on_uninstall opt-in below exists to gate (Phase 1.7 step 1).
 remove_role( 'byzo_customer' );
 
-$settings = get_option( 'byzo_settings', array() );
+$byzo_settings = get_option( 'byzo_settings', array() );
 
-if ( empty( $settings['delete_data_on_uninstall'] ) ) {
+if ( empty( $byzo_settings['delete_data_on_uninstall'] ) ) {
 	return;
 }
 
 global $wpdb;
 
-$tables = array(
+$byzo_tables = array(
 	"{$wpdb->prefix}byzo_bookings",
 	"{$wpdb->prefix}byzo_slots",
 	"{$wpdb->prefix}byzo_availability_exceptions",
@@ -34,13 +34,13 @@ $tables = array(
 	"{$wpdb->prefix}byzo_customers",
 );
 
-foreach ( $tables as $table ) {
-	$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+foreach ( $byzo_tables as $byzo_table ) {
+	$wpdb->query( "DROP TABLE IF EXISTS `{$byzo_table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQL.InterpolatedNotPrepared -- fixed table names built from $wpdb->prefix above, no input.
 }
 
 // Every option the plugin writes — including the payment settings,
 // which hold the site's Stripe secret key and webhook secret.
-$options = array(
+$byzo_options = array(
 	'byzo_settings',
 	'byzo_db_version',
 	'byzo_setup_step',
@@ -50,8 +50,8 @@ $options = array(
 	'byzo_payment_settings',
 );
 
-foreach ( $options as $option ) {
-	delete_option( $option );
+foreach ( $byzo_options as $byzo_option ) {
+	delete_option( $byzo_option );
 }
 
 delete_transient( 'byzo_activation_redirect' );
