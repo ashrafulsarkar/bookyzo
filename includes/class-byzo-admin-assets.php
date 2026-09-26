@@ -37,6 +37,25 @@ class BYZO_Admin_Assets {
 
 	public static function init() {
 		add_action( 'admin_enqueue_scripts', array( __CLASS__, 'enqueue' ) );
+		add_filter( 'admin_body_class', array( __CLASS__, 'body_class' ) );
+	}
+
+	/**
+	 * One body class shared by every Bookyzo screen. WordPress's own is
+	 * per slug (`toplevel_page_bookyzo` for the Dashboard, but
+	 * `bookyzo_page_bookyzo-calendar` and so on for each submenu page),
+	 * so the wp-admin chrome resets in src/styles/tailwind.css key on
+	 * this one instead.
+	 *
+	 * @param string $classes Space-separated admin body classes.
+	 * @return string
+	 */
+	public static function body_class( $classes ) {
+		if ( 'admin.php' === $GLOBALS['pagenow'] && null !== self::current_slug() ) {
+			$classes .= ' byzo-admin-screen';
+		}
+
+		return $classes;
 	}
 
 	public static function enqueue( $hook ) {

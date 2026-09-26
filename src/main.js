@@ -6,6 +6,7 @@ import { router } from './router';
 import { toast } from 'vue-sonner';
 import { registerExtension, setNavBadge } from './lib/admin-extensions';
 import { installI18n } from './lib/i18n';
+import { installWpMenuPin } from './lib/wp-menu-pin';
 
 const mountEl = document.getElementById('byzo-admin-app');
 
@@ -36,4 +37,5 @@ if (mountEl) {
   window.byzoAdmin.router = router;
 
   installI18n(createApp(App)).use(router).mount(mountEl);
+  installWpMenuPin();
 }

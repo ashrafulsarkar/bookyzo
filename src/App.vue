@@ -6,7 +6,7 @@
       </template>
       <div v-else class="byzo-shell flex">
         <ByzoSidebar />
-        <div class="flex-1 overflow-x-hidden">
+        <div class="byzo-shell-main min-w-0 flex-1">
           <router-view />
         </div>
       </div>
@@ -69,8 +69,59 @@ const route = useRoute();
 .byzo-shell {
   --byzo-shell-offset: 62px;
   --byzo-sidebar-width: 240px;
+  /* Shared by the sidebar's brand block and the page header below, so
+     their bottom borders line up. Border included. */
+  --byzo-topbar-height: 80px;
   min-height: calc(100vh - var(--byzo-shell-offset));
   align-items: stretch;
+}
+
+/*
+ * `clip`, not `hidden`: overflow-x: hidden silently turns overflow-y into
+ * `auto`, making this column a scroll container that never scrolls — and
+ * a sticky header inside it would then stick to that instead of the page.
+ * `min-w-0` on the element keeps what `hidden` used to give for free (a
+ * wide table can't stretch the column past the viewport).
+ */
+.byzo-shell-main {
+  overflow-x: clip;
+}
+
+/*
+ * The page header (Free's ByzoPageHeader, Pro's .byzop-header — every
+ * top-level route starts with one of the two) stays pinned under the
+ * admin bar like the sidebar, so only the screen's body scrolls. Only the
+ * view root's direct child, so a header-styled block nested deeper in a
+ * screen is left alone. From 783px up only: below that wp-admin switches
+ * to its mobile layout, and under 600px the admin bar itself scrolls away,
+ * which would leave a gap above a header pinned at its measured bottom.
+ */
+@media screen and (min-width: 783px) {
+  .byzo-shell-main > * > .byzo-page-header,
+  .byzo-shell-main > * > .byzop-header {
+    position: sticky;
+    top: var(--byzo-sidebar-top, 32px);
+    z-index: 10;
+    background: hsl(var(--background));
+    border-bottom: 1px solid var(--byzo-border);
+    /* Every screen body starts with no top padding (it leaned on the
+       header's own py-5), so once the border sits under the header the
+       first card would touch it without this gap. */
+    margin-bottom: 1.5rem;
+  }
+
+  /* Height matches the sidebar's brand block (--byzo-topbar-height) so
+     both borders sit on one line. min-height, not height: if a screen's
+     actions ever wrap, the header grows instead of clipping them. The
+     extra .byzo-shell raises specificity over Pro's scoped
+     `.byzop-header` padding. */
+  .byzo-shell .byzo-shell-main > * > .byzo-page-header,
+  .byzo-shell .byzo-shell-main > * > .byzop-header {
+    box-sizing: border-box;
+    min-height: var(--byzo-topbar-height);
+    padding-top: 0;
+    padding-bottom: 0;
+  }
 }
 
 /*

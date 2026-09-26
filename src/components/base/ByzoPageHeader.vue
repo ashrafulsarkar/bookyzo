@@ -4,7 +4,7 @@
        pushed off the right edge. `min-w-0` lets the title actually
        truncate/wrap inside the flex child instead of forcing the row
        wider than the screen. -->
-  <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-5 sm:px-6">
+  <div class="byzo-page-header flex flex-wrap items-center justify-between gap-x-4 gap-y-3 px-4 py-5 sm:px-6">
     <div class="flex min-w-0 items-center gap-3">
       <div
         class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-white shadow-sm"

@@ -90,41 +90,84 @@
 }
 
 /*
- * wp-admin chrome reset, scoped to Bookyzo's own screen (body class comes
- * from add_menu_page's 'bookyzo' slug). wp-admin wraps #wpbody-content in
- * padding and pins a footer below it, which boxes the app in and stops the
- * sidebar short of the page edges. Zeroing those lets the shell run
- * edge-to-edge and full height. Deliberately narrow: only this screen is
- * touched, and only the wrappers between #wpcontent and our mount point.
+ * wp-admin chrome reset, scoped to Bookyzo's own screens (body class added
+ * by BYZO_Admin_Assets::body_class() on every Bookyzo page; WordPress's
+ * own `toplevel_page_bookyzo` only covers the Dashboard slug). wp-admin
+ * wraps #wpbody-content in padding and pins a footer below it, which boxes
+ * the app in and stops the sidebar short of the page edges. Zeroing those
+ * lets the shell run edge-to-edge and full height. Deliberately narrow:
+ * only these screens are touched, and only the wrappers between #wpcontent
+ * and our mount point (plus the WP menu pin below).
  */
-.toplevel_page_bookyzo #wpcontent {
+.byzo-admin-screen #wpcontent {
   padding-left: 0;
 }
 
-.toplevel_page_bookyzo #wpbody-content {
+.byzo-admin-screen #wpbody-content {
   padding-bottom: 0;
 }
 
-.toplevel_page_bookyzo #wpfooter {
+.byzo-admin-screen #wpfooter {
   display: none;
 }
 
-.toplevel_page_bookyzo #byzo-admin-app {
+.byzo-admin-screen #byzo-admin-app {
   /* The mount point is the shell's height source — without this the
      100vh-based min-height on .byzo-shell has nothing to stretch inside. */
   display: flex;
   flex-direction: column;
 }
 
-.toplevel_page_bookyzo #byzo-admin-app > .byzo-app {
+.byzo-admin-screen #byzo-admin-app > .byzo-app {
   display: flex;
   flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
 }
 
-.toplevel_page_bookyzo #byzo-admin-app > .byzo-app > .byzo-shell {
+.byzo-admin-screen #byzo-admin-app > .byzo-app > .byzo-shell {
   flex: 1 1 auto;
+}
+
+/*
+ * WordPress's own left menu stays put like Bookyzo's sidebar, so only the
+ * screen body scrolls. wp-admin only pins it itself (common.js pinMenu())
+ * while it fits the window; with Bookyzo's long submenu open it usually
+ * doesn't, and pinMenu() then scrolls it with the page via inline
+ * position/top — hence !important. Taller than the window, it scrolls on
+ * its own instead (wheel/keyboard; no visible bar, which would eat into
+ * the fixed 160px/36px rail). Being a scroll container would clip the
+ * hover flyouts of the other menus, so those go position: fixed too,
+ * placed by src/lib/wp-menu-pin.js. From 961px only: below that
+ * wp-admin's auto-fold/mobile menu has its own flyout rules.
+ */
+@media screen and (min-width: 961px) {
+  .byzo-admin-screen #adminmenuwrap {
+    position: fixed !important;
+    top: var(--wp-admin--admin-bar--height, 32px) !important;
+    bottom: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+
+  .byzo-admin-screen #adminmenuwrap::-webkit-scrollbar {
+    display: none;
+  }
+
+  .byzo-admin-screen #adminmenu .wp-not-current-submenu .wp-submenu,
+  .byzo-admin-screen.folded #adminmenu li.menu-top .wp-submenu {
+    position: fixed;
+  }
+
+  .byzo-admin-screen #adminmenu .wp-not-current-submenu.opensub .wp-submenu,
+  .byzo-admin-screen #adminmenu .wp-not-current-submenu a.menu-top:focus + .wp-submenu,
+  .byzo-admin-screen.folded #adminmenu li.menu-top.opensub .wp-submenu,
+  .byzo-admin-screen.folded #adminmenu li.menu-top a.menu-top:focus + .wp-submenu {
+    top: var(--byzo-flyout-top, -1px);
+    left: var(--byzo-flyout-left, 160px);
+  }
 }
 
 /*
@@ -138,8 +181,7 @@
  * trigger, Popover trigger, Button — none of them a bare <input>) were
  * never touched by it, which is exactly why some corners looked rounded
  * and others square across the same screen. #byzo-admin-app is present on
- * every Bookyzo page (unlike the .toplevel_page_bookyzo body class above,
- * which is only that one route), so this reaches all of them.
+ * every Bookyzo page, so this reaches all of them.
  */
 #byzo-admin-app input[type='text'],
 #byzo-admin-app input[type='password'],

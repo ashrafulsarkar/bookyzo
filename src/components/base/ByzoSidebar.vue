@@ -1,7 +1,7 @@
 <template>
   <div class="byzo-sidebar-slot flex-shrink-0" aria-hidden="true"></div>
   <aside class="byzo-sidebar flex flex-col border-r" style="background: var(--byzo-surface); border-color: var(--byzo-border)">
-    <div class="flex items-center gap-3 border-b px-5 py-5" style="border-color: var(--byzo-border)">
+    <div class="byzo-sidebar-brand flex flex-shrink-0 items-center gap-3 border-b px-5" style="border-color: var(--byzo-border)">
       <div
         class="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg text-white"
         style="background: linear-gradient(135deg, var(--byzo-primary), var(--byzo-primary-dark))"
@@ -267,6 +267,13 @@ const groupedSections = computed(() =>
   width: var(--byzo-sidebar-width, 240px);
   height: calc(100vh - var(--byzo-sidebar-top, 32px));
   z-index: 20;
+}
+
+/* Same height as the page header (App.vue) so the two bottom borders
+   read as one line across the rail and the screen. */
+.byzo-sidebar-brand {
+  box-sizing: border-box;
+  height: var(--byzo-topbar-height, 80px);
 }
 
 .byzo-sidebar-section-label {
