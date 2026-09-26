@@ -172,6 +172,21 @@
           </CardContent>
         </Card>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>{{ __('When you delete the plugin', 'bookyzo') }}</CardTitle>
+          </CardHeader>
+          <CardContent class="flex flex-col gap-1.5">
+            <label class="flex items-center gap-2 text-sm">
+              <Switch v-model="form.delete_data_on_uninstall" />
+              {{ __('Also delete all Bookyzo data', 'bookyzo') }}
+            </label>
+            <p class="text-xs text-muted-foreground">
+              {{ __('When on, deleting Bookyzo from the Plugins screen also removes its bookings, bookable items, customers, schedules and settings, including your payment keys. Off by default, so your booking history survives a reinstall. Deactivating never deletes anything.', 'bookyzo') }}
+            </p>
+          </CardContent>
+        </Card>
+
         <p v-if="error" class="text-sm text-destructive">{{ error }}</p>
       </template>
     </div>
@@ -223,6 +238,7 @@ const form = ref({
   allow_pay_in_person: true,
   pending_booking_hold_hours: 24,
   collect_attendee_details: false,
+  delete_data_on_uninstall: false,
 });
 // The currencies most sites use, plus whatever this site already saved —
 // the field was free text, so an existing value must never disappear.

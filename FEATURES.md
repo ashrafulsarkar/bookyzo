@@ -36,6 +36,8 @@ The free version should be genuinely usable for a small single-location business
 - **Success screen**: "Your booking is ready!" with next actions — View Dashboard, Manage Booking, View Booking Form (copies the bookable item's shortcode, A5), Add Another Booking Type (re-enters the type picker for a *different* type — a 2nd bookable item of the *same* type still needs Pro, per A9's cap).
 - Business profile (name, currency, working hours; the timezone is WordPress's own) collected once, upfront, before the type-specific steps — unchanged from the current wizard.
 
+- **Delete all data on uninstall — opt-in, added 2026-09-26:** Settings → General → "Also delete all Bookyzo data". When on, deleting the plugin drops its tables and every option it writes (payment keys included). Off by default, so booking history survives a reinstall. uninstall.php had always read this setting, but nothing ever set it, so the cleanup could never run.
+
 ### A2. Bookable Item Management (Core)
 - **Type-first creation flow (decided 2026-09-02):** "Add New" starts with a booking-type picker (Appointment / Table / Event / Slot), THEN shows the type-specific form — the fields shown depend on the chosen type (see A9 for what each type's form needs). Type is fixed after creation (changing type would orphan the bookable item's schedule/slots).
 - Create/edit bookable items (staff, table, room, rental item, event — one core entity, type-specific fields)

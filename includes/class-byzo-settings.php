@@ -77,6 +77,11 @@ class BYZO_Settings {
 			// one contact for the whole purchase (StepDetails.vue). Off by
 			// default: it adds a field per ticket to the booking form.
 			'collect_attendee_details'   => false,
+			// Added 2026-09-26 — read by uninstall.php: when on, deleting
+			// the plugin also drops its tables and options. Off by default,
+			// since losing a business's booking history by accident is far
+			// worse than leaving a few tables behind.
+			'delete_data_on_uninstall'   => false,
 		);
 
 		$settings = wp_parse_args( get_option( 'byzo_settings', array() ), $defaults );
@@ -147,7 +152,7 @@ class BYZO_Settings {
 			$patch['default_end_time'] = $time;
 		}
 
-		foreach ( array( 'require_phone', 'auto_confirm', 'send_confirmation_email', 'send_admin_notification', 'customer_accounts_enabled', 'allow_pay_in_person', 'collect_attendee_details' ) as $bool_field ) {
+		foreach ( array( 'require_phone', 'auto_confirm', 'send_confirmation_email', 'send_admin_notification', 'customer_accounts_enabled', 'allow_pay_in_person', 'collect_attendee_details', 'delete_data_on_uninstall' ) as $bool_field ) {
 			if ( isset( $data[ $bool_field ] ) ) {
 				$patch[ $bool_field ] = (bool) $data[ $bool_field ];
 			}

@@ -6,6 +6,7 @@
  * silently keeping bookings/settings by default is the safer choice for a
  * booking plugin (losing customer booking history on an accidental
  * uninstall would be a real data-loss incident, not a minor inconvenience).
+ * The switch is Settings → General → "Also delete all Bookyzo data".
  */
 
 defined( 'WP_UNINSTALL_PLUGIN' ) || exit;
@@ -37,13 +38,20 @@ foreach ( $tables as $table ) {
 	$wpdb->query( "DROP TABLE IF EXISTS `{$table}`" ); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
 }
 
+// Every option the plugin writes — including the payment settings,
+// which hold the site's Stripe secret key and webhook secret.
 $options = array(
 	'byzo_settings',
 	'byzo_db_version',
 	'byzo_setup_step',
 	'byzo_setup_skipped',
+	'byzo_appearance',
+	'byzo_email_templates',
+	'byzo_payment_settings',
 );
 
 foreach ( $options as $option ) {
 	delete_option( $option );
 }
+
+delete_transient( 'byzo_activation_redirect' );
