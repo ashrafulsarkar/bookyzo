@@ -31,7 +31,7 @@
           {{ booking.timeLabel }} {{ booking.customer_name }}
         </button>
         <span v-if="day.bookings.length > 3" class="px-1 text-[11px] text-muted-foreground">
-          {{ sprintf(__('+%s more', 'bookyzo'), day.bookings.length - 3) }}
+          {{ sprintf(/*! translators: %s: number of further items not shown. */ __('+%s more', 'bookyzo'), day.bookings.length - 3) }}
         </span>
       </div>
     </button>

@@ -2,6 +2,7 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { translatorComments, translatorCommentOutput } from './vite.translator-comments.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -18,7 +19,7 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // is an acceptable tradeoff rather than adding a second dev-server flow.
 export default defineConfig({
   root: 'src',
-  plugins: [vue()],
+  plugins: [vue(), translatorComments()],
   base: '',
   resolve: {
     alias: {
@@ -31,6 +32,7 @@ export default defineConfig({
     manifest: true,
     rollupOptions: {
       input: path.resolve(__dirname, 'src/widget/main.js'),
+      output: translatorCommentOutput,
     },
   },
 });

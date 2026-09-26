@@ -1,11 +1,11 @@
 <template>
   <div v-if="totalPages > 1" class="flex items-center justify-between border-t px-4 py-3">
-    <p class="text-sm text-muted-foreground">{{ sprintf(__('Showing %1$s–%2$s of %3$s', 'bookyzo'), rangeStart, rangeEnd, total) }}</p>
+    <p class="text-sm text-muted-foreground">{{ sprintf(/*! translators: 1: first row shown, 2: last row shown, 3: total number of rows. */ __('Showing %1$s–%2$s of %3$s', 'bookyzo'), rangeStart, rangeEnd, total) }}</p>
     <div class="flex items-center gap-1">
       <Button variant="outline" size="icon" class="h-8 w-8" :disabled="page === 1" @click="$emit('update:page', page - 1)">
         <ChevronLeft class="h-4 w-4" />
       </Button>
-      <span class="px-2 text-sm text-muted-foreground">{{ sprintf(__('Page %1$s of %2$s', 'bookyzo'), page, totalPages) }}</span>
+      <span class="px-2 text-sm text-muted-foreground">{{ sprintf(/*! translators: 1: current page number, 2: total number of pages. */ __('Page %1$s of %2$s', 'bookyzo'), page, totalPages) }}</span>
       <Button variant="outline" size="icon" class="h-8 w-8" :disabled="page === totalPages" @click="$emit('update:page', page + 1)">
         <ChevronRight class="h-4 w-4" />
       </Button>

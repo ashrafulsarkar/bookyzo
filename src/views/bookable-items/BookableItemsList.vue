@@ -57,7 +57,7 @@
             <TableRow v-for="item in paginatedItems" :key="item.id">
               <TableCell class="min-w-[170px] font-medium">{{ item.name }}</TableCell>
               <TableCell><Badge variant="secondary">{{ TYPE_LABELS[item.type] || item.type }}</Badge></TableCell>
-              <TableCell class="text-muted-foreground">{{ sprintf(__('%s min', 'bookyzo'), item.duration_minutes) }}</TableCell>
+              <TableCell class="text-muted-foreground">{{ sprintf(/*! translators: %s: duration in minutes. */ __('%s min', 'bookyzo'), item.duration_minutes) }}</TableCell>
               <TableCell class="text-muted-foreground">{{ formatPrice(item.price) }}</TableCell>
               <TableCell><ByzoBadge :status="item.status">{{ statusLabel(item.status) }}</ByzoBadge></TableCell>
               <TableCell>
@@ -90,7 +90,7 @@
         <DialogHeader>
           <DialogTitle>{{ __('Delete bookable item', 'bookyzo') }}</DialogTitle>
           <DialogDescription>
-            {{ sprintf(__('Delete "%s"? This cannot be undone.', 'bookyzo'), deleteTarget?.name) }}
+            {{ sprintf(/*! translators: %s: bookable item name. */ __('Delete "%s"? This cannot be undone.', 'bookyzo'), deleteTarget?.name) }}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -210,7 +210,7 @@ async function confirmDelete() {
   try {
     await api.delete(`/bookable-items/${item.id}`);
     items.value = items.value.filter((i) => i.id !== item.id);
-    toast.success(i18n.sprintf(i18n.__('"%s" deleted.', 'bookyzo'), item.name));
+    toast.success(i18n.sprintf(/*! translators: %s: name of the deleted bookable item or customer. */ i18n.__('"%s" deleted.', 'bookyzo'), item.name));
   } catch (e) {
     toast.error(e.message || i18n.__('Could not delete this bookable item.', 'bookyzo'));
   } finally {

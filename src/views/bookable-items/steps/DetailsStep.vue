@@ -1,7 +1,7 @@
 <template>
   <Card ref="rootEl">
     <CardHeader>
-      <CardTitle>{{ compact ? firstTitle : sprintf(__('%s details', 'bookyzo'), typeLabel) }}</CardTitle>
+      <CardTitle>{{ compact ? firstTitle : sprintf(/*! translators: %s: booking type, e.g. Appointment or Event. */ __('%s details', 'bookyzo'), typeLabel) }}</CardTitle>
       <CardDescription>{{ compact ? __('You can add a photo and more later.', 'bookyzo') : __('Only the name is required — everything else is optional.', 'bookyzo') }}</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-4">
@@ -173,7 +173,7 @@ function continueStep() {
   if (props.type !== 'appointment') {
     const capacity = Number(form.value.capacity);
     if (!Number.isInteger(capacity) || capacity < 1) {
-      error.value = i18n.sprintf(i18n.__('%s must be a whole number of at least 1.', 'bookyzo'), capacityLabel.value);
+      error.value = i18n.sprintf(/*! translators: %s: name of the field, e.g. Capacity or Party size. */ i18n.__('%s must be a whole number of at least 1.', 'bookyzo'), capacityLabel.value);
       return;
     }
   }

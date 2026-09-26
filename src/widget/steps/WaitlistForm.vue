@@ -1,7 +1,7 @@
 <template>
   <div class="waitlist">
     <template v-if="!joined">
-      <p class="waitlist-title">{{ sprintf(__('%s is full', 'bookyzo'), whenLabel) }}</p>
+      <p class="waitlist-title">{{ sprintf(/*! translators: %s: date and time of the booking. */ __('%s is full', 'bookyzo'), whenLabel) }}</p>
       <p class="waitlist-sub">{{ __('Join the waitlist and we\'ll email you if a place opens up. It\'s first come, first served then, so book quickly when you hear from us.', 'bookyzo') }}</p>
 
       <div class="field">
@@ -37,7 +37,7 @@
 
     <div v-else class="waitlist-done" role="status">
       <p class="waitlist-title">{{ __('You\'re on the waitlist', 'bookyzo') }}</p>
-      <p class="waitlist-sub">{{ sprintf(__('If a place opens up for %1$s, we\'ll email %2$s straight away.', 'bookyzo'), whenLabel, form.customer_email) }}</p>
+      <p class="waitlist-sub">{{ sprintf(/*! translators: 1: date and time of the booking, 2: customer email address. */ __('If a place opens up for %1$s, we\'ll email %2$s straight away.', 'bookyzo'), whenLabel, form.customer_email) }}</p>
     </div>
   </div>
 </template>

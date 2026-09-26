@@ -34,7 +34,7 @@
               v-if="shiftsFor(weekday.value).length > 1"
               type="button"
               class="text-muted-foreground hover:text-destructive"
-              :aria-label="sprintf(__('Remove this shift on %s', 'bookyzo'), weekday.label)"
+              :aria-label="sprintf(/*! translators: %s: weekday name. */ __('Remove this shift on %s', 'bookyzo'), weekday.label)"
               @click="removeShift(weekday.value, index)"
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12" /></svg>

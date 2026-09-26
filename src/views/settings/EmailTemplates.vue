@@ -43,7 +43,7 @@
                 <template v-if="documents.invoice"> <code>{invoice_link}</code></template>
               </p>
               <p v-if="event.id === 'booking_confirmed' && (documents.ticket || documents.invoice)" class="text-xs text-muted-foreground">
-                {{ sprintf(__('If this email doesn\'t use %s, the link is added at the end automatically.', 'bookyzo'), documentPlaceholders) }}
+                {{ sprintf(/*! translators: %s: list of email placeholder tags. */ __('If this email doesn\'t use %s, the link is added at the end automatically.', 'bookyzo'), documentPlaceholders) }}
               </p>
             </div>
           </CardContent>

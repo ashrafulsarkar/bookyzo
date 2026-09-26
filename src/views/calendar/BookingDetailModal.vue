@@ -32,7 +32,7 @@
           </div>
           <div v-if="booking.party_size > 1" class="flex items-center gap-2.5">
             <Users class="h-4 w-4 shrink-0 text-muted-foreground" />
-            <span>{{ sprintf(_n('%s person', '%s people', booking.party_size, 'bookyzo'), booking.party_size) }}</span>
+            <span>{{ sprintf(/*! translators: %s: number of people. */ _n('%s person', '%s people', booking.party_size, 'bookyzo'), booking.party_size) }}</span>
           </div>
           <div v-if="booking.customer_notes" class="flex items-start gap-2.5">
             <StickyNote class="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground" />
@@ -73,7 +73,7 @@
           v-if="booking.deposit_amount !== null && booking.deposit_amount < booking.payment_amount"
           class="text-xs text-muted-foreground"
         >
-          {{ sprintf(__('Deposit due online: %1$s · Balance due: %2$s', 'bookyzo'), formatTotal(booking.deposit_amount), formatTotal(booking.payment_amount - booking.deposit_amount)) }}
+          {{ sprintf(/*! translators: 1: deposit amount, 2: remaining balance. */ __('Deposit due online: %1$s · Balance due: %2$s', 'bookyzo'), formatTotal(booking.deposit_amount), formatTotal(booking.payment_amount - booking.deposit_amount)) }}
         </p>
 
         <!-- Basic reschedule (added 2026-09-05, Phase 1.6, DETAILED-SPEC.md

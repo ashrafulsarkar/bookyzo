@@ -375,7 +375,7 @@ async function saveExtra(id) {
   try {
     await extraItemEditStep.value.save(id, { ...extraData });
   } catch (e) {
-    throw new Error(i18n.sprintf(i18n.__('The item was saved, but its "%1$s" settings weren\'t: %2$s', 'bookyzo'), extraItemEditStep.value.label, e.message || i18n.__('unknown error', 'bookyzo')));
+    throw new Error(i18n.sprintf(/*! translators: 1: name of a settings step, 2: error message. */ i18n.__('The item was saved, but its "%1$s" settings weren\'t: %2$s', 'bookyzo'), extraItemEditStep.value.label, e.message || i18n.__('unknown error', 'bookyzo')));
   }
 }
 
@@ -472,7 +472,7 @@ async function submit() {
       const updated = await api.put(`/bookable-items/${props.itemId}`, payload);
       await syncSchedule(props.itemId);
       await saveExtra(props.itemId);
-      toast.success(i18n.sprintf(i18n.__('"%s" saved.', 'bookyzo'), updated.name));
+      toast.success(i18n.sprintf(/*! translators: %s: bookable item name. */ i18n.__('"%s" saved.', 'bookyzo'), updated.name));
       emit('saved', updated);
     } else {
       // Type is immutable server-side, so if the owner went Back after a
@@ -502,7 +502,7 @@ async function submit() {
       createdId.value = null;
       createdType.value = '';
       createdScheduleSaved.value = false;
-      toast.success(i18n.sprintf(i18n.__('"%s" created.', 'bookyzo'), created.name));
+      toast.success(i18n.sprintf(/*! translators: %s: bookable item name. */ i18n.__('"%s" created.', 'bookyzo'), created.name));
       emit('saved', created);
     }
     succeeded = true;
@@ -550,10 +550,10 @@ function close() {
   // vanishing until the next reload.
   if (createdId.value) {
     let message = wizardData.type === 'event'
-      ? i18n.sprintf(i18n.__('"%s" was created, but its dates were not saved — open it from the list to finish setting it up.', 'bookyzo'), wizardData.name)
-      : i18n.sprintf(i18n.__('"%s" was created, but its availability was not saved — open it from the list to finish setting it up.', 'bookyzo'), wizardData.name);
+      ? i18n.sprintf(/*! translators: %s: bookable item name. */ i18n.__('"%s" was created, but its dates were not saved — open it from the list to finish setting it up.', 'bookyzo'), wizardData.name)
+      : i18n.sprintf(/*! translators: %s: bookable item name. */ i18n.__('"%s" was created, but its availability was not saved — open it from the list to finish setting it up.', 'bookyzo'), wizardData.name);
     if (createdScheduleSaved.value && extraItemEditStep.value) {
-      message = i18n.sprintf(i18n.__('"%1$s" was created, but its "%2$s" settings were not saved — open it from the list to finish setting it up.', 'bookyzo'), wizardData.name, extraItemEditStep.value.label);
+      message = i18n.sprintf(/*! translators: 1: bookable item name, 2: name of a settings step. */ i18n.__('"%1$s" was created, but its "%2$s" settings were not saved — open it from the list to finish setting it up.', 'bookyzo'), wizardData.name, extraItemEditStep.value.label);
     }
     toast.warning(message);
     emit('saved', { id: createdId.value, name: wizardData.name, type: createdType.value });

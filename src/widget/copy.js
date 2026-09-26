@@ -27,7 +27,7 @@ const COPY = {
     // Party size is meaningless for a 1:1 appointment — the widget hides
     // the input entirely for this type (see StepDetails).
     quantityLabel: null,
-    remaining: (n) => i18n.sprintf(i18n._n('%s left', '%s left', n, 'bookyzo'), n),
+    remaining: (n) => i18n.sprintf(/*! translators: %s: number of places left. */ i18n._n('%s left', '%s left', n, 'bookyzo'), n),
     soldOut: i18n.__('Fully booked', 'bookyzo'),
   },
   table: {
@@ -40,7 +40,7 @@ const COPY = {
     confirmHeading: i18n.__('Reservation received', 'bookyzo'),
     subjectLabel: i18n.__('Table', 'bookyzo'),
     quantityLabel: i18n.__('Party size', 'bookyzo'),
-    remaining: (n) => i18n.sprintf(i18n._n('%s seat left', '%s seats left', n, 'bookyzo'), n),
+    remaining: (n) => i18n.sprintf(/*! translators: %s: number of seats left. */ i18n._n('%s seat left', '%s seats left', n, 'bookyzo'), n),
     soldOut: i18n.__('Fully booked', 'bookyzo'),
   },
   event: {
@@ -53,7 +53,7 @@ const COPY = {
     confirmHeading: i18n.__('Tickets booked', 'bookyzo'),
     subjectLabel: i18n.__('Event', 'bookyzo'),
     quantityLabel: i18n.__('Tickets', 'bookyzo'),
-    remaining: (n) => i18n.sprintf(i18n._n('%s ticket left', '%s tickets left', n, 'bookyzo'), n),
+    remaining: (n) => i18n.sprintf(/*! translators: %s: number of tickets left. */ i18n._n('%s ticket left', '%s tickets left', n, 'bookyzo'), n),
     soldOut: i18n.__('Sold out', 'bookyzo'),
   },
   slot: {
@@ -66,7 +66,7 @@ const COPY = {
     confirmHeading: i18n.__('Booking received', 'bookyzo'),
     subjectLabel: i18n.__('Session', 'bookyzo'),
     quantityLabel: i18n.__('Spots', 'bookyzo'),
-    remaining: (n) => i18n.sprintf(i18n._n('%s spot left', '%s spots left', n, 'bookyzo'), n),
+    remaining: (n) => i18n.sprintf(/*! translators: %s: number of spots left. */ i18n._n('%s spot left', '%s spots left', n, 'bookyzo'), n),
     soldOut: i18n.__('Fully booked', 'bookyzo'),
   },
 };

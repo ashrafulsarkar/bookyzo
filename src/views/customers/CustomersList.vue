@@ -129,7 +129,7 @@
         <DialogHeader>
           <DialogTitle>{{ __('Delete customer', 'bookyzo') }}</DialogTitle>
           <DialogDescription>
-            {{ sprintf(__('Delete "%s"? This only removes their customer record — past bookings are unaffected.', 'bookyzo'), deleteTarget?.name) }}
+            {{ sprintf(/*! translators: %s: customer name. */ __('Delete "%s"? This only removes their customer record — past bookings are unaffected.', 'bookyzo'), deleteTarget?.name) }}
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
@@ -258,7 +258,7 @@ async function confirmDelete() {
   try {
     await api.delete(`/customers/${customer.id}`);
     items.value = items.value.filter((c) => c.id !== customer.id);
-    toast.success(i18n.sprintf(i18n.__('"%s" deleted.', 'bookyzo'), customer.name));
+    toast.success(i18n.sprintf(/*! translators: %s: name of the deleted bookable item or customer. */ i18n.__('"%s" deleted.', 'bookyzo'), customer.name));
   } catch (e) {
     toast.error(e.message || i18n.__('Could not delete this customer.', 'bookyzo'));
   } finally {
@@ -278,8 +278,8 @@ onMounted(() => {
   const error = params.get('byzo_import_error');
 
   if (null !== imported) {
-        const importedText = i18n.sprintf(i18n._n('Imported %s customer.', 'Imported %s customers.', Number(imported), 'bookyzo'), imported);
-    const skippedText = skipped && skipped !== '0' ? ' ' + i18n.sprintf(i18n._n('Skipped %s row.', 'Skipped %s rows.', Number(skipped), 'bookyzo'), skipped) : '';
+        const importedText = i18n.sprintf(/*! translators: %s: number of customers imported. */ i18n._n('Imported %s customer.', 'Imported %s customers.', Number(imported), 'bookyzo'), imported);
+    const skippedText = skipped && skipped !== '0' ? ' ' + i18n.sprintf(/*! translators: %s: number of CSV rows skipped. */ i18n._n('Skipped %s row.', 'Skipped %s rows.', Number(skipped), 'bookyzo'), skipped) : '';
     toast.success(importedText + skippedText);
   } else if (error) {
     toast.error(error === 'no_file' ? i18n.__('Please choose a CSV file to import.', 'bookyzo') : i18n.__('Could not read that file.', 'bookyzo'));

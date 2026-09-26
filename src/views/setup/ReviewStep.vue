@@ -15,7 +15,7 @@
       </div>
       <div v-if="data.type !== 'event'" class="flex justify-between border-b border-border pb-2">
         <span class="text-muted-foreground">{{ __('Duration', 'bookyzo') }}</span>
-        <span class="font-medium">{{ sprintf(_n('%s minute', '%s minutes', data.duration_minutes, 'bookyzo'), data.duration_minutes) }}</span>
+        <span class="font-medium">{{ sprintf(/*! translators: %s: number of minutes. */ _n('%s minute', '%s minutes', data.duration_minutes, 'bookyzo'), data.duration_minutes) }}</span>
       </div>
       <div v-if="data.type !== 'appointment'" class="flex justify-between border-b border-border pb-2">
         <span class="text-muted-foreground">{{ __('Capacity', 'bookyzo') }}</span>
@@ -86,7 +86,7 @@ const availabilitySummary = computed(() => {
       return '—';
     }
     const shown = occurrences.slice(0, 3).map((o) => `${o.date} ${o.start_time}–${o.end_time}`).join(', ');
-    return occurrences.length > 3 ? `${shown} ` + i18n.sprintf(i18n.__('+%s more', 'bookyzo'), occurrences.length - 3) : shown;
+    return occurrences.length > 3 ? `${shown} ` + i18n.sprintf(/*! translators: %s: number of further items not shown. */ i18n.__('+%s more', 'bookyzo'), occurrences.length - 3) : shown;
   }
 
   const open = (props.data.schedules || []).slice().sort((a, b) => a.weekday - b.weekday);

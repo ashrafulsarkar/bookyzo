@@ -57,7 +57,7 @@ function listSummary(items, noun, render) {
     return i18n.__('None', 'bookyzo');
   }
   const shown = items.slice(0, 3).map(render).join(', ');
-  const more = items.length > 3 ? ' ' + i18n.sprintf(i18n.__('+%s more', 'bookyzo'), items.length - 3) : '';
+  const more = items.length > 3 ? ' ' + i18n.sprintf(/*! translators: %s: number of further items not shown. */ i18n.__('+%s more', 'bookyzo'), items.length - 3) : '';
   return `${items.length} ${noun}${items.length === 1 ? '' : 's'}: ${shown}${more}`;
 }
 
@@ -83,7 +83,7 @@ const rows = computed(() => {
     { label: i18n.__('Name', 'bookyzo'), value: d.name },
   ];
   if (d.type !== 'event') {
-    list.push({ label: i18n.__('Duration', 'bookyzo'), value: i18n.sprintf(i18n._n('%s minute', '%s minutes', d.duration_minutes, 'bookyzo'), d.duration_minutes) });
+    list.push({ label: i18n.__('Duration', 'bookyzo'), value: i18n.sprintf(/*! translators: %s: number of minutes. */ i18n._n('%s minute', '%s minutes', d.duration_minutes, 'bookyzo'), d.duration_minutes) });
   }
   if (d.type !== 'appointment') {
     list.push({ label: i18n.__('Capacity', 'bookyzo'), value: String(d.capacity) });

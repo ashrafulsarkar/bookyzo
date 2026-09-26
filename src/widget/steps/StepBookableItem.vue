@@ -38,7 +38,7 @@
         <span class="option-card-body">
           <span class="name">{{ service.name }}</span>
           <span class="meta">
-            <span class="meta-item">{{ sprintf(__('%s min', 'bookyzo'), serviceDuration(service)) }}</span>
+            <span class="meta-item">{{ sprintf(/*! translators: %s: duration in minutes. */ __('%s min', 'bookyzo'), serviceDuration(service)) }}</span>
             <span v-if="servicePrice(service)" class="meta-price">{{ servicePrice(service) }}</span>
           </span>
         </span>
@@ -60,7 +60,7 @@
           <span class="option-card-body">
             <span class="name">{{ item.name }}</span>
             <span class="meta">
-              <span class="meta-item">{{ sprintf(__('%s min', 'bookyzo'), item.duration_minutes) }}</span>
+              <span class="meta-item">{{ sprintf(/*! translators: %s: duration in minutes. */ __('%s min', 'bookyzo'), item.duration_minutes) }}</span>
               <span v-if="item.capacity > 1" class="meta-item">{{ capacityLabel(item) }}</span>
               <span v-if="item.price !== null" class="meta-price">{{ formatPrice(item.price) }}</span>
             </span>
@@ -112,7 +112,7 @@ function servicePrice(service) {
   const prices = service.staff.map((m) => m.price).filter((p) => p !== null);
   if (!prices.length) return '';
   const low = Math.min(...prices);
-  return prices.every((p) => p === low) ? formatMoney(low) : i18n.sprintf(i18n.__('from %s', 'bookyzo'), formatMoney(low));
+  return prices.every((p) => p === low) ? formatMoney(low) : i18n.sprintf(/*! translators: %s: lowest price, formatted with its currency. */ i18n.__('from %s', 'bookyzo'), formatMoney(low));
 }
 
 // A picker filtered to one type (or a site that only sells one) can speak
@@ -150,13 +150,23 @@ const groups = computed(() =>
 
 // How many a table seats, a class takes, an event sells — in that type's
 // own words rather than one generic "party size".
+// One return per type, not an object of labels: the build keeps each
+// translator note on the line above its own call only when every call
+// starts its own statement (vite.translator-comments.js).
 function capacityLabel(item) {
-  const labels = {
-    table: i18n.sprintf(i18n.__('Seats %s', 'bookyzo'), item.capacity),
-    slot: i18n.sprintf(i18n._n('%s spot', '%s spots', item.capacity, 'bookyzo'), item.capacity),
-    event: i18n.sprintf(i18n._n('%s ticket', '%s tickets', item.capacity, 'bookyzo'), item.capacity),
-  };
-  return labels[item.type] || '';
+  if (item.type === 'table') {
+    /*! translators: %s: number of seats at the table. */
+    return i18n.sprintf(i18n.__('Seats %s', 'bookyzo'), item.capacity);
+  }
+  if (item.type === 'slot') {
+    /*! translators: %s: number of spots. */
+    return i18n.sprintf(i18n._n('%s spot', '%s spots', item.capacity, 'bookyzo'), item.capacity);
+  }
+  if (item.type === 'event') {
+    /*! translators: %s: number of tickets. */
+    return i18n.sprintf(i18n._n('%s ticket', '%s tickets', item.capacity, 'bookyzo'), item.capacity);
+  }
+  return '';
 }
 
 onMounted(async () => {

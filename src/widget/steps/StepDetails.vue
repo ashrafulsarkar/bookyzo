@@ -60,7 +60,7 @@
       <label>{{ __('Attendee details', 'bookyzo') }}</label>
       <div v-for="(attendee, index) in form.attendees" :key="index" class="attendee-row">
         <span class="attendee-index">#{{ index + 1 }}</span>
-        <input v-model="attendee.name" type="text" :placeholder="sprintf(__('Attendee %s name', 'bookyzo'), index + 1)" />
+        <input v-model="attendee.name" type="text" :placeholder="sprintf(/*! translators: %s: ticket number, starting at 1. */ __('Attendee %s name', 'bookyzo'), index + 1)" />
         <input v-model="attendee.email" type="email" :placeholder="__('Email (optional)', 'bookyzo')" />
       </div>
     </div>
@@ -185,7 +185,7 @@
         <button type="button" class="btn btn-outline" :disabled="!codeInput.trim() || checkingCode" @click="applyCode">{{ checkingCode ? __('Checking…', 'bookyzo') : __('Apply', 'bookyzo') }}</button>
       </div>
       <div v-else class="code-applied">
-        <span>{{ sprintf(__('%s applied', 'bookyzo'), form.discount_code) }}</span>
+        <span>{{ sprintf(/*! translators: %s: discount or package code. */ __('%s applied', 'bookyzo'), form.discount_code) }}</span>
         <button type="button" class="link-button" @click="removeCode">{{ __('Remove', 'bookyzo') }}</button>
       </div>
       <p v-if="codeError" class="field-error">{{ codeError }}</p>
@@ -241,7 +241,7 @@ const whenLabel = computed(() => {
   const start = props.slot?.start_datetime;
   if (!start) return '';
   const date = new Date(start.replace(' ', 'T'));
-  return i18n.sprintf(i18n.__('%1$s at %2$s', 'bookyzo'), date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }), date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' }));
+  return i18n.sprintf(/*! translators: 1: date, 2: time. */ i18n.__('%1$s at %2$s', 'bookyzo'), date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }), date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' }));
 });
 
 // Hidden when the type has no quantity concept (appointment, whose

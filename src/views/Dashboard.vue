@@ -38,7 +38,7 @@
               <h3 class="text-sm font-semibold">{{ __('Bookings, last 14 days', 'bookyzo') }}</h3>
               <p class="text-xs text-muted-foreground">{{ __('Every confirmed booking, by day.', 'bookyzo') }}</p>
             </div>
-            <span v-if="!trendLoading && trendTotal" class="text-sm font-medium tabular-nums text-muted-foreground">{{ sprintf(__('%s total', 'bookyzo'), trendTotal) }}</span>
+            <span v-if="!trendLoading && trendTotal" class="text-sm font-medium tabular-nums text-muted-foreground">{{ sprintf(/*! translators: %s: total number of bookings in the period shown. */ __('%s total', 'bookyzo'), trendTotal) }}</span>
           </div>
           <ByzoLoading v-if="trendLoading" size="compact" />
           <div v-else-if="!trendTotal" class="py-10 text-center text-sm text-muted-foreground">{{ __('No bookings in this period yet.', 'bookyzo') }}</div>
@@ -108,8 +108,8 @@ const upcomingLoading = ref(true);
 
 function statusHint(period) {
   const parts = [];
-  if (period.pending) parts.push(i18n.sprintf(i18n.__('%s pending', 'bookyzo'), period.pending));
-  if (period.confirmed) parts.push(i18n.sprintf(i18n.__('%s confirmed', 'bookyzo'), period.confirmed));
+  if (period.pending) parts.push(i18n.sprintf(/*! translators: %s: number of pending bookings. */ i18n.__('%s pending', 'bookyzo'), period.pending));
+  if (period.confirmed) parts.push(i18n.sprintf(/*! translators: %s: number of confirmed bookings. */ i18n.__('%s confirmed', 'bookyzo'), period.confirmed));
 
   if (parts.length) {
     return parts.join(', ');

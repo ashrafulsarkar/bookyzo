@@ -3,6 +3,7 @@ import vue from '@vitejs/plugin-vue';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import { translatorComments, translatorCommentOutput } from './vite.translator-comments.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DEV_SERVER_MARKER = path.resolve(__dirname, '.dev-server-running');
@@ -65,7 +66,7 @@ function devServerMarkerPlugin() {
 // assets/widget/ (vite.widget.config.js).
 export default defineConfig({
   root: 'src',
-  plugins: [vue(), devServerMarkerPlugin()],
+  plugins: [vue(), devServerMarkerPlugin(), translatorComments()],
   base: '',
   resolve: {
     alias: {
@@ -76,8 +77,14 @@ export default defineConfig({
     outDir: path.resolve(__dirname, 'assets/admin'),
     emptyOutDir: true,
     manifest: true,
+    // One bundle on purpose (~590 kB): wp_set_script_translations() loads
+    // a language pack's JSON per built file, so split chunks would come up
+    // untranslated, and Pro's extension joins this one running app. The
+    // limit sits just above today's size so real growth still warns.
+    chunkSizeWarningLimit: 700,
     rollupOptions: {
       input: path.resolve(__dirname, 'src/main.js'),
+      output: translatorCommentOutput,
     },
   },
   // `npm run dev` serves straight from source with HMR — BYZO_Admin_Assets

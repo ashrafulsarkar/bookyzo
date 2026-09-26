@@ -244,7 +244,7 @@ const emptyMessage = computed(() => {
     return i18n.__('No upcoming dates for this event right now.', 'bookyzo');
   }
   return asksPartySizeFirst.value && partySize.value > 1
-    ? i18n.sprintf(i18n.__('No times available for %s in the next few weeks.', 'bookyzo'), partySize.value)
+    ? i18n.sprintf(/*! translators: %s: party size (number of people). */ i18n.__('No times available for %s in the next few weeks.', 'bookyzo'), partySize.value)
     : i18n.__('No available times in the next few weeks.', 'bookyzo');
 });
 

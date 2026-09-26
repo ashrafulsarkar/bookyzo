@@ -111,7 +111,7 @@
         v-if="bulkActions.length && selectedIds.length"
         class="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-border bg-muted/30 px-4 py-2.5"
       >
-        <span class="mr-2 text-sm font-medium">{{ sprintf(__('%s selected', 'bookyzo'), selectedIds.length) }}</span>
+        <span class="mr-2 text-sm font-medium">{{ sprintf(/*! translators: %s: number of selected bookings. */ __('%s selected', 'bookyzo'), selectedIds.length) }}</span>
         <Button
           v-for="action in bulkActions"
           :key="action.label"
@@ -166,7 +166,7 @@
                 <input
                   type="checkbox"
                   class="h-4 w-4 cursor-pointer align-middle"
-                  :aria-label="sprintf(__('Select booking #%s', 'bookyzo'), booking.id)"
+                  :aria-label="sprintf(/*! translators: %s: booking number. */ __('Select booking #%s', 'bookyzo'), booking.id)"
                   :checked="selectedIds.includes(booking.id)"
                   @change="toggleOne(booking.id, $event.target.checked)"
                 />
@@ -286,9 +286,9 @@ async function runBulk(action) {
   bulkBusy.value = true;
   try {
     const result = await action.run([...selectedIds.value]);
-    toast.success(result?.message || i18n.sprintf(i18n.__('%s: done.', 'bookyzo'), action.label));
+    toast.success(result?.message || i18n.sprintf(/*! translators: %s: name of the bulk action that was applied. */ i18n.__('%s: done.', 'bookyzo'), action.label));
   } catch (e) {
-    toast.error(e.message || i18n.sprintf(i18n.__('Could not apply "%s" to these bookings.', 'bookyzo'), action.label));
+    toast.error(e.message || i18n.sprintf(/*! translators: %s: name of the bulk action. */ i18n.__('Could not apply "%s" to these bookings.', 'bookyzo'), action.label));
   } finally {
     bulkBusy.value = false;
   }

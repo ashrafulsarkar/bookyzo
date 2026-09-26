@@ -90,7 +90,7 @@
       style="background: var(--byzo-surface); border-color: var(--byzo-border);"
       :style="tooltipStyle"
     >
-      <div class="font-semibold tabular-nums">{{ sprintf(_n('%s booking', '%s bookings', points[activeIndex].total, 'bookyzo'), points[activeIndex].total) }}</div>
+      <div class="font-semibold tabular-nums">{{ sprintf(/*! translators: %s: number of bookings. */ _n('%s booking', '%s bookings', points[activeIndex].total, 'bookyzo'), points[activeIndex].total) }}</div>
       <div class="text-muted-foreground">{{ fullLabel(activeIndex) }}</div>
     </div>
   </div>

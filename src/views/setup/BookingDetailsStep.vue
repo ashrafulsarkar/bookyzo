@@ -233,7 +233,7 @@ function continueStep() {
   if (props.type !== 'appointment') {
     const capacity = Number(form.value.capacity);
     if (!Number.isInteger(capacity) || capacity < 1) {
-      error.value = i18n.sprintf(i18n.__('%s must be a whole number of at least 1.', 'bookyzo'), capacityLabel.value);
+      error.value = i18n.sprintf(/*! translators: %s: name of the field, e.g. Capacity or Party size. */ i18n.__('%s must be a whole number of at least 1.', 'bookyzo'), capacityLabel.value);
       return;
     }
   }

@@ -2,9 +2,9 @@
   <div>
     <h2>{{ __('Payment', 'bookyzo') }}</h2>
     <p v-if="isDeposit">
-      {{ sprintf(__('%1$s, a deposit of %2$s is due now to secure your booking — the remaining %3$s of your %4$s total is due at the appointment.', 'bookyzo'), booking.customer_name, formattedAmount, formattedBalance, formattedTotal) }}
+      {{ sprintf(/*! translators: 1: customer name, 2: deposit due now, 3: balance due later, 4: booking total. */ __('%1$s, a deposit of %2$s is due now to secure your booking — the remaining %3$s of your %4$s total is due at the appointment.', 'bookyzo'), booking.customer_name, formattedAmount, formattedBalance, formattedTotal) }}
     </p>
-    <p v-else>{{ sprintf(__('%1$s, your total is %2$s.', 'bookyzo'), booking.customer_name, formattedAmount) }}</p>
+    <p v-else>{{ sprintf(/*! translators: 1: customer name, 2: booking total. */ __('%1$s, your total is %2$s.', 'bookyzo'), booking.customer_name, formattedAmount) }}</p>
 
     <WidgetLoading v-if="loadingStripe" :label="__('Loading payment form…', 'bookyzo')" />
     <div v-else-if="setupError" class="error">{{ setupError }}</div>
@@ -16,7 +16,7 @@
     <div class="actions">
       <button v-if="payInPersonEnabled" type="button" class="btn btn-outline" :disabled="paying" @click="payInPerson">{{ __('Pay in person instead', 'bookyzo') }}</button>
       <button type="button" class="btn btn-primary" :disabled="!cardReady || paying" @click="pay">
-        {{ paying ? __('Processing…', 'bookyzo') : sprintf(__('Pay %s', 'bookyzo'), formattedAmount) }}
+        {{ paying ? __('Processing…', 'bookyzo') : sprintf(/*! translators: %s: amount to pay. */ __('Pay %s', 'bookyzo'), formattedAmount) }}
       </button>
     </div>
   </div>

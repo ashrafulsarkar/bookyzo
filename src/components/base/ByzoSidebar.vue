@@ -43,7 +43,7 @@
         >
           <span class="flex h-5 w-5 flex-shrink-0 items-center justify-center" v-html="item.icon"></span>
           {{ item.label }}
-          <span v-if="navBadges[item.to]" class="byzo-sidebar-badge" :aria-label="sprintf(__('%s new', 'bookyzo'), navBadges[item.to])">{{ navBadges[item.to] > 99 ? '99+' : navBadges[item.to] }}</span>
+          <span v-if="navBadges[item.to]" class="byzo-sidebar-badge" :aria-label="sprintf(/*! translators: %s: number of new items. */ __('%s new', 'bookyzo'), navBadges[item.to])">{{ navBadges[item.to] > 99 ? '99+' : navBadges[item.to] }}</span>
         </router-link>
       </template>
 

@@ -2,8 +2,8 @@
   <div class="confirmation">
     <div class="check">✓</div>
     <h2>{{ copy.confirmHeading }}</h2>
-    <p v-if="booking?.status === 'confirmed'">{{ sprintf(__('A confirmation has been sent to %s.', 'bookyzo'), booking?.customer_email) }}</p>
-    <p v-else>{{ sprintf(__('A confirmation will be sent to %s once it\'s approved.', 'bookyzo'), booking?.customer_email) }}</p>
+    <p v-if="booking?.status === 'confirmed'">{{ sprintf(/*! translators: %s: customer email address. */ __('A confirmation has been sent to %s.', 'bookyzo'), booking?.customer_email) }}</p>
+    <p v-else>{{ sprintf(/*! translators: %s: customer email address. */ __('A confirmation will be sent to %s once it\'s approved.', 'bookyzo'), booking?.customer_email) }}</p>
 
     <!-- The booking restated as a scannable card rather than buried in a
          sentence — this is the screen people screenshot or come back to. -->
@@ -15,7 +15,7 @@
       <div v-if="booking?.slot_start" class="summary-row">
         <!-- On the booked item's own clock (QA report §6.1 A1). -->
         <span class="summary-label">{{ __('When', 'bookyzo') }}</span>
-        <span class="summary-value">{{ sprintf(__('%1$s at %2$s', 'bookyzo'), formatDate(booking.local_slot_start || booking.slot_start), formatTime(booking.local_slot_start || booking.slot_start)) }}</span>
+        <span class="summary-value">{{ sprintf(/*! translators: 1: date, 2: time. */ __('%1$s at %2$s', 'bookyzo'), formatDate(booking.local_slot_start || booking.slot_start), formatTime(booking.local_slot_start || booking.slot_start)) }}</span>
       </div>
       <div v-if="item?.location" class="summary-row">
         <span class="summary-label">{{ __('Where', 'bookyzo') }}</span>
@@ -46,7 +46,7 @@
          a booking that succeeded is never blocked or hidden behind this,
          it's purely an acknowledgment of the secondary action. -->
     <p v-if="booking?.account_created" class="account-note">{{ __('Your account has been created — you\'re now logged in.', 'bookyzo') }}</p>
-    <p v-else-if="booking?.account_error" class="account-note account-note--error">{{ sprintf(__('Your booking was made, but the account couldn\'t be created: %s', 'bookyzo'), booking.account_error) }}</p>
+    <p v-else-if="booking?.account_error" class="account-note account-note--error">{{ sprintf(/*! translators: %s: error message. */ __('Your booking was made, but the account couldn\'t be created: %s', 'bookyzo'), booking.account_error) }}</p>
   </div>
 </template>
 

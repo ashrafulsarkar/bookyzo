@@ -36,7 +36,7 @@
             <span>
               {{ formatDate(occurrence.date) }}
               <span class="text-muted-foreground">· {{ occurrence.start_time }}–{{ occurrence.end_time }}</span>
-              <span v-if="occurrence.capacity_remaining !== undefined" class="text-muted-foreground">{{ sprintf(__('· %s left', 'bookyzo'), occurrence.capacity_remaining) }}</span>
+              <span v-if="occurrence.capacity_remaining !== undefined" class="text-muted-foreground">{{ sprintf(/*! translators: %s: number of places still free on this date. */ __('· %s left', 'bookyzo'), occurrence.capacity_remaining) }}</span>
             </span>
             <Button variant="ghost" size="sm" class="h-7 text-destructive hover:text-destructive" @click="removeOccurrence(index)">{{ __('Remove', 'bookyzo') }}</Button>
           </div>
@@ -56,7 +56,7 @@
 
         <div v-if="usesBusinessHours" class="rounded-lg border border-border bg-muted/40 p-4 text-sm text-muted-foreground">
           {{ __('This bookable item will follow your business hours and update automatically whenever they change.', 'bookyzo') }}
-          {{ sprintf(__('Manage them under %s.', 'bookyzo'), __('Settings → Business hours', 'bookyzo')) }}
+          {{ sprintf(/*! translators: %s: menu path, Settings → Business hours. */ __('Manage them under %s.', 'bookyzo'), __('Settings → Business hours', 'bookyzo')) }}
           {{ __('Turn this off to set a custom schedule for just this item instead.', 'bookyzo') }}
         </div>
         <ByzoWeeklyScheduleGrid v-else v-model="schedules" />

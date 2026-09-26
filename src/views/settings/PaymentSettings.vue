@@ -39,7 +39,7 @@
           v-if="allGatewayComponents[gateway.id] && form.gateways[gateway.id]"
           v-model="form.gateways[gateway.id]"
         />
-        <p v-else class="text-sm text-muted-foreground">{{ sprintf(__('%s settings aren\'t available in this version.', 'bookyzo'), gateway.label) }}</p>
+        <p v-else class="text-sm text-muted-foreground">{{ sprintf(/*! translators: %s: payment gateway name. */ __('%s settings aren\'t available in this version.', 'bookyzo'), gateway.label) }}</p>
       </PaymentGatewayRow>
     </div>
   </div>

@@ -9,7 +9,7 @@
         <span class="option-card-body">
           <span class="name">{{ __('Any available', 'bookyzo') }}</span>
           <span class="meta">
-            <span class="meta-item">{{ sprintf(__('Whoever is free — any of %s', 'bookyzo'), service.staff.length) }}</span>
+            <span class="meta-item">{{ sprintf(/*! translators: %s: number of staff members who offer this service. */ __('Whoever is free — any of %s', 'bookyzo'), service.staff.length) }}</span>
             <span v-if="anyPriceLabel" class="meta-price">{{ anyPriceLabel }}</span>
           </span>
         </span>
@@ -19,7 +19,7 @@
         <span class="option-card-body">
           <span class="name">{{ member.name }}</span>
           <span class="meta">
-            <span class="meta-item">{{ sprintf(__('%s min', 'bookyzo'), member.duration_minutes) }}</span>
+            <span class="meta-item">{{ sprintf(/*! translators: %s: duration in minutes. */ __('%s min', 'bookyzo'), member.duration_minutes) }}</span>
             <span v-if="member.price !== null" class="meta-price">{{ formatMoney(member.price) }}</span>
           </span>
         </span>
@@ -57,7 +57,7 @@ const prices = computed(() => props.service.staff.map((m) => m.price).filter((p)
 const anyPriceLabel = computed(() => {
   if (!prices.value.length) return '';
   const low = Math.min(...prices.value);
-  return prices.value.every((p) => p === low) ? formatMoney(low) : i18n.sprintf(i18n.__('from %s', 'bookyzo'), formatMoney(low));
+  return prices.value.every((p) => p === low) ? formatMoney(low) : i18n.sprintf(/*! translators: %s: lowest price, formatted with its currency. */ i18n.__('from %s', 'bookyzo'), formatMoney(low));
 });
 
 function chooseStaff(member) {
@@ -66,7 +66,7 @@ function chooseStaff(member) {
     ...own,
     id: member.id,
     type: 'appointment',
-    name: i18n.sprintf(i18n.__('%1$s with %2$s', 'bookyzo'), props.service.name, member.name),
+    name: i18n.sprintf(/*! translators: 1: service name, 2: staff member name. */ i18n.__('%1$s with %2$s', 'bookyzo'), props.service.name, member.name),
     price: member.price,
     duration_minutes: member.duration_minutes,
     service_id: props.service.id,
