@@ -123,6 +123,7 @@ if ( $booking ) {
 				<input type="hidden" name="action" value="<?php echo esc_attr( $action ); ?>">
 				<input type="hidden" name="booking_id" value="<?php echo esc_attr( $booking_id ); ?>">
 				<input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+				<?php wp_nonce_field( $action ); ?>
 				<button type="submit" class="byzo-manage-btn byzo-manage-btn--danger"><?php esc_html_e( 'Yes, cancel my booking', 'bookyzo' ); ?></button>
 			</form>
 

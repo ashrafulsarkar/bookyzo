@@ -170,15 +170,9 @@ class BYZO_Account_Widget {
 			'justRegistered'  => is_user_logged_in() && isset( $_GET['welcome'] ), // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- only picks the greeting.
 			'restUrl'         => esc_url_raw( rest_url( 'bookyzo/v1' ) ),
 			'nonce'           => wp_create_nonce( 'wp_rest' ),
-			'registerUrl'     => add_query_arg( 'action', BYZO_Customer_Auth::ACTION_REGISTER, admin_url( 'admin-post.php' ) ),
-			'loginUrl'        => add_query_arg( 'action', BYZO_Customer_Auth::ACTION_LOGIN, admin_url( 'admin-post.php' ) ),
-			'logoutUrl'       => add_query_arg(
-				array(
-					'action'      => BYZO_Customer_Auth::ACTION_LOGOUT,
-					'redirect_to' => rawurlencode( $page_url ),
-				),
-				admin_url( 'admin-post.php' )
-			),
+			'registerUrl'     => BYZO_Customer_Auth::form_url( BYZO_Customer_Auth::ACTION_REGISTER ),
+			'loginUrl'        => BYZO_Customer_Auth::form_url( BYZO_Customer_Auth::ACTION_LOGIN ),
+			'logoutUrl'       => BYZO_Customer_Auth::form_url( BYZO_Customer_Auth::ACTION_LOGOUT, array( 'redirect_to' => rawurlencode( $page_url ) ) ),
 			'lostPasswordUrl' => wp_lostpassword_url( $page_url ),
 			// Phase 2 step 18 (DETAILED-SPEC.md §3 B4) — never render a
 			// "Download invoice" link that 404s: the dashboard only shows

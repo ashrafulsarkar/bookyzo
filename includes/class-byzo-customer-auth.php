@@ -32,6 +32,30 @@ class BYZO_Customer_Auth {
 	const ACTION_LOGIN    = 'byzo_customer_login';
 	const ACTION_LOGOUT   = 'byzo_customer_logout';
 
+	/**
+	 * Every form here carries a nonce for its own action, put on the form's
+	 * URL (BYZO_Account_Widget passes these to the account app), so the
+	 * app needs no hidden field of its own.
+	 */
+	public static function form_url( $action, $args = array() ) {
+		return add_query_arg(
+			array_merge( array( 'action' => $action, '_wpnonce' => wp_create_nonce( $action ) ), $args ),
+			admin_url( 'admin-post.php' )
+		);
+	}
+
+	/**
+	 * A stale or missing nonce sends the visitor back with a "try again"
+	 * message rather than a bare wp_die(): the account page can sit open
+	 * (or cached) long enough for its nonce to expire.
+	 */
+	private static function verify_nonce( $action, $mode ) {
+		$nonce = isset( $_REQUEST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_REQUEST['_wpnonce'] ) ) : '';
+		if ( ! wp_verify_nonce( $nonce, $action ) ) {
+			self::redirect_with_error( 'expired', $mode );
+		}
+	}
+
 	public static function init() {
 		add_action( 'admin_post_nopriv_' . self::ACTION_REGISTER, array( __CLASS__, 'handle_register' ) );
 		add_action( 'admin_post_nopriv_' . self::ACTION_LOGIN, array( __CLASS__, 'handle_login' ) );
@@ -99,6 +123,8 @@ class BYZO_Customer_Auth {
 				return __( 'Incorrect email or password.', 'bookyzo' );
 			case 'registration_failed':
 				return __( 'Could not create your account. Please try again.', 'bookyzo' );
+			case 'expired':
+				return __( 'This form has expired. Please try again.', 'bookyzo' );
 			default:
 				return '';
 		}
@@ -108,10 +134,13 @@ class BYZO_Customer_Auth {
 		if ( ! self::enabled() ) {
 			self::redirect_with_error( 'disabled', 'register' );
 		}
+		self::verify_nonce( self::ACTION_REGISTER, 'register' );
 
-		$name     = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- guest write, no session to protect yet; see class docblock.
-		$email    = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
-		$password = isset( $_POST['password'] ) ? (string) wp_unslash( $_POST['password'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verified above by verify_nonce().
+		$name     = isset( $_POST['name'] ) ? sanitize_text_field( wp_unslash( $_POST['name'] ) ) : '';
+		$email    = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
+		$password = isset( $_POST['password'] ) ? (string) wp_unslash( $_POST['password'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- a password is used exactly as typed, never sanitized (same as wp-login.php).
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		if ( '' === $name || '' === $email || '' === $password ) {
 			self::redirect_with_error( 'missing_fields', 'register' );
@@ -163,9 +192,12 @@ class BYZO_Customer_Auth {
 		if ( ! self::enabled() ) {
 			self::redirect_with_error( 'disabled', 'login' );
 		}
+		self::verify_nonce( self::ACTION_LOGIN, 'login' );
 
-		$email    = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- guest write, no session to protect yet; see class docblock.
-		$password = isset( $_POST['password'] ) ? (string) wp_unslash( $_POST['password'] ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// phpcs:disable WordPress.Security.NonceVerification.Missing -- verified above by verify_nonce().
+		$email    = isset( $_POST['email'] ) ? sanitize_email( wp_unslash( $_POST['email'] ) ) : '';
+		$password = isset( $_POST['password'] ) ? (string) wp_unslash( $_POST['password'] ) : ''; // phpcs:ignore WordPress.Security.ValidatedSanitizedInput.InputNotSanitized -- a password is used exactly as typed, never sanitized (same as wp-login.php).
+		// phpcs:enable WordPress.Security.NonceVerification.Missing
 
 		$user = wp_signon(
 			array(
@@ -185,9 +217,10 @@ class BYZO_Customer_Auth {
 	}
 
 	public static function handle_logout() {
+		check_admin_referer( self::ACTION_LOGOUT );
 		wp_logout();
 
-		$redirect_to = isset( $_GET['redirect_to'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- logout is a destructive-to-session, not destructive-to-data action; wp_logout() itself needs no confirmation beyond being logged in, same as core's own logout link.
+		$redirect_to = isset( $_GET['redirect_to'] ) ? esc_url_raw( wp_unslash( $_GET['redirect_to'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Recommended -- verified above by check_admin_referer().
 		wp_safe_redirect( $redirect_to ?: self::build_redirect_target() );
 		exit;
 	}

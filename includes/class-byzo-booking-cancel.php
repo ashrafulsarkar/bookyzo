@@ -111,10 +111,16 @@ class BYZO_Booking_Cancel {
 	}
 
 	public static function handle_cancel() {
-		$booking_id = isset( $_POST['booking_id'] ) ? absint( $_POST['booking_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- the token itself (verified inside BYZO_Booking::cancel_via_token()) is the real authorization, see class docblock.
-		$token      = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing
+		// The signed token (verified inside cancel_via_token()) is what
+		// authorizes the cancel; the nonce makes sure the click came from
+		// the manage-booking page itself. A stale nonce just skips the
+		// cancel: the redirect below re-shows the page with a fresh one.
+		$nonce      = isset( $_POST['_wpnonce'] ) ? sanitize_text_field( wp_unslash( $_POST['_wpnonce'] ) ) : '';
+		$nonce_ok   = (bool) wp_verify_nonce( $nonce, self::ACTION );
+		$booking_id = isset( $_POST['booking_id'] ) ? absint( $_POST['booking_id'] ) : 0; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- verified just above; a failed check only skips the cancel.
+		$token      = isset( $_POST['token'] ) ? sanitize_text_field( wp_unslash( $_POST['token'] ) ) : ''; // phpcs:ignore WordPress.Security.NonceVerification.Missing -- same.
 
-		$result = BYZO_Booking::cancel_via_token( $booking_id, $token );
+		$result = $nonce_ok ? BYZO_Booking::cancel_via_token( $booking_id, $token ) : new WP_Error( 'byzo_expired', '' );
 
 		// Redirect back to the same GET page either way (success or
 		// failure) — render() re-derives the correct state fresh, so a
