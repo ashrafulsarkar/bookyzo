@@ -205,7 +205,7 @@ class BYZO_Admin_Assets {
 		$currency = class_exists( 'BYZO_Settings' ) ? BYZO_Settings::get()['currency'] : 'USD';
 
 		return sprintf(
-			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s, proLicensed: %s, getProUrl: %s, documents: %s, staff: %s };',
+			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s, maxShiftsPerDay: %s, proLicensed: %s, getProUrl: %s, documents: %s, staff: %s };',
 			wp_json_encode( admin_url( 'admin-post.php' ) ),
 			// Nonce action string must stay in sync with
 			// BYZO_Booking_Export::NONCE — not referencing the constant
@@ -220,6 +220,10 @@ class BYZO_Admin_Assets {
 			// navigation after this first one.
 			wp_json_encode( self::initial_route() ),
 			wp_json_encode( $currency ),
+			// ByzoWeeklyScheduleGrid.vue offers "+ Add shift" only while a
+			// day is under this; set_schedules() enforces the same cap.
+			// Capped so an "unlimited" PHP_INT_MAX stays an exact JS number.
+			wp_json_encode( min( BYZO_Capabilities::max_shifts_per_day(), 1000 ) ),
 			// ByzoSidebar.vue only renders the "Get Pro" row while this is
 			// false — kept in lockstep with BYZO_Plugin::routes() (which
 			// only registers the matching WP submenu page under the same
