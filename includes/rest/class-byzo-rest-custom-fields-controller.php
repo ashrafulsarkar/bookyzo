@@ -11,8 +11,8 @@ defined( 'ABSPATH' ) || exit;
  * own `wp_byzo_custom_fields` table.
  *
  * Free has no idea that table exists — this route just calls a filter and
- * returns whatever comes back, defaulting to `array()` so an unlicensed
- * site's widget renders nothing extra, not a broken section.
+ * returns whatever comes back, defaulting to `array()` so a site without
+ * custom fields renders nothing extra, not a broken section.
  */
 class BYZO_REST_Custom_Fields_Controller extends BYZO_REST_Controller {
 

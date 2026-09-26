@@ -2,17 +2,21 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * Single source of truth for every Free/Pro limit. Pro overrides these via
- * filters — never by patching Free's code or scattering `if free` checks
- * elsewhere. See bookyzo-dev SKILL.md "the one rule that matters most" and
- * DETAILED-SPEC.md §A9.
+ * The plugin's filterable limits and extension switches, in one place.
+ *
+ * The two limits are real defaults of this plugin (one active item per
+ * booking type, one opening-hours block per day); an add-on may raise them.
+ * Every switch below turns on a place in the booking form or account page
+ * where an add-on shows something of its own (a document link, a waitlist,
+ * a code field). The feature itself lives in that add-on, so each default
+ * is simply "nothing to show". DETAILED-SPEC.md §A9.
  */
 class BYZO_Capabilities {
 
 	/**
-	 * How many bookable items of a single type Free allows active at once.
-	 * Free = 1 (per FEATURES.md §A9). Pro overrides via the
-	 * `byzo_max_bookable_items_per_type` filter to return an unlimited value.
+	 * How many bookable items of a single type may be active at once.
+	 * Default 1 (FEATURES.md §A9); filterable via
+	 * `byzo_max_bookable_items_per_type`.
 	 */
 	public static function max_bookable_items_per_type() {
 		return (int) apply_filters( 'byzo_max_bookable_items_per_type', 1 );
@@ -20,39 +24,35 @@ class BYZO_Capabilities {
 
 	/**
 	 * How many shifts per day a bookable item's weekly schedule may have.
-	 * Free = 1 (FEATURES.md §A3). Pro overrides via
-	 * `byzo_max_shifts_per_day` — the schema (`shift_group` column)
-	 * already supports this in Free, only the UI/generation logic is gated.
+	 * Default 1 (FEATURES.md §A3); filterable via `byzo_max_shifts_per_day`.
+	 * The admin only offers "+ Add shift" while a day is under it.
 	 */
 	public static function max_shifts_per_day() {
 		return (int) apply_filters( 'byzo_max_shifts_per_day', 1 );
 	}
 
 	/**
-	 * Whether deposits/partial payments are available. Free = false
-	 * (FEATURES.md §A7 — full amount or nothing on Free).
+	 * Whether a booking may be paid partly now, as a deposit. Default
+	 * false: bookings are paid in full. An add-on that offers deposits
+	 * turns this on and supplies the amount via `byzo_deposit_amount`.
 	 */
 	public static function deposits_enabled() {
 		return (bool) apply_filters( 'byzo_deposits_enabled', false );
 	}
 
 	/**
-	 * Whether a downloadable PDF invoice is available from the customer
-	 * dashboard (Phase 2 step 18, `FEATURES.md` B4) — genuinely Pro-
-	 * exclusive infrastructure (a PDF-rendering library only Pro ships),
-	 * not a re-skin of a Free feature, so a real gate is correct here.
-	 * Free = false; the dashboard link is simply absent, never shown
-	 * disabled.
+	 * Whether the customer dashboard and emails link to a PDF invoice.
+	 * Default false: this plugin makes no PDFs. An add-on that serves them
+	 * turns this on; until then the link is simply absent.
 	 */
 	public static function pdf_invoice_enabled() {
 		return (bool) apply_filters( 'byzo_pdf_invoice_enabled', false );
 	}
 
 	/**
-	 * Whether a downloadable QR e-ticket is available from the customer
-	 * dashboard (Phase 2 step 12 continued, `FEATURES.md` B7 Event) —
-	 * same shape as pdf_invoice_enabled() above: the dashboard link is
-	 * simply absent while false, never a dead/disabled link. Free = false.
+	 * Whether the customer dashboard and emails link to a QR e-ticket.
+	 * Default false: this plugin makes no tickets. An add-on that serves
+	 * them turns this on; until then the link is simply absent.
 	 */
 	public static function qr_ticket_enabled() {
 		return (bool) apply_filters( 'byzo_qr_ticket_enabled', false );
@@ -61,7 +61,7 @@ class BYZO_Capabilities {
 	/**
 	 * Whether anything on this site sends marketing email — the widget only
 	 * asks for consent when there's something to consent to (QA report
-	 * §4.6). Free never sends any; an add-on with campaigns hooks this.
+	 * §4.6). This plugin sends none; an add-on with campaigns hooks this.
 	 *
 	 * @return bool
 	 */
@@ -72,7 +72,7 @@ class BYZO_Capabilities {
 	/**
 	 * Whether a full slot can be waitlisted — the widget then shows full
 	 * times as "Full — join the waitlist" instead of hiding them (QA report
-	 * §6.2.6, FEATURES.md B2). Free has no waitlist; an add-on hooks this.
+	 * §6.2.6, FEATURES.md B2). This plugin has no waitlist; an add-on hooks this.
 	 *
 	 * @return bool
 	 */
@@ -82,7 +82,7 @@ class BYZO_Capabilities {
 
 	/**
 	 * Whether the booking form asks for a discount or package code (QA
-	 * report §6.1 A2). Free has no codes; an add-on hooks this.
+	 * report §6.1 A2). This plugin has no codes; an add-on hooks this.
 	 *
 	 * @return bool
 	 */
@@ -94,7 +94,7 @@ class BYZO_Capabilities {
 	 * Whether a WordPress user linked to a bookable item
 	 * (`bookable_items.wp_user_id`) gets the staff view of the admin app —
 	 * only their own items' bookings (QA report §6.2.9, FEATURES.md B1).
-	 * Free has no way to link anyone; an add-on hooks this.
+	 * This plugin has no way to link anyone; an add-on hooks this.
 	 *
 	 * @return bool
 	 */

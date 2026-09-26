@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * Free has no idea `wp_byzo_ticket_tiers` exists — this route just calls
  * a filter and returns whatever comes back, defaulting to `array()` so
- * an unlicensed site's widget shows no tier picker, not a broken section.
+ * a site without ticket tiers shows no tier picker, not a broken section.
  */
 class BYZO_REST_Ticket_Tiers_Controller extends BYZO_REST_Controller {
 

@@ -217,7 +217,7 @@ class BYZO_Activator {
 		// Event) — same "don't gate the data model" pattern: Free's own
 		// widget never renders a tier picker and Free's own admin never
 		// writes a check-in timestamp, so both columns stay permanently
-		// NULL on an unlicensed install. `ticket_tier_id` has no FK
+		// NULL unless an add-on fills them. `ticket_tier_id` has no FK
 		// constraint (this project never uses real FKs, see the rest of
 		// this table) and is resolved via `BYZO_Booking::get()`'s own
 		// pattern if a future screen needs the tier's name/price

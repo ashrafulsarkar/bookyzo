@@ -10,7 +10,7 @@ defined( 'ABSPATH' ) || exit;
  *
  * Free has no idea `wp_byzo_addons` exists — this route just calls a
  * filter and returns whatever comes back, defaulting to `array()` so an
- * unlicensed site's widget shows no add-ons, not a broken section.
+ * site without an add-on's add-ons shows none, not a broken section.
  */
 class BYZO_REST_Addons_Controller extends BYZO_REST_Controller {
 

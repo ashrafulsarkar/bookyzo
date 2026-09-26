@@ -965,7 +965,7 @@ class BYZO_Booking {
 		// Deposits/partial payments (Phase 2 step 6, DETAILED-SPEC.md §A7)
 		// — how much of payment_amount is actually due online now, vs. the
 		// remainder collected later. BYZO_Capabilities::deposits_enabled()
-		// (Free=false) is the master on/off switch — the byzo_deposit_amount
+		// (default false) is the master on/off switch — the byzo_deposit_amount
 		// filter is only even consulted once it's on, same two-filter
 		// shape (a boolean gate + a value resolver) B7's service pricing
 		// already established with byzo_service_price. Clamped to [0, payment_amount] so a

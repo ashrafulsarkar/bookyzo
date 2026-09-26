@@ -7,7 +7,7 @@ defined( 'ABSPATH' ) || exit;
  * Renamed from "resource"/"resources" 2026-09-03 — read as an unclear,
  * overly technical term to end users.
  *
- * The per-type cap (Free = 1, DETAILED-SPEC.md §A9) is enforced here via
+ * The per-type cap (default 1, DETAILED-SPEC.md §A9) is enforced here via
  * BYZO_Capabilities::max_bookable_items_per_type(), not in the model —
  * this is the "one real capability check" the Guideline-5 rule requires,
  * Pro removes the limit purely by filtering the capability function.
@@ -484,10 +484,8 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 
 	/**
 	 * Enforces BYZO_Capabilities::max_bookable_items_per_type() by counting
-	 * active bookable items of that type. Free = 1, so the 2nd active item
-	 * of the same type is the real "hit the wall" moment described in
-	 * ROADMAP.md's Free -> Pro Conversion Strategy table — not a cosmetic
-	 * block, an honest count against a real (filterable) limit.
+	 * active bookable items of that type (default 1) — an honest count
+	 * against a real, filterable limit, answered with a plain message.
 	 */
 	private function check_type_cap( $type ) {
 		$max = BYZO_Capabilities::max_bookable_items_per_type();
