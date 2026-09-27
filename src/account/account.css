@@ -168,6 +168,21 @@
   font-size: 13px;
 }
 
+/* An add-on's section under the bookings (byzo_account_sections). Same
+   explicit heading reset as the h1 above, for the same theme reason. */
+.bookyzo-account__section {
+  margin: 20px 0 8px;
+}
+
+.bookyzo-account .bookyzo-account__section-title {
+  font-size: 15px;
+  font-weight: 700;
+  font-family: inherit;
+  color: var(--byzo-text);
+  line-height: 1.3;
+  margin: 0 0 10px;
+}
+
 .bookyzo-account__empty {
   color: var(--byzo-text-muted);
   font-size: 13px;

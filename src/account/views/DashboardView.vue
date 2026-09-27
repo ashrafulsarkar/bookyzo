@@ -37,6 +37,18 @@
     </li>
   </ul>
 
+  <!-- An add-on's sections (e.g. the customer's packages), plain text only. -->
+  <section v-for="(section, index) in sections" :key="index" class="bookyzo-account__section">
+    <h2 class="bookyzo-account__section-title">{{ section.title }}</h2>
+    <p v-if="!section.items.length" class="bookyzo-account__empty">{{ section.empty }}</p>
+    <ul v-else class="bookyzo-account__booking-list">
+      <li v-for="(item, i) in section.items" :key="i" class="bookyzo-account__booking">
+        <div class="bookyzo-account__booking-title">{{ item.title }}</div>
+        <div v-for="(line, j) in item.lines" :key="j" class="bookyzo-account__booking-meta">{{ line }}</div>
+      </li>
+    </ul>
+  </section>
+
   <form method="post" :action="logoutUrl">
     <button type="submit" class="bookyzo-account__btn">{{ __('Log out', 'bookyzo') }}</button>
   </form>
@@ -61,6 +73,7 @@ defineProps({
   justRegistered: { type: Boolean, default: false },
   pdfInvoiceEnabled: { type: Boolean, default: false },
   qrTicketEnabled: { type: Boolean, default: false },
+  sections: { type: Array, default: () => [] },
 });
 
 const bookings     = ref([]);

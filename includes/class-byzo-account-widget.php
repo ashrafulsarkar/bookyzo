@@ -182,7 +182,47 @@ class BYZO_Account_Widget {
 			// same "never render a link that 404s" reasoning as the PDF
 			// invoice link above.
 			'qrTicketEnabled'   => BYZO_Capabilities::qr_ticket_enabled(),
+			'sections'          => self::extra_sections(),
 		);
+	}
+
+	/**
+	 * Extra sections an add-on shows the signed-in customer under their
+	 * bookings (QA report 2026-09-26 §4.7: a package add-on lists their
+	 * codes and credits). Only plain text goes through, so an add-on hands
+	 * data, never markup.
+	 *
+	 * @return array<int,array{title:string,empty:string,items:array<int,array{title:string,lines:string[]}>}>
+	 */
+	private static function extra_sections() {
+		if ( ! is_user_logged_in() ) {
+			return array();
+		}
+
+		/**
+		 * Filters the extra sections on the customer account page.
+		 *
+		 * @param array   $sections Each: title, empty (shown when there are no items), items (each: title, lines).
+		 * @param WP_User $user     The signed-in customer.
+		 */
+		$sections = apply_filters( 'byzo_account_sections', array(), wp_get_current_user() );
+
+		$clean = array();
+		foreach ( (array) $sections as $section ) {
+			$items = array();
+			foreach ( (array) ( $section['items'] ?? array() ) as $item ) {
+				$items[] = array(
+					'title' => sanitize_text_field( (string) ( $item['title'] ?? '' ) ),
+					'lines' => array_values( array_map( 'sanitize_text_field', array_map( 'strval', (array) ( $item['lines'] ?? array() ) ) ) ),
+				);
+			}
+			$clean[] = array(
+				'title' => sanitize_text_field( (string) ( $section['title'] ?? '' ) ),
+				'empty' => sanitize_text_field( (string) ( $section['empty'] ?? '' ) ),
+				'items' => $items,
+			);
+		}
+		return $clean;
 	}
 
 	/**
