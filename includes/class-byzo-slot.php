@@ -22,7 +22,7 @@ class BYZO_Slot {
 	 * @param array $args {
 	 *     @type int    $bookable_item_id Required.
 	 *     @type string $from             Y-m-d, defaults to today.
-	 *     @type string $to               Y-m-d, defaults to byzo_settings max_advance_days out.
+	 *     @type string $to               Y-m-d, defaults to byzo_settings max_advance_days out (no limit for an event item).
 	 *     @type bool   $open_only        Default true — only 'open' slots with capacity_remaining > 0 (what the public widget needs). false = admin view, all statuses.
 	 *     @type bool   $upcoming_only    Default false — also drop slots starting before earliest_bookable_start() (what a customer may still book; the public /slots route sets this for everyone but admins).
 	 * }
@@ -36,6 +36,8 @@ class BYZO_Slot {
 		}
 
 		$bookable_item_id = absint( $args['bookable_item_id'] );
+		$item             = BYZO_Bookable_Item::get( $bookable_item_id );
+		$is_event         = $item && 'event' === $item['type'];
 
 		$from = ! empty( $args['from'] ) ? self::sanitize_date( $args['from'] ) : ( new DateTime( 'today', wp_timezone() ) )->format( 'Y-m-d' );
 		if ( ! $from ) {
@@ -47,19 +49,28 @@ class BYZO_Slot {
 			if ( ! $to ) {
 				return new WP_Error( 'byzo_invalid_to', __( 'to must be a valid date (Y-m-d).', 'bookyzo' ), array( 'status' => 400 ) );
 			}
+		} elseif ( $is_event ) {
+			// max_advance_days is the generator's rolling window. Event
+			// dates are the admin's own and usually go on sale well ahead,
+			// so every one of them is listed (QA report 2026-09-26 H3).
+			$to = null;
 		} else {
 			$settings = wp_parse_args( get_option( 'byzo_settings', array() ), array( 'max_advance_days' => 30 ) );
 			$to       = ( new DateTime( $from, wp_timezone() ) )->modify( '+' . max( 0, (int) $settings['max_advance_days'] ) . ' days' )->format( 'Y-m-d' );
 		}
 
-		if ( $to < $from ) {
+		if ( null !== $to && $to < $from ) {
 			return new WP_Error( 'byzo_invalid_range', __( 'to must not be before from.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
 		$open_only = ! isset( $args['open_only'] ) || (bool) $args['open_only'];
 
-		$where  = array( 'bookable_item_id = %d', 'start_datetime >= %s', 'start_datetime < %s' );
-		$params = array( $bookable_item_id, "{$from} 00:00:00", ( new DateTime( $to, wp_timezone() ) )->modify( '+1 day' )->format( 'Y-m-d' ) . ' 00:00:00' );
+		$where  = array( 'bookable_item_id = %d', 'start_datetime >= %s' );
+		$params = array( $bookable_item_id, "{$from} 00:00:00" );
+		if ( null !== $to ) {
+			$where[]  = 'start_datetime < %s';
+			$params[] = ( new DateTime( $to, wp_timezone() ) )->modify( '+1 day' )->format( 'Y-m-d' ) . ' 00:00:00';
+		}
 
 		if ( $open_only && ! empty( $args['include_full'] ) ) {
 			// Bookable ones plus the full ones, for a waitlist to offer.
@@ -71,7 +82,6 @@ class BYZO_Slot {
 		}
 
 		if ( ! empty( $args['upcoming_only'] ) ) {
-			$item     = BYZO_Bookable_Item::get( $bookable_item_id );
 			$where[]  = 'start_datetime >= %s';
 			$params[] = self::earliest_bookable_start( $item ? $item['type'] : '' );
 		}
@@ -102,6 +112,21 @@ class BYZO_Slot {
 		$hours = 'event' === $type ? 0 : max( 0, (int) BYZO_Settings::get()['min_advance_hours'] );
 
 		return wp_date( 'Y-m-d H:i:s', time() + $hours * HOUR_IN_SECONDS );
+	}
+
+	/**
+	 * Whether an item has any time a customer could still book or join a
+	 * waitlist for (open or full, not yet inside the lead time). The widget
+	 * leaves an event without one out of its list rather than open onto an
+	 * empty date picker (QA report 2026-09-26 H3).
+	 *
+	 * @param array $item A bookable item row.
+	 * @return bool
+	 */
+	public static function has_upcoming( $item ) {
+		global $wpdb;
+
+		return (bool) $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM ' . self::table() . " WHERE bookable_item_id = %d AND start_datetime >= %s AND status IN ('open','full') LIMIT 1", $item['id'], self::earliest_bookable_start( $item['type'] ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
 	}
 
 	/**

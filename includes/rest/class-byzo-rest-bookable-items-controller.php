@@ -227,6 +227,9 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 					// round-trip; false on every install without the bridge
 					// plugin active, same as every other Pro-consumed field.
 					'wc_checkout_enabled' => ! empty( $item['wc_product_id'] ),
+					// An event with no date left to sell stays out of the
+					// widget's list (QA report 2026-09-26 H3).
+					'has_upcoming_dates'  => 'event' !== $item['type'] || BYZO_Slot::has_upcoming( $item ),
 				);
 			},
 			$result['items']

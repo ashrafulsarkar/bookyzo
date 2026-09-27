@@ -122,8 +122,14 @@ function servicePrice(service) {
 const locations = (window.byzoWidget && window.byzoWidget.locations) || [];
 const chosenLocation = ref(null);
 const needsLocation = computed(() => locations.length > 1 && !chosenLocation.value && !props.config.bookableItemId);
+// An event with no date left to sell would open onto an empty date
+// picker, so it isn't offered (a link pinned to it still opens it).
 const visibleItems = computed(() =>
-  chosenLocation.value ? items.value.filter((i) => !i.location_id || i.location_id === chosenLocation.value.id) : items.value
+  items.value.filter(
+    (i) =>
+      i.has_upcoming_dates !== false &&
+      (!chosenLocation.value || !i.location_id || i.location_id === chosenLocation.value.id)
+  )
 );
 const visibleServices = computed(() => {
   if (!chosenLocation.value) return services.value;
