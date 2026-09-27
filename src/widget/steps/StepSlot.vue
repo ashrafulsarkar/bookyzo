@@ -164,6 +164,8 @@ import WaitlistForm from './WaitlistForm.vue';
 
 const props = defineProps({
   item: { type: Object, required: true },
+  // A time picked by a link (?byzo_slot=), selected once the times load.
+  preselectSlotId: { type: Number, default: null },
 });
 const emit = defineEmits(['selected', 'back']);
 
@@ -452,6 +454,18 @@ onMounted(async () => {
     error.value = e.message;
   } finally {
     loading.value = false;
+  }
+
+  const picked = props.preselectSlotId ? slots.value.find((s) => s.id === props.preselectSlotId) : null;
+  if (picked) {
+    // After the default day has been chosen, so it doesn't clear this.
+    await nextTick();
+    if (!isEvent.value) {
+      selectedDateKey.value = dateKey(picked.start_datetime);
+      monthCursor.value = monthKey(toDate(picked.start_datetime));
+      await nextTick();
+    }
+    selectedSlotId.value = picked.id;
   }
 });
 </script>

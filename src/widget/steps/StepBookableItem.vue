@@ -187,6 +187,13 @@ onMounted(async () => {
     }
 
     let target = null;
+    const linked = props.config.linkedItemId && !props.config.bookableItemId ? items.value.find((i) => i.id === props.config.linkedItemId) : null;
+    if (linked) {
+      // Opened from a link to one time: go straight to it, but keep the
+      // list one Back away.
+      emit('selected', linked, false);
+      return;
+    }
     if (props.config.bookableItemId) {
       target = items.value.find((i) => i.id === props.config.bookableItemId) || null;
     } else if (items.value.length === 1 && services.value.length === 0 && locations.length <= 1) {

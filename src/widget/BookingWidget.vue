@@ -8,7 +8,7 @@
     <!-- step 1.5: who, after a Pro service was picked (QA report 2026-09-22
          B9) — part of the first dot, like the payment detour below. -->
     <StepStaff v-else-if="step === 1.5" :service="selectedService" :items="publicItems" @selected="onItemSelected" @back="step = 1" />
-    <StepSlot v-else-if="step === 2" :item="selectedItem" @selected="onSlotSelected" @back="step = selectedItem.service_id ? 1.5 : 1" />
+    <StepSlot v-else-if="step === 2" :item="selectedItem" :preselect-slot-id="linkedSlotFor(selectedItem)" @selected="onSlotSelected" @back="step = selectedItem.service_id ? 1.5 : 1" />
     <StepDetails
       v-else-if="step === 3"
       :item="selectedItem"
@@ -77,6 +77,14 @@ const publicItems = ref([]);
 const itemStepSkipped = ref(false);
 const dotCount = computed(() => (itemStepSkipped.value ? 3 : 4));
 const displayStep = computed(() => (itemStepSkipped.value ? step.value - 1 : step.value));
+
+// The time a ?byzo_slot= link picked, offered once for its own item.
+let linkedSlotUsed = false;
+function linkedSlotFor(item) {
+  if (linkedSlotUsed || !item || item.id !== props.config.linkedItemId) return null;
+  linkedSlotUsed = true;
+  return props.config.linkedSlotId;
+}
 
 function onServiceSelected(service, items) {
   selectedService.value = service;
