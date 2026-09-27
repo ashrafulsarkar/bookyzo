@@ -90,7 +90,8 @@ router.beforeEach(async (to) => {
   // A staff login (lib/staff.js) only has their bookings and the
   // calendar; setup is the owner's business, never theirs.
   if (staffMode) {
-    return STAFF_ROUTES.includes(to.name) || { name: 'bookings' };
+    // An add-on's route may open itself to staff with meta.staff.
+    return STAFF_ROUTES.includes(to.name) || !!to.meta?.staff || { name: 'bookings' };
   }
 
   if (to.name === 'setup') {

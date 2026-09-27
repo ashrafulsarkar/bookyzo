@@ -242,7 +242,8 @@ const staffItems = [
 
 const groupedSections = computed(() =>
   staffMode
-    ? [{ section: ALWAYS_OPEN, items: staffItems }]
+    ? // Plus an add-on's screens marked `staff: true` (Pro's check-in).
+      [{ section: ALWAYS_OPEN, items: [...staffItems, ...extraNavItems.filter((item) => item.staff)] }]
     : SECTION_ORDER.map((section) => ({
         section,
         items: [...items, ...extraNavItems].filter((item) => item.section === section),

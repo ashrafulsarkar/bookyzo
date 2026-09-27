@@ -6,4 +6,6 @@
 export const staffMode = !!window.byzoAdmin?.staff;
 
 // Route names a staff login may open; anything else goes to their bookings.
+// An add-on's route with `meta: { staff: true }` is allowed too, and its
+// nav item with `staff: true` joins their sidebar.
 export const STAFF_ROUTES = ['bookings', 'calendar'];
