@@ -147,7 +147,7 @@ class BYZO_Notifications {
 			'{customer_email}'       => $booking['customer_email'],
 			'{customer_phone}'       => (string) $booking['customer_phone'],
 			'{total}'                => self::format_total( $booking ),
-			'{admin_booking_link}'   => admin_url( 'admin.php?page=bookyzo-bookings' ),
+			'{admin_booking_link}'   => BYZO_Booking::admin_url( $booking['id'] ),
 			'{start_time}'           => self::format_start_time( $booking['slot_start'], $item ),
 			'{business_name}'        => $settings['business_name'],
 			'{cancel_link}'          => $cancel_link,

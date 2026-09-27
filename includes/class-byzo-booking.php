@@ -1641,6 +1641,17 @@ class BYZO_Booking {
 		return null !== $booking['deposit_amount'] ? (float) $booking['deposit_amount'] : (float) $booking['payment_amount'];
 	}
 
+	/**
+	 * The admin link that opens this booking's popup on the Bookings
+	 * screen (QA report 2026-09-26 §4.12) — for emails to the business.
+	 *
+	 * @param int $id Booking id.
+	 * @return string
+	 */
+	public static function admin_url( $id ) {
+		return admin_url( 'admin.php?page=bookyzo-bookings&booking=' . (int) $id );
+	}
+
 	public static function set_payment_status( $id, $payment_status ) {
 		global $wpdb;
 

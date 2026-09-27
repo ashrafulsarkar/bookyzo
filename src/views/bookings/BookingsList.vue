@@ -204,7 +204,7 @@
     <BookingDetailModal
       v-if="activeBooking"
       :booking="activeBooking"
-      @close="activeBooking = null"
+      @close="closeBooking"
       @updated="onBookingUpdated"
       @changed="loadBookings"
     />
@@ -403,8 +403,31 @@ watch(filters, () => {
   debounceTimer = setTimeout(() => { resetPage(); loadBookings(); }, 250);
 });
 
+// ?booking=ID (the admin link in Bookyzo's emails) opens that booking's
+// popup straight away (QA report 2026-09-26 §4.12).
+async function openLinkedBooking() {
+  const id = Number(new URLSearchParams(window.location.search).get('booking'));
+  if (!id) return;
+  try {
+    activeBooking.value = await api.get(`/bookings/${id}`);
+  } catch (e) {
+    toast.error(e.message || i18n.__('Could not open that booking.', 'bookyzo'));
+  }
+}
+
+// Drops ?booking= so a reload doesn't open it again.
+function closeBooking() {
+  activeBooking.value = null;
+  const url = new URL(window.location.href);
+  if (url.searchParams.has('booking')) {
+    url.searchParams.delete('booking');
+    window.history.replaceState(window.history.state, '', url.toString());
+  }
+}
+
 onMounted(async () => {
   await loadItems();
   await loadBookings();
+  await openLinkedBooking();
 });
 </script>
