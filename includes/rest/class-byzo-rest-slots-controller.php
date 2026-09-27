@@ -101,7 +101,7 @@ class BYZO_REST_Slots_Controller extends BYZO_REST_Controller {
 				// Past slots and ones inside the minimum advance notice stay
 				// hidden from customers; admins still see the whole day
 				// (walk-ins, phone bookings, rescheduling).
-				'upcoming_only'    => BYZO_Slot::lead_time_applies(),
+				'upcoming_only'    => BYZO_Slot::lead_time_applies( $item['id'] ),
 			)
 		);
 

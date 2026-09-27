@@ -1139,7 +1139,7 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_item_unavailable', __( 'This is not available for booking right now.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
 
-		if ( BYZO_Slot::lead_time_applies() ) {
+		if ( BYZO_Slot::lead_time_applies( $slot['bookable_item_id'] ) ) {
 			if ( $slot['start_datetime'] < BYZO_Slot::earliest_bookable_start( $slot_item ? $slot_item['type'] : '' ) ) {
 				return new WP_Error( 'byzo_slot_unavailable', __( 'This time can no longer be booked online. Please pick a later time.', 'bookyzo' ), array( 'status' => 409 ) );
 			}
@@ -1368,7 +1368,7 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_item_unavailable', __( 'That is not available for booking right now.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
 
-		if ( BYZO_Slot::lead_time_applies() ) {
+		if ( BYZO_Slot::lead_time_applies( $new_slot['bookable_item_id'] ) ) {
 			if ( $new_slot['start_datetime'] < BYZO_Slot::earliest_bookable_start( $new_slot_item ? $new_slot_item['type'] : '' ) ) {
 				return new WP_Error( 'byzo_slot_unavailable', __( 'That time can no longer be booked online. Please pick a later time.', 'bookyzo' ), array( 'status' => 409 ) );
 			}

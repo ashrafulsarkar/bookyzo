@@ -107,17 +107,24 @@ class BYZO_Slot {
 	/**
 	 * Whether earliest_bookable_start() binds the current request. Admins
 	 * are exempt — they record walk-ins and phone bookings for times a
-	 * customer could no longer book online. Staff logins too, when they
-	 * move one of their own bookings (QA report §6.2.9).
+	 * customer could no longer book online. Staff logins too, but only on
+	 * their own items (QA report §6.2.9): on anyone else's item a staff
+	 * login books like any visitor (QA report 2026-09-26 H2).
+	 *
+	 * @param int $bookable_item_id The item being booked or listed; 0 = none known (staff get no exemption).
 	 */
-	public static function lead_time_applies() {
+	public static function lead_time_applies( $bookable_item_id = 0 ) {
+		$exempt = current_user_can( 'manage_options' )
+			|| ( $bookable_item_id && BYZO_Staff::is_staff() && BYZO_Staff::can_access_item( (int) $bookable_item_id ) );
+
 		/**
 		 * Filters whether the booking lead time (no past slots, and the
 		 * minimum advance notice) applies to the current request.
 		 *
-		 * @param bool $applies Default: true for everyone but users who can manage_options and staff logins.
+		 * @param bool $applies          Default: true for everyone but users who can manage_options and staff logins on their own items.
+		 * @param int  $bookable_item_id The item being booked or listed, 0 when not known.
 		 */
-		return (bool) apply_filters( 'byzo_enforce_booking_lead_time', ! current_user_can( 'manage_options' ) && ! BYZO_Staff::is_staff() );
+		return (bool) apply_filters( 'byzo_enforce_booking_lead_time', ! $exempt, (int) $bookable_item_id );
 	}
 
 	/**
