@@ -88,6 +88,9 @@ const rows = computed(() => {
   if (d.type !== 'appointment') {
     list.push({ label: i18n.__('Capacity', 'bookyzo'), value: String(d.capacity) });
   }
+  if (d.type === 'table' && Number(d.min_party_size) > 1) {
+    list.push({ label: i18n.__('Smallest party', 'bookyzo'), value: String(d.min_party_size) });
+  }
   if (d.location) {
     list.push({ label: i18n.__('Location', 'bookyzo'), value: d.location });
   }

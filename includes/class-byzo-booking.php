@@ -1210,6 +1210,13 @@ class BYZO_Booking {
 
 		$party_size = $validated['party_size'];
 
+		// A table with a smallest party (QA report 2026-09-26 §4.10). An
+		// admin seating a walk-in may still give it to fewer.
+		if ( 'table' === ( $slot_item['type'] ?? '' ) && ! empty( $slot_item['min_party_size'] ) && $party_size < $slot_item['min_party_size'] && ! current_user_can( 'manage_options' ) ) {
+			/* translators: %d: smallest party size */
+			return new WP_Error( 'byzo_party_too_small', sprintf( _n( 'This table is for parties of at least %d person.', 'This table is for parties of at least %d people.', $slot_item['min_party_size'], 'bookyzo' ), $slot_item['min_party_size'] ), array( 'status' => 400 ) );
+		}
+
 		// A code that can't be used stops the booking before any place is
 		// taken, with the reason (QA report §6.1 A2).
 		if ( ! empty( $validated['discount_code'] ) ) {

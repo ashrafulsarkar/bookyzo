@@ -42,6 +42,14 @@
         </div>
       </div>
 
+      <!-- A table's smallest party (QA report 2026-09-26 §4.10), so a
+           4-seat table isn't taken by one person. Blank = any size. -->
+      <div v-if="type === 'table'" class="flex flex-col gap-1.5">
+        <Label for="wizard-item-min-party">{{ __('Smallest party', 'bookyzo') }}</Label>
+        <Input id="wizard-item-min-party" v-model.number="form.min_party_size" type="number" min="1" step="1" :placeholder="__('Any size', 'bookyzo')" />
+        <p class="text-xs text-muted-foreground">{{ __('Online bookings for fewer people are turned away. Leave blank to take any party that fits.', 'bookyzo') }}</p>
+      </div>
+
       <!-- Location / online meeting link (Phase 1.6, DETAILED-SPEC.md
            §1.1/§A2) — free-text on every type, distinct from Pro's
            structured multi-branch location_id. -->
@@ -146,6 +154,7 @@ const form = ref({
   photo_id: props.initial?.photo_id ?? null,
   duration_minutes: props.initial?.duration_minutes ?? 30,
   capacity: props.initial?.capacity ?? 1,
+  min_party_size: props.initial?.min_party_size ?? null,
   location: props.initial?.location ?? '',
   meeting_link: props.initial?.meeting_link ?? '',
   status: props.initial?.status ?? 'active',
@@ -174,6 +183,14 @@ function continueStep() {
     const capacity = Number(form.value.capacity);
     if (!Number.isInteger(capacity) || capacity < 1) {
       error.value = i18n.sprintf(/*! translators: %s: name of the field, e.g. Capacity or Party size. */ i18n.__('%s must be a whole number of at least 1.', 'bookyzo'), capacityLabel.value);
+      return;
+    }
+  }
+
+  if (props.type === 'table' && form.value.min_party_size) {
+    const min = Number(form.value.min_party_size);
+    if (!Number.isInteger(min) || min < 1 || min > Number(form.value.capacity)) {
+      error.value = i18n.__('The smallest party must be a whole number no larger than the number of seats.', 'bookyzo');
       return;
     }
   }

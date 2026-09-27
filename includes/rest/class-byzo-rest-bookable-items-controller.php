@@ -210,6 +210,8 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 					'duration_minutes'  => $item['duration_minutes'],
 					'price'             => $item['price'],
 					'capacity'          => $item['capacity'],
+					// A table's smallest party (QA report 2026-09-26 §4.10).
+					'min_party_size'    => $item['min_party_size'],
 					// location/meeting_link added 2026-09-05 (Phase 1.6) — the
 					// widget's confirmation step shows these when set
 					// (FEATURES.md A2), so the public whitelist needs them

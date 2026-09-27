@@ -179,6 +179,7 @@ function emptyData() {
     status: 'active',
     duration_minutes: 30,
     capacity: 1,
+    min_party_size: null,
     location: '',
     meeting_link: '',
     uses_business_hours: false,
@@ -324,6 +325,7 @@ async function loadItem(id) {
       status: item.status || 'active',
       duration_minutes: item.duration_minutes,
       capacity: item.capacity || 1,
+      min_party_size: item.min_party_size || null,
       location: item.location || '',
       meeting_link: item.meeting_link || '',
       uses_business_hours: Boolean(item.uses_business_hours),
@@ -390,6 +392,8 @@ function buildPayload() {
     // field matrix) regardless of what the hidden field holds; every other
     // type sends its real capacity.
     capacity: wizardData.type === 'appointment' ? 1 : Math.max(1, Number(wizardData.capacity) || 1),
+    // Tables only (QA report 2026-09-26 §4.10); null = any size.
+    min_party_size: wizardData.type === 'table' && Number(wizardData.min_party_size) > 1 ? Number(wizardData.min_party_size) : null,
     photo_id: wizardData.photo_id || null,
     location: wizardData.location || null,
     meeting_link: wizardData.meeting_link || null,

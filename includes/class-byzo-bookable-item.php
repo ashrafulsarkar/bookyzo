@@ -568,6 +568,17 @@ class BYZO_Bookable_Item {
 			$out['capacity'] = 1;
 		}
 
+		// The smallest party a table takes (BYZO_DB_VERSION 3.2->3.3, QA
+		// report 2026-09-26 §4.10): a 4-seat table isn't given to one
+		// person. Null or 1 = any size. Only tables use it.
+		if ( array_key_exists( 'min_party_size', $data ) ) {
+			$min = absint( $data['min_party_size'] );
+			if ( $min > 1 && isset( $out['capacity'] ) && $min > $out['capacity'] ) {
+				return new WP_Error( 'byzo_invalid_min_party_size', __( 'The smallest party cannot be larger than the number of seats.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			$out['min_party_size'] = $min > 1 ? $min : null;
+		}
+
 		if ( isset( $data['price'] ) ) {
 			$out['price'] = ( '' === $data['price'] || null === $data['price'] ) ? null : (float) $data['price'];
 		}
@@ -604,6 +615,7 @@ class BYZO_Bookable_Item {
 		$row['id']          = (int) $row['id'];
 		$row['photo_id']    = $row['photo_id'] ? (int) $row['photo_id'] : null;
 		$row['capacity']    = (int) $row['capacity'];
+		$row['min_party_size'] = ! empty( $row['min_party_size'] ) ? min( (int) $row['min_party_size'], (int) $row['capacity'] ) : null;
 		$row['price']       = null === $row['price'] ? null : (float) $row['price'];
 		$row['duration_minutes'] = (int) $row['duration_minutes'];
 		$row['location_id'] = $row['location_id'] ? (int) $row['location_id'] : null;

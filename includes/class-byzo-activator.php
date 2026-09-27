@@ -89,6 +89,7 @@ class BYZO_Activator {
 			description TEXT NULL,
 			photo_id BIGINT UNSIGNED NULL,
 			capacity SMALLINT UNSIGNED NOT NULL DEFAULT 1,
+			min_party_size SMALLINT UNSIGNED NULL,
 			price DECIMAL(10,2) NULL,
 			duration_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 30,
 			status VARCHAR(20) NOT NULL DEFAULT 'active',

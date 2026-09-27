@@ -172,7 +172,9 @@ const emit = defineEmits(['selected', 'back']);
 const allSlots = ref([]);
 const loading = ref(true);
 const error = ref('');
-const partySize = ref(1);
+// A table with a smallest party starts there (QA report 2026-09-26 §4.10).
+const minParty = Math.max(1, Number(props.item.min_party_size) || 1);
+const partySize = ref(minParty);
 
 // Everything downstream (calendar availability, time groups, the event
 // list) reads this rather than the raw response, so choosing a party of
@@ -237,8 +239,8 @@ const isEvent = computed(() => props.item.type === 'event');
 const asksPartySizeFirst = computed(() => props.item.type === 'table' && (props.item.capacity || 1) > 1);
 
 const partySizeOptions = computed(() => {
-  const max = Math.max(1, props.item.capacity || 1);
-  return Array.from({ length: max }, (_, i) => i + 1);
+  const max = Math.max(minParty, props.item.capacity || 1);
+  return Array.from({ length: max - minParty + 1 }, (_, i) => i + minParty);
 });
 
 const emptyMessage = computed(() => {
