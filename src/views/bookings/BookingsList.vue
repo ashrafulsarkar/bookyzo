@@ -213,6 +213,7 @@
 
 <script setup>
 import { statusLabel } from '@/lib/status';
+import { bookingStart, zoneSuffix } from '@/lib/date';
 import { staffMode } from '@/lib/staff';
 import { i18n, locale } from '@/lib/i18n';
 import { ref, reactive, computed, watch, onMounted } from 'vue';
@@ -359,12 +360,14 @@ function whenLabel(booking) {
   if (!booking.slot_start) {
     return '—';
   }
-  return new Date(booking.slot_start).toLocaleString(locale, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return (
+    bookingStart(booking).toLocaleString(locale, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }) + zoneSuffix(booking)
+  );
 }
 
 // Mirrors BookingCalendar.vue's own handler — the modal is the same

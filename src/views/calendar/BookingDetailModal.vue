@@ -186,7 +186,7 @@ import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuIte
 import { CalendarClock, Mail, Phone, Users, StickyNote, Wallet, ChevronDown } from 'lucide-vue-next';
 import ByzoBadge from '@/components/base/ByzoBadge.vue';
 import { api } from '@/api/client';
-import { formatTime } from '@/lib/date';
+import { formatTime, bookingStart, bookingEnd, zoneSuffix } from '@/lib/date';
 import { formatTotal } from '@/lib/money';
 import { extraBookingDetailSection } from '@/lib/admin-extensions';
 
@@ -310,10 +310,11 @@ const timeRangeLabel = computed(() => {
   if (!props.booking.slot_start) {
     return i18n.__('No scheduled time', 'bookyzo');
   }
-  const start = new Date(props.booking.slot_start);
-  const end = props.booking.slot_end ? new Date(props.booking.slot_end) : null;
+  const start = bookingStart(props.booking);
+  const end = bookingEnd(props.booking);
   const dateLabel = start.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
-  return end ? `${dateLabel}, ${formatTime(start)} – ${formatTime(end)}` : `${dateLabel}, ${formatTime(start)}`;
+  const range = end ? `${dateLabel}, ${formatTime(start)} – ${formatTime(end)}` : `${dateLabel}, ${formatTime(start)}`;
+  return range + zoneSuffix(props.booking);
 });
 
 function label(status) {

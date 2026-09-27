@@ -73,6 +73,7 @@
 
 <script setup>
 import { statusLabel } from '@/lib/status';
+import { bookingStart, zoneSuffix } from '@/lib/date';
 import { i18n, locale } from '@/lib/i18n';
 import { ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
@@ -135,12 +136,14 @@ function whenLabel(booking) {
   if (!booking.slot_start) {
     return '—';
   }
-  return new Date(booking.slot_start.replace(' ', 'T')).toLocaleString(locale, {
-    month: 'short',
-    day: 'numeric',
-    hour: 'numeric',
-    minute: '2-digit',
-  });
+  return (
+    bookingStart(booking).toLocaleString(locale, {
+      month: 'short',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+    }) + zoneSuffix(booking)
+  );
 }
 
 onMounted(async () => {

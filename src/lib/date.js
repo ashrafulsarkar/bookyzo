@@ -91,3 +91,25 @@ export function weekdayNames(style = 'long') {
   // 1 January 2023 was a Sunday.
   return Array.from({ length: 7 }, (_, i) => new Date(2023, 0, 1 + i).toLocaleDateString(locale, { weekday: style }));
 }
+
+/**
+ * A booking's start/end as Dates on the clock people there go by: the
+ * item's location when it has its own timezone (booking.local_zone set),
+ * the site's otherwise. Wall-clock strings, read as-is.
+ */
+function wallClock(value) {
+  return value ? new Date(String(value).replace(' ', 'T')) : null;
+}
+
+export function bookingStart(booking) {
+  return wallClock(booking.local_zone ? booking.local_slot_start : booking.slot_start);
+}
+
+export function bookingEnd(booking) {
+  return wallClock(booking.local_zone ? booking.local_slot_end : booking.slot_end);
+}
+
+/** " (+06)" after a time on another location's clock; "" otherwise. */
+export function zoneSuffix(booking) {
+  return booking.local_zone ? ` (${booking.local_zone})` : '';
+}

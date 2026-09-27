@@ -2240,6 +2240,11 @@ class BYZO_Booking {
 		$row['timezone']         = BYZO_Bookable_Item::timezone( $row['bookable_item_id'] )->getName();
 		$row['local_slot_start'] = BYZO_Bookable_Item::to_local( $row['slot_start'], $row['bookable_item_id'] );
 		$row['local_slot_end']   = BYZO_Bookable_Item::to_local( $row['slot_end'], $row['bookable_item_id'] );
+		// The zone's short name ("+06", "IST") when it isn't the site's, so
+		// admin screens can say whose clock a time is on (QA report
+		// 2026-09-26 §4.1); null when the item keeps the site timezone.
+		$tz                = BYZO_Bookable_Item::timezone( $row['bookable_item_id'] );
+		$row['local_zone'] = $row['slot_start'] && $tz->getName() !== wp_timezone()->getName() ? ( new DateTime( $row['slot_start'], wp_timezone() ) )->setTimezone( $tz )->format( 'T' ) : null;
 
 		return $row;
 	}
