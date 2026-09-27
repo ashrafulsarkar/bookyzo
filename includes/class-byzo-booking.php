@@ -1124,8 +1124,6 @@ class BYZO_Booking {
 	 * @return int|WP_Error New booking ID, or WP_Error — byzo_slot_full/byzo_slot_unavailable specifically mean THIS slot didn't work (the caller may have another candidate to try), anything else is a real failure.
 	 */
 	private static function attempt_create_on_slot( $slot, $validated, $service_id ) {
-		global $wpdb;
-
 		if ( ! $slot || 'open' !== $slot['status'] ) {
 			return new WP_Error( 'byzo_slot_unavailable', __( 'This time slot is no longer available.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
@@ -1144,6 +1142,69 @@ class BYZO_Booking {
 				return new WP_Error( 'byzo_slot_unavailable', __( 'This time can no longer be booked online. Please pick a later time.', 'bookyzo' ), array( 'status' => 409 ) );
 			}
 		}
+
+		// Bookings that use the same discount or package code run one at a
+		// time: a code's uses and a package's credits are counted from the
+		// bookings table, so two at once could both pass the check and take
+		// one use too many (QA report 2026-09-26 M5).
+		$code_lock = ! empty( $validated['discount_code'] ) ? self::lock_code( $validated['discount_code'] ) : '';
+		if ( false === $code_lock ) {
+			return new WP_Error( 'byzo_code_busy', __( 'That code is being used for another booking right now. Please try again.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
+
+		try {
+			$booking_id = self::claim_and_insert( $slot, $slot_item, $validated, $service_id );
+		} finally {
+			self::unlock_code( $code_lock );
+		}
+
+		if ( is_wp_error( $booking_id ) ) {
+			return $booking_id;
+		}
+
+		/**
+		 * Fires after a booking is created — status is 'pending' unless
+		 * byzo_settings.auto_confirm made it 'confirmed' immediately (see
+		 * claim_and_insert()). Notification/payment logic (Phase 1 steps
+		 * 7-8, Phase 1.5 step 6) hooks this rather than living inside
+		 * create(); BYZO_Notifications checks the booking's actual status to
+		 * decide which customer template to send.
+		 */
+		do_action( 'byzo_booking_created', $booking_id );
+
+		return $booking_id;
+	}
+
+	/**
+	 * A MySQL named lock per code, held for one booking's claim and insert.
+	 *
+	 * @param string $code The discount or package code.
+	 * @return string|false The lock name, or false when it couldn't be had within a few seconds.
+	 */
+	private static function lock_code( $code ) {
+		global $wpdb;
+
+		$name = 'byzo_code_' . md5( $wpdb->prefix . strtoupper( trim( (string) $code ) ) );
+
+		return '1' === (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 5)', $name ) ) ? $name : false; // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- a lock, not data.
+	}
+
+	private static function unlock_code( $name ) {
+		global $wpdb;
+
+		if ( $name ) {
+			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $name ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- a lock, not data.
+		}
+	}
+
+	/**
+	 * attempt_create_on_slot()'s second half: check the code, take the
+	 * place, work out the price and insert the row.
+	 *
+	 * @return int|WP_Error New booking ID.
+	 */
+	private static function claim_and_insert( $slot, $slot_item, $validated, $service_id ) {
+		global $wpdb;
 
 		$party_size = $validated['party_size'];
 
@@ -1183,6 +1244,18 @@ class BYZO_Booking {
 		$now = current_time( 'mysql' );
 
 		$price = self::price_breakdown( $slot, $party_size, $ticket_tier_id, $service_id, $validated['addon_ids'] ?? array(), $validated['discount_code'] ?? '', $validated['customer_email'] );
+
+		// The code passed the check above but not now (it changed in
+		// between): give the place back rather than book at full price
+		// without saying so (QA report 2026-09-26 M5).
+		if ( ! empty( $validated['discount_code'] ) && $price['discount_error'] ) {
+			self::release_slot_capacity( $slot['id'], $party_size, $slot_item );
+			if ( $ticket_tier_id ) {
+				do_action( 'byzo_release_ticket_tier', $ticket_tier_id, $party_size );
+			}
+
+			return new WP_Error( 'byzo_invalid_code', $price['discount_error'], array( 'status' => 409 ) );
+		}
 
 		$resolved_addons    = $price['addons'];
 		$booking_fee_amount = $price['booking_fee_amount'];
@@ -1241,19 +1314,7 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_db_error', __( 'Could not create booking.', 'bookyzo' ) );
 		}
 
-		$booking_id = (int) $wpdb->insert_id;
-
-		/**
-		 * Fires after a booking is created — status is 'pending' unless
-		 * byzo_settings.auto_confirm made it 'confirmed' immediately (see
-		 * $status above). Notification/payment logic (Phase 1 steps 7-8,
-		 * Phase 1.5 step 6) hooks this rather than living inside create();
-		 * BYZO_Notifications checks the booking's actual status to decide
-		 * which customer template to send.
-		 */
-		do_action( 'byzo_booking_created', $booking_id );
-
-		return $booking_id;
+		return (int) $wpdb->insert_id;
 	}
 
 	/**
