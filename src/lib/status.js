@@ -27,6 +27,7 @@ const LABELS = {
   paid_manual: i18n.__('Paid manually', 'bookyzo'),
   paid_online: i18n.__('Paid online', 'bookyzo'),
   refunded: i18n.__('Refunded', 'bookyzo'),
+  not_required: i18n.__('Nothing to pay', 'bookyzo'),
 };
 
 export function statusLabel(status) {

@@ -12,7 +12,9 @@ class BYZO_Booking {
 
 	const VALID_STATUSES = array( 'pending', 'confirmed', 'completed', 'cancelled', 'no_show', 'rejected' );
 
-	const VALID_PAYMENT_STATUSES = array( 'unpaid', 'paid_manual', 'paid_online', 'refunded' );
+	// not_required: the total came to nothing (a code covered it all), so
+	// there's nothing to collect (QA report 2026-09-26 M6).
+	const VALID_PAYMENT_STATUSES = array( 'unpaid', 'paid_manual', 'paid_online', 'refunded', 'not_required' );
 
 	/**
 	 * Allowed status transitions. pending is the only entry state (set by
@@ -1289,7 +1291,7 @@ class BYZO_Booking {
 			'customer_notes'   => $validated['customer_notes'],
 			'party_size'       => $party_size,
 			'status'           => $status,
-			'payment_status'   => 'unpaid',
+			'payment_status'   => null !== $payment_amount && (float) $payment_amount <= 0 ? 'not_required' : 'unpaid',
 			'payment_amount'   => $payment_amount,
 			'deposit_amount'   => $deposit_amount,
 			'tax_amount'       => $tax_amount,
