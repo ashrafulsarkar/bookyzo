@@ -34,6 +34,11 @@ class BYZO_Public_Guard {
 	const RATE_LIMIT_MAX    = 20;
 	const RATE_LIMIT_WINDOW = 600; // 10 minutes
 
+	// Discount and package codes that didn't work, per IP per window. A
+	// customer mistypes a code once or twice; ten misses in ten minutes is
+	// someone guessing (QA report 2026-09-26 M3).
+	const CODE_ATTEMPTS_MAX = 10;
+
 	/**
 	 * @return true|WP_Error
 	 */
@@ -79,6 +84,44 @@ class BYZO_Public_Guard {
 		set_transient( $key, $count + 1, $window );
 
 		return true;
+	}
+
+	/**
+	 * Whether this visitor may try another discount or package code. The
+	 * quote route answers a code with what it takes off, or why it can't
+	 * be used, so without a limit it would let anyone test codes until
+	 * one works.
+	 *
+	 * @return true|WP_Error
+	 */
+	public static function check_code_attempts() {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+
+		$max = (int) apply_filters( 'byzo_code_attempts_max', self::CODE_ATTEMPTS_MAX );
+
+		if ( (int) get_transient( self::code_key() ) >= $max ) {
+			return new WP_Error( 'byzo_rate_limited', __( 'Too many codes tried. Please try again in a few minutes.', 'bookyzo' ), array( 'status' => 429 ) );
+		}
+
+		return true;
+	}
+
+	/**
+	 * Counts a code that didn't work toward check_code_attempts().
+	 */
+	public static function record_code_failure() {
+		if ( current_user_can( 'manage_options' ) ) {
+			return;
+		}
+
+		$key = self::code_key();
+		set_transient( $key, (int) get_transient( $key ) + 1, (int) apply_filters( 'byzo_booking_rate_limit_window', self::RATE_LIMIT_WINDOW ) );
+	}
+
+	private static function code_key() {
+		return 'byzo_rl_code_' . md5( self::client_ip() );
 	}
 
 	/**

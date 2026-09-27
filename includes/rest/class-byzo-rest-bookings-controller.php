@@ -262,10 +262,22 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return $guard_check;
 		}
 
-		$body = $request->get_json_params();
-		$id   = BYZO_Booking::create( $body );
+		$body     = $request->get_json_params();
+		$has_code = '' !== trim( (string) ( $body['discount_code'] ?? '' ) );
+
+		if ( $has_code ) {
+			$code_check = BYZO_Public_Guard::check_code_attempts();
+			if ( is_wp_error( $code_check ) ) {
+				return $code_check;
+			}
+		}
+
+		$id = BYZO_Booking::create( $body );
 
 		if ( is_wp_error( $id ) ) {
+			if ( $has_code && 'byzo_invalid_code' === $id->get_error_code() ) {
+				BYZO_Public_Guard::record_code_failure();
+			}
 			return $id;
 		}
 
@@ -646,15 +658,29 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return new WP_Error( 'byzo_not_found', __( 'Time slot not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
+		$code = strtoupper( substr( sanitize_text_field( (string) ( $body['discount_code'] ?? '' ) ), 0, 40 ) );
+
+		// Trying codes is limited per visitor (BYZO_Public_Guard::check_code_attempts()).
+		if ( '' !== $code ) {
+			$code_check = BYZO_Public_Guard::check_code_attempts();
+			if ( is_wp_error( $code_check ) ) {
+				return $code_check;
+			}
+		}
+
 		$price = BYZO_Booking::price_breakdown(
 			$slot,
 			max( 1, absint( $body['party_size'] ?? 1 ) ),
 			absint( $body['ticket_tier_id'] ?? 0 ) ?: null,
 			$service_id ?: null,
 			array_filter( array_map( 'absint', (array) ( $body['addon_ids'] ?? array() ) ) ),
-			strtoupper( substr( sanitize_text_field( (string) ( $body['discount_code'] ?? '' ) ), 0, 40 ) ),
+			$code,
 			sanitize_email( (string) ( $body['customer_email'] ?? '' ) )
 		);
+
+		if ( '' !== $code && $price['discount_error'] ) {
+			BYZO_Public_Guard::record_code_failure();
+		}
 
 		return rest_ensure_response(
 			array(

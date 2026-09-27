@@ -406,8 +406,14 @@ async function refreshQuote() {
       return;
     }
     quote.value = result;
-  } catch {
-    if (requestId === quoteRequest) quote.value = null;
+  } catch (e) {
+    if (requestId !== quoteRequest) return;
+    quote.value = null;
+    // Too many codes tried: say so and take the code off.
+    if (form.discount_code && e.code === 'byzo_rate_limited') {
+      codeError.value = e.message;
+      form.discount_code = '';
+    }
   }
 }
 
