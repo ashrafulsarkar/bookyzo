@@ -6,9 +6,8 @@ defined( 'ABSPATH' ) || exit;
  * weekly pattern (wp_byzo_schedules) and blackout/holiday overrides
  * (wp_byzo_availability_exceptions). See DETAILED-SPEC.md §1.2.
  *
- * Free always writes shift_group = 0 (one shift/day, enforced here via
- * BYZO_Capabilities::max_shifts_per_day() — the column itself already
- * supports more, per the "don't gate the data model" principle).
+ * A day may have several shifts (lunch + dinner, say): one row each,
+ * told apart by shift_group.
  */
 class BYZO_Availability {
 
@@ -52,7 +51,7 @@ class BYZO_Availability {
 	 * — simplest correct model for a 7-day grid the Vue admin submits as a
 	 * whole, rather than per-row PATCHes). Delete + re-insert inside a
 	 * transaction-like pair of queries; wp_byzo_schedules is small per
-	 * item (max 7 rows on Free, a few dozen on Pro) so this is cheap.
+	 * item (a row per shift per weekday) so this is cheap.
 	 *
 	 * @param array $rows Each: weekday (0-6), start_time (H:i or H:i:s), end_time, shift_group (optional, default 0).
 	 * @return true|WP_Error
@@ -60,9 +59,7 @@ class BYZO_Availability {
 	public static function set_schedules( $bookable_item_id, $rows ) {
 		global $wpdb;
 
-		$max_shifts   = BYZO_Capabilities::max_shifts_per_day();
-		$per_weekday  = array();
-		$validated    = array();
+		$validated = array();
 
 		foreach ( $rows as $row ) {
 			if ( ! isset( $row['weekday'], $row['start_time'], $row['end_time'] ) ) {
@@ -84,24 +81,6 @@ class BYZO_Availability {
 			}
 
 			$shift_group = isset( $row['shift_group'] ) ? max( 0, (int) $row['shift_group'] ) : 0;
-
-			$per_weekday[ $weekday ] = ( $per_weekday[ $weekday ] ?? 0 ) + 1;
-			if ( $per_weekday[ $weekday ] > $max_shifts ) {
-				return new WP_Error(
-					'byzo_shift_limit_reached',
-					sprintf(
-						/* translators: %d: maximum shifts per day allowed */
-						_n(
-							'This schedule has more than %d shift on a single day. Merge them into one set of opening hours.',
-							'This schedule has more than %d shifts on a single day. Merge them into fewer.',
-							$max_shifts,
-							'bookyzo'
-						),
-						$max_shifts
-					),
-					array( 'status' => 403 )
-				);
-			}
 
 			$validated[] = array(
 				'bookable_item_id' => $bookable_item_id,

@@ -20,7 +20,7 @@ Appointments, table reservations, event tickets and generic time-slot bookings �
 * Runs entirely on your own site — your booking data stays in your own database
 * No WooCommerce dependency — works on any WordPress site
 * A real Vue-powered admin panel, not a wall of settings screens
-* Genuinely usable on the free plan — no artificial limits dressed up as a trial
+* No limits on bookable items, shifts or bookings — add as many staff members, tables, events and slots as you need
 
 = Four booking types, one plugin =
 
@@ -29,7 +29,7 @@ Appointments, table reservations, event tickets and generic time-slot bookings �
 * **Event** — a specific date/time occurrence you create yourself (a class, a workshop, a ticketed show), sold by ticket quantity
 * **Slot** — a generic recurring time slot with room for more than one booking at once (a rental, a group session, anything that doesn't fit the other three)
 
-Add a bookable item, set a name/price/photo, and configure the availability that fits its type — a weekly schedule with exceptions for Appointment/Table/Slot (its own, or your shared business hours), or specific dates you add yourself for Event. Available time slots (or your entered event dates) are kept up to date automatically in the background. For events, the booking form can optionally ask for each ticket holder's name when someone books several tickets.
+Add as many bookable items as you need, set a name/price/photo, and configure the availability that fits its type — a weekly schedule with exceptions for Appointment/Table/Slot (its own, or your shared business hours, with as many shifts per day as you like, e.g. lunch and dinner), or specific dates you add yourself for Event. Available time slots (or your entered event dates) are kept up to date automatically in the background. For events, the booking form can optionally ask for each ticket holder's name when someone books several tickets.
 
 = Booking calendar =
 
@@ -61,7 +61,7 @@ See today's, this week's and this month's booking counts at a glance when you lo
 
 = Developer friendly =
 
-Actions and filters throughout (capability limits, REST controllers, rate limiting, notifications) and a REST API under `bookyzo/v1`. See **Other Notes** for the hook list.
+Actions and filters throughout (REST controllers, pricing, rate limiting, notifications) and a REST API under `bookyzo/v1`. See **Other Notes** for the hook list.
 
 = Customer accounts =
 
@@ -69,7 +69,7 @@ Customers can optionally create an account (turn it on under **Bookyzo → Setti
 
 = Growing out of the free plugin (Pro) =
 
-The free plugin is genuinely usable on its own — one active bookable item per type (so up to four: one appointment staff member, one table, one event, one slot type) with no locked-out UI. Bookyzo Pro, a separate paid add-on, is for businesses that outgrow that: unlimited bookable items per type, multiple daily shifts, services with per-staff pricing and "any available staff" booking, deposits and PayPal, SMS/WhatsApp reminders on your own schedule, seasonal and dynamic pricing, add-ons and booking fees, custom form fields, a table floor plan, event ticket tiers with QR e-tickets and a check-in scanner, staff calendar sync, an analytics dashboard, and WooCommerce checkout.
+Everything in this plugin is complete on its own, with no limits and no locked-out UI. Bookyzo Pro is a separate paid add-on with more features: services with per-staff pricing and "any available staff" booking, deposits and PayPal, SMS/WhatsApp reminders on your own schedule, seasonal and dynamic pricing, add-ons and booking fees, custom form fields, a table floor plan, event ticket tiers with QR e-tickets and a check-in scanner, staff calendar sync, an analytics dashboard, and WooCommerce checkout.
 
 == External services ==
 
@@ -124,11 +124,11 @@ No. Every feature listed above is fully usable with no artificial limits, nag sc
 
 = Does Bookyzo support anything besides one-on-one appointments? =
 
-Yes. Free includes all four booking types: Appointment (one staff member, one customer), Table (party-size reservations), Event (ticketed occurrences on dates you set yourself), and Slot (a generic recurring slot with room for more than one booking). Add as many *different* types as you need — the free-plan limit is one active bookable item *of each type*, not one bookable item total.
+Yes. It includes all four booking types: Appointment (one staff member, one customer), Table (party-size reservations), Event (ticketed occurrences on dates you set yourself), and Slot (a generic recurring slot with room for more than one booking).
 
-= What happens if I need a second staff member, table, or event? =
+= How many staff members, tables or events can I add? =
 
-The free plugin supports one active bookable item per type at a time. That fits a business with one staff member, one table, one event and one kind of slot; when you add a second of the same type, Bookyzo Pro (a separate paid add-on) removes the limit. Nothing already set up stops working either way.
+As many as you need, of every type. There is no limit on bookable items, shifts per day or bookings.
 
 = Where is the source code for the JavaScript? =
 
@@ -157,12 +157,9 @@ Initial release.
 
 = Filters =
 
-* `byzo_max_bookable_items_per_type` — ( int $max ) Active bookable items allowed per booking type. Default `1`.
-* `byzo_max_shifts_per_day` — ( int $max ) Shifts per day in a bookable item's weekly schedule. Default `1`.
 * `byzo_bookable_items_offering_service` — ( int[] $bookable_item_ids, int $service_id ) Which bookable items offer a given service, for "any available staff" resolution. Default `array()`.
 * `byzo_service_price` — ( float|null $price, int $service_id, int $bookable_item_id ) Resolved price for a service booked with a specific staff member. Default `null` (falls back to the bookable item's own price).
-* `byzo_deposits_enabled` — ( bool $enabled ) Whether deposit/partial payments are available. Default `false`.
-* `byzo_deposit_amount` — ( float|null $amount, float $payment_amount, int $bookable_item_id ) How much of a booking's total is due online now as a deposit. Default `null` (pay in full). Only consulted when `byzo_deposits_enabled` is true.
+* `byzo_deposit_amount` — ( float|null $amount, float $payment_amount, int $bookable_item_id ) How much of a booking's total is due online now as a deposit. Default `null` (pay in full).
 * `byzo_default_settings` — ( array $defaults ) Default values seeded into the business-settings option on activation.
 * `byzo_rest_controllers` — ( array $controllers ) REST controller instances registered on `rest_api_init`.
 * `byzo_payment_gateways` — ( array $gateways ) Registered payment gateways shown on the Payments settings screen, keyed by gateway id. Default: Stripe only.
@@ -174,7 +171,6 @@ Initial release.
 * `byzo_dev_server_url` — ( string $url ) Vite dev server URL used only in local development.
 * `byzo_unit_price` — ( float $price, int $bookable_item_id, array $slot ) Per-booking unit price adjustment applied right after service-price resolution and before tax. Default: unmodified `$price`.
 * `byzo_pdf_invoice_enabled` — ( bool $enabled ) Whether a downloadable PDF invoice is available from the customer dashboard. Default `false`.
-* `byzo_widget_after_mount` — ( string $html, array $config ) HTML appended right after the booking widget's own mount markup — lets an add-on inject unrelated page-level snippets (e.g. marketing pixel base code) without touching the widget markup itself. Default `''`.
 * `byzo_custom_fields_for_bookable_item` — ( array $fields, int $bookable_item_id ) Custom form fields to render on the booking widget for a given bookable item, each `{ id, label, field_type, options, required }`. Default `array()`.
 * `byzo_addons_for_bookable_item` — ( array $addons, int $bookable_item_id ) Add-ons to render on the booking widget for a given bookable item, each `{ id, name, price }`. Default `array()`.
 * `byzo_resolve_addons` — ( array $resolved, int[] $addon_ids, int $bookable_item_id ) Resolves client-submitted add-on ids into real, currently-active, correctly-scoped `{ id, name, price }` rows at booking-creation time — an id that doesn't resolve is silently dropped. Default `array()`.
@@ -191,6 +187,7 @@ Initial release.
 * `byzo_bookable_item_created` — ( int $bookable_item_id ) After a new bookable item is created.
 * `byzo_bookable_item_activated` — ( int $bookable_item_id ) After a bookable item transitions from inactive to active.
 * `byzo_booking_created` — ( int $booking_id ) After a new booking is created.
+* `byzo_widget_rendered` — ( array $config ) Each time a booking form is rendered on a page, so an add-on can enqueue its own front-end scripts.
 * `byzo_booking_status_changed` — ( int $booking_id, string $new_status, string $old_status ) After a booking's status changes.
 * `byzo_booking_payment_status_changed` — ( int $booking_id, string $new_status, string $old_status ) After a booking's payment status changes.
 * `byzo_notification_sent` — ( string $event, int $booking_id ) After a notification email is sent (or attempted).

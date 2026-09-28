@@ -191,9 +191,8 @@ class BYZO_Settings {
 	/**
 	 * Validates the `business_hours` row list — same weekday/start_time/
 	 * end_time/shift_group shape and start<end rule as
-	 * BYZO_Availability::set_schedules(), deliberately WITHOUT that
-	 * method's max_shifts_per_day cap: this is the business's own default,
-	 * not a per-item schedule subject to the Free/Pro shift-count limit.
+	 * BYZO_Availability::set_schedules(): this is the business's own
+	 * default hours, which an item can link to instead of its own.
 	 *
 	 * @return array|WP_Error Sanitized rows, or WP_Error.
 	 */

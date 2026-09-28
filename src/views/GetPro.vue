@@ -1,6 +1,6 @@
 <template>
   <div>
-    <ByzoPageHeader :title="__('Get Pro', 'bookyzo')" :subtitle="__('Unlimited bookable items and every growth feature, in the Bookyzo Pro add-on.', 'bookyzo')">
+    <ByzoPageHeader :title="__('Get Pro', 'bookyzo')" :subtitle="__('More ways to grow your bookings, in the Bookyzo Pro add-on.', 'bookyzo')">
       <template #icon>
         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="m12 15 3.5-3.5L12 8" />
@@ -49,7 +49,7 @@
       </Card>
 
       <p class="text-xs text-muted-foreground">
-        {{ __('Every booking type (Appointment, Table, Event, Slot/Class) is fully included in the free plugin — Pro adds depth and volume, never a locked booking type.', 'bookyzo') }}
+        {{ __('Every booking type (Appointment, Table, Event, Slot/Class) is fully included in the free plugin — as are unlimited bookable items and shifts. Pro adds more features, never a locked booking type.', 'bookyzo') }}
       </p>
     </div>
   </div>
@@ -60,9 +60,9 @@ import { i18n } from '@/lib/i18n';
 // A real, separate comparison page — not a dimmed/locked preview of any
 // actual Pro screen — per the bookyzo-design skill's explicit rule (mirrors
 // license-envato's own Get Pro page). Only reachable at all while
-// byzo_is_pro_licensed() is false (see BYZO_Plugin::routes()/
-// ByzoSidebar.vue) — the row/route disappears entirely once licensed
-// rather than sticking around as a dead tab.
+// byzo_show_get_pro() is true (see BYZO_Plugin::routes()/
+// ByzoSidebar.vue) — the row/route disappears entirely once Pro is
+// active rather than sticking around as a dead tab.
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
@@ -74,8 +74,6 @@ const getProUrl = window.byzoAdmin?.getProUrl || '';
 // to upgrade. Keep this in sync if FEATURES.md's B1-B11 headline items
 // change materially.
 const rows = [
-  { label: i18n.__('Bookable items per type (staff, tables, events, classes)', 'bookyzo'), free: '1', pro: i18n.__('Unlimited', 'bookyzo') },
-  { label: i18n.__('Shifts per day', 'bookyzo'), free: '1', pro: i18n.__('Multiple', 'bookyzo') },
   { label: i18n.__('Multi-location / multi-branch scheduling', 'bookyzo'), free: '—', pro: '✓' },
   { label: i18n.__('SMS & WhatsApp reminders', 'bookyzo'), free: '—', pro: '✓' },
   { label: i18n.__('Deposits & multiple payment gateways', 'bookyzo'), free: '—', pro: '✓' },

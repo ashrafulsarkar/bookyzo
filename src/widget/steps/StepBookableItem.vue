@@ -84,8 +84,7 @@ import { formatMoney } from '@/lib/money';
 // there's only one real choice to make: either the embed is pinned to
 // a specific bookable item (config.bookableItemId, from the
 // block/shortcode's own setting) or there's exactly one active item
-// site-wide (the common case on Free, which caps one active item per
-// type). This is a UX call, not a Free/Pro gate — nothing here is ever
+// site-wide (the common case for a one-person business). This is a UX call, not a Free/Pro gate — nothing here is ever
 // shown as disabled/unavailable, the step just doesn't render when it
 // has nothing to add.
 const props = defineProps({

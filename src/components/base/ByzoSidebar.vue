@@ -218,7 +218,7 @@ const SECTION_LABELS = {
 // A real, separate "Get Pro" page — never a locked/disabled preview of an
 // actual feature, see GetPro.vue's own docblock and the bookyzo-design
 // skill's explicit rule on this. Shown only while PHP's byzo_show_get_pro()
-// says so (hidden for now, and never on a licensed Pro site); the same
+// says so (hidden for now, and never once Pro is active); the same
 // call decides the WP submenu page (BYZO_Plugin::routes()) and the
 // Plugins-screen link, so this can never link to a 404.
 const showGetPro = !!(window.byzoAdmin && window.byzoAdmin.showGetPro);

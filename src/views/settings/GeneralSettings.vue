@@ -77,7 +77,7 @@
             <CardDescription>{{ __('Your opening hours: what a new bookable item starts with, and what an item can follow instead of setting its own.', 'bookyzo') }}</CardDescription>
           </CardHeader>
           <CardContent>
-            <ByzoWeeklyScheduleGrid v-model="form.business_hours" :max-shifts="Infinity" />
+            <ByzoWeeklyScheduleGrid v-model="form.business_hours" />
           </CardContent>
         </Card>
 

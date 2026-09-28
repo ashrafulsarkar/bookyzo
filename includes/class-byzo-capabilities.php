@@ -2,43 +2,14 @@
 defined( 'ABSPATH' ) || exit;
 
 /**
- * The plugin's filterable limits and extension switches, in one place.
+ * The plugin's extension switches, in one place.
  *
- * The two limits are real defaults of this plugin (one active item per
- * booking type, one opening-hours block per day); an add-on may raise them.
  * Every switch below turns on a place in the booking form or account page
  * where an add-on shows something of its own (a document link, a waitlist,
  * a code field). The feature itself lives in that add-on, so each default
  * is simply "nothing to show". DETAILED-SPEC.md §A9.
  */
 class BYZO_Capabilities {
-
-	/**
-	 * How many bookable items of a single type may be active at once.
-	 * Default 1 (FEATURES.md §A9); filterable via
-	 * `byzo_max_bookable_items_per_type`.
-	 */
-	public static function max_bookable_items_per_type() {
-		return (int) apply_filters( 'byzo_max_bookable_items_per_type', 1 );
-	}
-
-	/**
-	 * How many shifts per day a bookable item's weekly schedule may have.
-	 * Default 1 (FEATURES.md §A3); filterable via `byzo_max_shifts_per_day`.
-	 * The admin only offers "+ Add shift" while a day is under it.
-	 */
-	public static function max_shifts_per_day() {
-		return (int) apply_filters( 'byzo_max_shifts_per_day', 1 );
-	}
-
-	/**
-	 * Whether a booking may be paid partly now, as a deposit. Default
-	 * false: bookings are paid in full. An add-on that offers deposits
-	 * turns this on and supplies the amount via `byzo_deposit_amount`.
-	 */
-	public static function deposits_enabled() {
-		return (bool) apply_filters( 'byzo_deposits_enabled', false );
-	}
 
 	/**
 	 * Whether the customer dashboard and emails link to a PDF invoice.

@@ -126,7 +126,7 @@ class BYZO_Slot {
 	public static function has_upcoming( $item ) {
 		global $wpdb;
 
-		return (bool) $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM ' . self::table() . " WHERE bookable_item_id = %d AND start_datetime >= %s AND status IN ('open','full') LIMIT 1", $item['id'], self::earliest_bookable_start( $item['type'] ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+		return (bool) $wpdb->get_var( $wpdb->prepare( 'SELECT 1 FROM ' . self::table() . " WHERE bookable_item_id = %d AND start_datetime >= %s AND status IN ('open','full') LIMIT 1", $item['id'], self::earliest_bookable_start( $item['type'] ) ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.DirectDatabaseQuery
 	}
 
 	/**

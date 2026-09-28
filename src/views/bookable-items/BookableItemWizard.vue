@@ -211,10 +211,8 @@ const original = reactive({ exceptionIds: [], occurrenceIds: [] });
 
 // Create: set once POST /bookable-items succeeds. Create is several calls
 // (the item, then its availability/exceptions or its dates); if a later
-// one fails, a retry must UPDATE this item rather than POST a second one —
-// which, on Free's 1-active-per-type cap (BYZO_Capabilities), would
-// otherwise fail with the per-type limit error and strand a half-configured
-// item behind it.
+// one fails, a retry must UPDATE this item rather than POST a second one,
+// which would leave a half-configured duplicate behind it.
 const createdId = ref(null);
 const createdType = ref('');
 // …and whether its schedule landed too, so closing after a failed add-on

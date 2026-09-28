@@ -186,9 +186,8 @@ const createdItemId = ref(null);
 // Set once POST /bookable-items succeeds. Create is several calls (settings,
 // the item, then its availability or first occurrence); if a later one
 // fails, a retry must UPDATE the existing item rather than POST a second
-// one — which, on Free's 1-active-per-type cap (BYZO_Capabilities), would
-// otherwise fail with the per-type limit error and strand a half-configured
-// item behind it. Same guard as BookableItemWizard.vue's submit().
+// one, which would leave a half-configured duplicate behind it. Same guard
+// as BookableItemWizard.vue's submit().
 const createdId = ref(null);
 const createdType = ref('');
 
@@ -300,10 +299,7 @@ function goAddAnother() {
   // (the wizard's TypeStep.vue) rather than re-entering this completed
   // wizard — byzo_setup_step is already 'done' by this point, and the
   // setup wizard's own state machine isn't built to restart partway
-  // through. Deliberately NOT filtered to "types not yet used" yet
-  // (DETAILED-SPEC.md's aspiration) — that needs the wizard's TypeStep.vue
-  // to know which types already have an active item, which it doesn't
-  // fetch today; flagged as a follow-up, not silently skipped.
+  // through.
   router.push({ name: 'bookable-items.new' });
 }
 

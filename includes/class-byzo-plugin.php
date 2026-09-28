@@ -342,8 +342,8 @@ class BYZO_Plugin {
 		// preview of any actual feature — is the honest pattern the
 		// bookyzo-design skill explicitly calls out as fine (mirrors
 		// license-envato's own Get Pro comparison page). Only registered
-		// while byzo_show_get_pro() says so — hidden for now, and never on
-		// a licensed Pro site: the row and its WP submenu page simply
+		// while byzo_show_get_pro() says so — hidden for now, and never
+		// once Pro is active: the row and its WP submenu page simply
 		// don't exist rather than staying around disabled.
 		if ( byzo_show_get_pro() ) {
 			$routes['bookyzo-get-pro'] = array(

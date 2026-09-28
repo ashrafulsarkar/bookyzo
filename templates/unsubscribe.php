@@ -4,17 +4,20 @@
  * standalone, theme-bypassing shape as manage-booking.php, and
  * overridable the same way (a theme's own bookyzo/unsubscribe.php).
  *
- * @var bool       $valid
+ * @var bool       $valid        Whether the link's token matched the customer.
  * @var array|null $customer
- * @var bool       $resubscribe
- * @var string     $resume_url  Link that opts them back in, when the link was valid.
+ * @var bool       $unsubscribed Whether they're off the marketing list now.
+ * @var string     $done         'unsubscribed' | 'resubscribed' right after a change, else ''.
+ * @var int        $customer_id
+ * @var string     $token
+ * @var string     $action       admin-post.php action name for the form.
  */
 
 defined( 'ABSPATH' ) || exit;
 
-$settings      = BYZO_Settings::get();
-$business_name = $settings['business_name'];
-$contact_email = get_option( 'admin_email' );
+$byzo_settings      = BYZO_Settings::get();
+$byzo_business_name = $byzo_settings['business_name'];
+$byzo_contact_email = get_option( 'admin_email' );
 ?>
 <!DOCTYPE html>
 <html <?php language_attributes(); ?>>
@@ -23,37 +26,50 @@ $contact_email = get_option( 'admin_email' );
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<meta name="robots" content="noindex, nofollow">
 	<title><?php esc_html_e( 'Email preferences', 'bookyzo' ); ?></title>
-	<style>
-		body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; margin: 0; padding: 40px 20px; }
-		.byzo-unsub-card { max-width: 440px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; text-align: center; }
-		.byzo-unsub-business { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #64748b; margin: 0 0 18px; }
-		.byzo-unsub-card h1 { font-size: 18px; margin: 0 0 12px; }
-		.byzo-unsub-card p { font-size: 14px; line-height: 1.5; color: #475569; margin: 0 0 16px; }
-		.byzo-unsub-icon { font-size: 32px; margin-bottom: 12px; }
-		.byzo-unsub-contact { margin: 24px 0 0; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #64748b; }
-		.byzo-unsub-contact a, .byzo-unsub-card a { color: #2563eb; }
-	</style>
+	<?php wp_print_styles( 'byzo-standalone-page' ); ?>
 </head>
 <body>
 	<div class="byzo-unsub-card">
-		<p class="byzo-unsub-business"><?php echo esc_html( $business_name ); ?></p>
+		<p class="byzo-unsub-business"><?php echo esc_html( $byzo_business_name ); ?></p>
 
 		<?php if ( ! $valid ) : ?>
 			<h1><?php esc_html_e( 'This link has expired', 'bookyzo' ); ?></h1>
 			<p><?php esc_html_e( "We couldn't match this link to anyone. If you're still getting emails you don't want, reply to one of them and we'll take you off the list.", 'bookyzo' ); ?></p>
 
-		<?php elseif ( $resubscribe ) : ?>
+		<?php elseif ( $unsubscribed ) : ?>
+			<?php if ( 'unsubscribed' === $done ) : ?>
+				<div class="byzo-unsub-icon">✓</div>
+			<?php endif; ?>
+			<h1><?php esc_html_e( "You're unsubscribed", 'bookyzo' ); ?></h1>
+			<?php /* translators: %s: the customer's email address */ ?>
+			<p><?php printf( esc_html__( "We won't send marketing emails to %s any more. Emails about your own bookings — confirmations, reminders, cancellations — still come through.", 'bookyzo' ), '<strong>' . esc_html( $customer['email'] ) . '</strong>' ); ?></p>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="<?php echo esc_attr( $action ); ?>">
+				<input type="hidden" name="customer_id" value="<?php echo esc_attr( $customer_id ); ?>">
+				<input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+				<input type="hidden" name="choice" value="resubscribe">
+				<?php wp_nonce_field( $action ); ?>
+				<button type="submit" class="byzo-unsub-link"><?php esc_html_e( 'Changed your mind? Resubscribe', 'bookyzo' ); ?></button>
+			</form>
+
+		<?php elseif ( 'resubscribed' === $done ) : ?>
 			<div class="byzo-unsub-icon">✓</div>
 			<h1><?php esc_html_e( "You're back on the list", 'bookyzo' ); ?></h1>
 			<?php /* translators: %s: the customer's email address */ ?>
 			<p><?php printf( esc_html__( "We'll send offers and news to %s again.", 'bookyzo' ), '<strong>' . esc_html( $customer['email'] ) . '</strong>' ); ?></p>
 
 		<?php else : ?>
-			<div class="byzo-unsub-icon">✓</div>
-			<h1><?php esc_html_e( "You're unsubscribed", 'bookyzo' ); ?></h1>
+			<h1><?php esc_html_e( 'Unsubscribe from marketing emails?', 'bookyzo' ); ?></h1>
 			<?php /* translators: %s: the customer's email address */ ?>
-			<p><?php printf( esc_html__( "We won't send marketing emails to %s any more. Emails about your own bookings — confirmations, reminders, cancellations — still come through.", 'bookyzo' ), '<strong>' . esc_html( $customer['email'] ) . '</strong>' ); ?></p>
-			<p><a href="<?php echo esc_url( $resume_url ); ?>"><?php esc_html_e( 'Changed your mind? Resubscribe', 'bookyzo' ); ?></a></p>
+			<p><?php printf( esc_html__( "We'll stop sending offers and news to %s. Emails about your own bookings — confirmations, reminders, cancellations — still come through.", 'bookyzo' ), '<strong>' . esc_html( $customer['email'] ) . '</strong>' ); ?></p>
+			<form method="post" action="<?php echo esc_url( admin_url( 'admin-post.php' ) ); ?>">
+				<input type="hidden" name="action" value="<?php echo esc_attr( $action ); ?>">
+				<input type="hidden" name="customer_id" value="<?php echo esc_attr( $customer_id ); ?>">
+				<input type="hidden" name="token" value="<?php echo esc_attr( $token ); ?>">
+				<input type="hidden" name="choice" value="unsubscribe">
+				<?php wp_nonce_field( $action ); ?>
+				<button type="submit" class="byzo-unsub-btn"><?php esc_html_e( 'Unsubscribe', 'bookyzo' ); ?></button>
+			</form>
 		<?php endif; ?>
 
 		<p class="byzo-unsub-contact">
@@ -61,8 +77,8 @@ $contact_email = get_option( 'admin_email' );
 			printf(
 				/* translators: 1: contact email link, 2: link to the site */
 				esc_html__( 'Questions? Email %1$s or visit %2$s.', 'bookyzo' ),
-				'<a href="mailto:' . esc_attr( $contact_email ) . '">' . esc_html( $contact_email ) . '</a>',
-				'<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html( $business_name ) . '</a>'
+				'<a href="mailto:' . esc_attr( $byzo_contact_email ) . '">' . esc_html( $byzo_contact_email ) . '</a>',
+				'<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html( $byzo_business_name ) . '</a>'
 			);
 			?>
 		</p>

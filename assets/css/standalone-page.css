@@ -1,0 +1,36 @@
+/*
+ * The plugin's own standalone pages, which bypass the theme: the guest
+ * "manage your booking" page (templates/manage-booking.php) and the
+ * marketing-email unsubscribe page (templates/unsubscribe.php).
+ */
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; color: #1e293b; margin: 0; padding: 40px 20px; }
+
+.byzo-manage-card { max-width: 440px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; text-align: center; }
+.byzo-manage-business { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #64748b; margin: 0 0 18px; }
+.byzo-manage-card h1 { font-size: 18px; margin: 0 0 12px; }
+.byzo-manage-card p { font-size: 14px; line-height: 1.5; color: #475569; margin: 0 0 20px; }
+.byzo-manage-summary { background: #f1f5f9; border-radius: 8px; padding: 14px 16px; font-size: 14px; text-align: left; margin-bottom: 20px; }
+.byzo-manage-summary strong { display: block; margin-bottom: 8px; font-size: 15px; }
+.byzo-manage-row { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
+.byzo-manage-row span:first-child { color: #64748b; }
+.byzo-manage-row span:last-child { text-align: right; }
+.byzo-manage-btn { display: inline-block; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; }
+.byzo-manage-btn--danger { background: #dc2626; color: #fff; }
+.byzo-manage-btn--primary { background: #2563eb; color: #fff; margin-bottom: 20px; }
+.byzo-manage-times { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; margin-bottom: 20px; }
+.byzo-manage-time { border: 1px solid #cbd5e1; background: #fff; border-radius: 8px; padding: 8px 12px; font-size: 13px; cursor: pointer; }
+.byzo-manage-time:hover { border-color: #2563eb; color: #2563eb; }
+.byzo-manage-icon { font-size: 32px; margin-bottom: 12px; }
+.byzo-manage-contact { margin: 24px 0 0; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #64748b; }
+.byzo-manage-contact a { color: #2563eb; }
+
+.byzo-unsub-card { max-width: 440px; margin: 0 auto; background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 32px; text-align: center; }
+.byzo-unsub-business { font-size: 13px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #64748b; margin: 0 0 18px; }
+.byzo-unsub-card h1 { font-size: 18px; margin: 0 0 12px; }
+.byzo-unsub-card p { font-size: 14px; line-height: 1.5; color: #475569; margin: 0 0 16px; }
+.byzo-unsub-icon { font-size: 32px; margin-bottom: 12px; }
+.byzo-unsub-contact { margin: 24px 0 0; padding-top: 16px; border-top: 1px solid #e2e8f0; font-size: 13px; color: #64748b; }
+.byzo-unsub-contact a, .byzo-unsub-card a { color: #2563eb; }
+.byzo-unsub-card form { margin: 0 0 16px; }
+.byzo-unsub-btn { display: inline-block; border: none; border-radius: 8px; padding: 10px 20px; font-size: 14px; font-weight: 600; cursor: pointer; background: #2563eb; color: #fff; }
+.byzo-unsub-link { border: none; background: none; padding: 0; font: inherit; font-size: 14px; color: #2563eb; text-decoration: underline; cursor: pointer; }

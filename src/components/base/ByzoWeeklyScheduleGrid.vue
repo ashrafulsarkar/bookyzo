@@ -24,12 +24,7 @@
             />
             <!-- Only offered once there's a second shift to remove — the
                  day's own toggle switch is how the first/only shift goes
-                 away. Free callers can click this same button; the server
-                 (BYZO_Availability::set_schedules(), byzo_shift_limit_reached)
-                 is what actually enforces max_shifts_per_day(), same
-                 "don't hide it, let the real wall answer honestly" pattern
-                 the Bookable Items cap already established — see
-                 bookyzo-dev SKILL.md. -->
+                 away. -->
             <button
               v-if="shiftsFor(weekday.value).length > 1"
               type="button"
@@ -42,7 +37,6 @@
           </div>
 
           <button
-            v-if="shiftsFor(weekday.value).length < maxShifts"
             type="button"
             class="text-xs font-medium text-primary hover:underline"
             @click="addShift(weekday.value)"
@@ -64,13 +58,7 @@ import { weekdayNames } from '@/lib/date';
 //
 // Accepts N shifts per weekday in its data model from day one (the
 // `schedules` array can hold multiple rows per weekday, shift_group
-// distinguishes them). "+ Add shift" (ROADMAP.md Phase 2 step 3) only
-// shows while a day has room for another shift: an item's schedule
-// follows BYZO_Capabilities::max_shifts_per_day() (window.byzoAdmin.
-// maxShiftsPerDay), so on a one-shift site the control simply isn't
-// there rather than offering something that can't be saved. The server
-// still enforces the same cap (byzo_shift_limit_reached). Business hours
-// have no cap and pass `:max-shifts="Infinity"`.
+// distinguishes them). "+ Add shift" adds another one to any open day.
 import { computed } from 'vue';
 import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
@@ -78,10 +66,6 @@ import { Input } from '@/components/ui/input';
 const props = defineProps({
   // Array of { weekday: 0-6, start_time: 'HH:mm', end_time: 'HH:mm', shift_group?: number }
   modelValue: { type: Array, required: true },
-  maxShifts: {
-    type: Number,
-    default: () => Number((window.byzoAdmin && window.byzoAdmin.maxShiftsPerDay) || 1),
-  },
 });
 const emit = defineEmits(['update:modelValue']);
 
@@ -117,11 +101,7 @@ function updateShift(weekday, index, field, value) {
   emit('update:modelValue', next);
 }
 
-// Phase 2 step 3 (ROADMAP.md) — Pro's "multiple shifts per day" unlock.
-// Free's own capacity check (BYZO_Availability::set_schedules(),
-// byzo_shift_limit_reached) is what actually enforces the limit; this
-// control is available to every caller of this component the same way
-// the Bookable Items "+ Add" button always is. Defaults to a plausible
+// Several shifts per day (lunch + dinner, say). Defaults to a plausible
 // second "dinner" service window (FEATURES.md B2's own lunch+dinner
 // example) rather than duplicating the day's existing hours.
 function addShift(weekday) {

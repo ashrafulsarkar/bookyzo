@@ -18,6 +18,8 @@ Scope for now: **Phase 0–2** is the actionable near-term plan. Phases 3+ are s
 
 ---
 
+
+> **WORDPRESS.ORG REVIEW 2026-09-28 (supersedes every "one active bookable item per type" / "one shift per day" Free cap below):** the Plugin Review Team flagged both caps as artificial limits (Guideline 5 — trialware), so Free now has **no limit on bookable items or shifts per day**: `BYZO_Capabilities::max_bookable_items_per_type()`, `max_shifts_per_day()` and their filters were removed, as was the `byzo_deposits_enabled` switch (`byzo_deposit_amount` alone decides a deposit). B1's "unlimited bookable items" and B2's "multiple shifts per day" are therefore Free features now, not Pro. Rule going forward: never cap a count (items, shifts, bookings, anything) in Free that Free's own code could handle — a Pro feature must be code that lives in Pro.
 ## Phase 0 — Core Engine (no public release)
 
 Nothing here is type-specific. Build once, every booking type reuses it.

@@ -96,6 +96,34 @@ class BYZO_Booking_Cancel {
 			}
 		}
 
+		byzo_enqueue_standalone_page_style();
+
+		// "Change the time" (QA report §4.5/§6.2): only on a booking that
+		// can still be changed. The template prints it with wp_print_scripts().
+		if ( 'confirm' === $state ) {
+			wp_enqueue_script( 'byzo-manage-booking', BYZO_PLUGIN_URL . 'assets/js/manage-booking.js', array(), BYZO_VERSION, true );
+			wp_add_inline_script(
+				'byzo-manage-booking',
+				'window.byzoManageBooking = ' . wp_json_encode(
+					array(
+						'rest'      => esc_url_raw( rest_url( 'bookyzo/v1' ) ),
+						'bookingId' => (int) $booking_id,
+						'itemId'    => (int) $booking['bookable_item_id'],
+						'currentId' => (int) $booking['slot_id'],
+						'token'     => $token,
+						'i18n'      => array(
+							'none'   => __( 'No other times are open right now.', 'bookyzo' ),
+							'pick'   => __( 'Pick a new time:', 'bookyzo' ),
+							'failed' => __( 'Could not load available times. Please get in touch.', 'bookyzo' ),
+							'saving' => __( 'Moving your booking…', 'bookyzo' ),
+							'done'   => __( 'Your booking has been moved.', 'bookyzo' ),
+						),
+					)
+				) . ';',
+				'before'
+			);
+		}
+
 		return byzo_get_template(
 			'manage-booking.php',
 			array(

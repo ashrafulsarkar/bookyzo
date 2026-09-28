@@ -47,20 +47,12 @@ function byzo_get_template( $template_name, $args = array() ) {
 }
 
 /**
- * Whether Bookyzo Pro is installed, active, AND currently licensed —
- * false covers all three "not fully Pro" states uniformly (Pro not
- * installed, installed-but-inactive, active-but-unlicensed), which is
- * exactly the condition under which the Free plugin's own "Get Pro" nav
- * item/page should appear (see BYZO_Plugin::register_admin_menu()/
- * routes() and ByzoSidebar.vue). Deliberately checks byzop_is_licensed()
- * itself rather than a separate Free-side option, so this can never drift
- * out of sync with what BYZOP_Plugin::register_hooks() actually gates
- * Pro's REST controllers on.
- *
- * @return bool
+ * Enqueues the stylesheet shared by the plugin's standalone pages (the
+ * guest manage-booking page and the unsubscribe page). They bypass the
+ * theme, so each template prints it itself with wp_print_styles().
  */
-function byzo_is_pro_licensed() {
-	return function_exists( 'byzop_is_licensed' ) && byzop_is_licensed();
+function byzo_enqueue_standalone_page_style() {
+	wp_enqueue_style( 'byzo-standalone-page', BYZO_PLUGIN_URL . 'assets/css/standalone-page.css', array(), BYZO_VERSION );
 }
 
 /**
@@ -68,12 +60,12 @@ function byzo_is_pro_licensed() {
  * submenu page and the Plugins-screen link. Hidden for now (owner's
  * decision 2026-09-27) until Pro can actually be bought; change the
  * default to true, or return true from the `byzo_show_get_pro` filter,
- * to bring it back. Never shown to a site already running licensed Pro.
+ * to bring it back. Never shown once Bookyzo Pro is active.
  *
  * @return bool
  */
 function byzo_show_get_pro() {
-	return (bool) apply_filters( 'byzo_show_get_pro', false ) && ! byzo_is_pro_licensed();
+	return (bool) apply_filters( 'byzo_show_get_pro', false ) && ! defined( 'BYZOP_VERSION' );
 }
 
 /**

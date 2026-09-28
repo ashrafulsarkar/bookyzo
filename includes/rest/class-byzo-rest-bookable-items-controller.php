@@ -6,11 +6,6 @@ defined( 'ABSPATH' ) || exit;
  * entity (staff/table/room/event/rental item). See DETAILED-SPEC.md §4.
  * Renamed from "resource"/"resources" 2026-09-03 — read as an unclear,
  * overly technical term to end users.
- *
- * The per-type cap (default 1, DETAILED-SPEC.md §A9) is enforced here via
- * BYZO_Capabilities::max_bookable_items_per_type(), not in the model —
- * this is the "one real capability check" the Guideline-5 rule requires,
- * Pro removes the limit purely by filtering the capability function.
  */
 class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 
@@ -251,13 +246,6 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 	}
 
 	public function create_item( WP_REST_Request $request ) {
-		$type = $request->get_param( 'type' ) ?: 'appointment';
-
-		$cap_check = $this->check_type_cap( $type );
-		if ( is_wp_error( $cap_check ) ) {
-			return $cap_check;
-		}
-
 		$id = BYZO_Bookable_Item::create( $request->get_json_params() );
 
 		if ( is_wp_error( $id ) ) {
@@ -481,46 +469,6 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 				'byzo_not_event_type',
 				__( 'Occurrences can only be managed for event-type bookable items.', 'bookyzo' ),
 				array( 'status' => 400 )
-			);
-		}
-
-		return true;
-	}
-
-	/**
-	 * Enforces BYZO_Capabilities::max_bookable_items_per_type() by counting
-	 * active bookable items of that type (default 1) — an honest count
-	 * against a real, filterable limit, answered with a plain message.
-	 */
-	private function check_type_cap( $type ) {
-		$max = BYZO_Capabilities::max_bookable_items_per_type();
-
-		if ( $max <= 0 || $max >= PHP_INT_MAX ) {
-			return true;
-		}
-
-		$existing = BYZO_Bookable_Item::query(
-			array(
-				'type'     => $type,
-				'status'   => 'active',
-				'per_page' => 1,
-			)
-		);
-
-		if ( $existing['total'] >= $max ) {
-			return new WP_Error(
-				'byzo_bookable_item_limit_reached',
-				sprintf(
-					/* translators: %d: maximum number of active bookable items allowed per type */
-					_n(
-						'You already have %d active bookable item of this type. Deactivate or archive it before adding another.',
-						'You already have %d active bookable items of this type. Deactivate or archive one before adding another.',
-						$max,
-						'bookyzo'
-					),
-					$max
-				),
-				array( 'status' => 403 )
 			);
 		}
 

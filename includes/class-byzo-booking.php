@@ -964,17 +964,14 @@ class BYZO_Booking {
 		$tax_amount     = ( $has_charge && $tax_rate > 0 ) ? round( $taxable_total * $tax_rate / 100, 2 ) : null;
 		$payment_amount = $has_charge ? round( $taxable_total + (float) $tax_amount, 2 ) : null;
 
-		// Deposits/partial payments (Phase 2 step 6, DETAILED-SPEC.md §A7)
-		// — how much of payment_amount is actually due online now, vs. the
-		// remainder collected later. BYZO_Capabilities::deposits_enabled()
-		// (default false) is the master on/off switch — the byzo_deposit_amount
-		// filter is only even consulted once it's on, same two-filter
-		// shape (a boolean gate + a value resolver) B7's service pricing
-		// already established with byzo_service_price. Clamped to [0, payment_amount] so a
-		// misconfigured Pro filter can never charge more than the booking
-		// is actually worth or go negative.
+		// Deposits/partial payments (DETAILED-SPEC.md §A7) — how much of
+		// payment_amount is due online now, vs. the remainder collected
+		// later. Nothing here takes deposits: byzo_deposit_amount answers
+		// null (pay in full) unless an add-on that does resolves an amount.
+		// Clamped to [0, payment_amount] so a misbehaving filter can never
+		// charge more than the booking is worth or go negative.
 		$deposit_amount = null;
-		if ( null !== $payment_amount && BYZO_Capabilities::deposits_enabled() ) {
+		if ( null !== $payment_amount ) {
 			$deposit_amount = apply_filters( 'byzo_deposit_amount', null, $payment_amount, $slot['bookable_item_id'] );
 			if ( null !== $deposit_amount ) {
 				$deposit_amount = round( max( 0, min( (float) $deposit_amount, $payment_amount ) ), 2 );

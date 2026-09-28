@@ -134,11 +134,7 @@ class BYZO_Admin_Assets {
 	 * is somehow left behind — auto-detect is right by default, this is
 	 * only an escape hatch, not the primary mechanism.
 	 *
-	 * Public (not just used internally): BYZOP_Admin_Assets checks this too,
-	 * since Pro's own bundle can't just depend on the 'byzo-admin' script
-	 * handle for load ordering — that handle is never registered while this
-	 * is true (see print_dev_scripts(), which prints raw <script> tags
-	 * instead of going through wp_enqueue_script()).
+	 * Public so an add-on can tell which mode the admin app is in.
 	 */
 	public static function is_dev_mode() {
 		if ( defined( 'BYZO_DEV_MODE' ) && false === BYZO_DEV_MODE ) {
@@ -149,42 +145,37 @@ class BYZO_Admin_Assets {
 	}
 
 	/**
-	 * Points wp-admin straight at the Vite dev server. No wp_enqueue_*
-	 * here — Vite's dev client and the app entry must load as native
-	 * `<script type="module">` tags in a specific order (@vite/client
-	 * first, so HMR's WebSocket connects before any component code
-	 * runs), which WP's enqueue system doesn't model, so this is output
-	 * directly via wp_print_scripts on the Bookyzo page only.
+	 * Points wp-admin straight at the Vite dev server: Vite's client first
+	 * (so HMR's WebSocket connects before any component code runs), then
+	 * the app entry, both as ES modules (add_module_type()). Registered
+	 * under the same `byzo-admin` handle as the built bundle, so an
+	 * add-on's script can depend on it in either mode.
 	 */
 	private static function enqueue_dev() {
-		// wp.apiFetch itself still comes from WP core (the Vite dev
-		// server only serves Bookyzo's own source, not WP's JS
-		// packages) — enqueue the handle so window.wp.apiFetch exists
-		// before print_dev_scripts()'s inline nonce-middleware code runs.
-		wp_enqueue_script( 'wp-api-fetch' );
+		$server = untrailingslashit( apply_filters( 'byzo_dev_server_url', self::DEFAULT_DEV_SERVER ) );
 
-		add_action( 'admin_footer', array( __CLASS__, 'print_dev_scripts' ) );
+		// No ?ver= on either: the dev server serves the live source, and a
+		// query string would load a second copy of Vite's client.
+		// phpcs:disable WordPress.WP.EnqueuedResourceParameters.MissingVersion
+		wp_enqueue_script( 'byzo-vite-client', $server . '/@vite/client', array(), null, true );
+		wp_enqueue_script( 'byzo-admin', $server . '/main.js', array( 'byzo-vite-client', 'wp-api-fetch', 'wp-i18n' ), null, true );
+		// phpcs:enable WordPress.WP.EnqueuedResourceParameters.MissingVersion
+		wp_add_inline_script( 'byzo-admin', self::boot_js(), 'before' );
+		add_filter( 'wp_script_attributes', array( __CLASS__, 'add_module_type' ) );
 	}
 
-	public static function print_dev_scripts() {
-		$server = apply_filters( 'byzo_dev_server_url', self::DEFAULT_DEV_SERVER );
-		$server = untrailingslashit( $server );
-
-		// phpcs:disable WordPress.WP.EnqueuedResources.NonEnqueuedScript, WordPress.Security.EscapeOutput.OutputNotEscaped -- dev-mode-only Vite module scripts (never present on a production/WordPress.org install, see is_dev_mode()); admin_globals_js() and every other argument are already wp_json_encode()/esc_url()-safe.
-		printf(
-			'<script type="module">
-				window.wp.apiFetch.use( window.wp.apiFetch.createNonceMiddleware( %1$s ) );
-				window.wp.apiFetch.use( window.wp.apiFetch.createRootURLMiddleware( %2$s ) );
-				%3$s
-			</script>
-			<script type="module" src="%4$s/@vite/client"></script>
-			<script type="module" src="%4$s/main.js"></script>',
+	/**
+	 * Runs before the app (either mode): wp.apiFetch needs the REST nonce
+	 * middleware configured before the app's first request, plus the
+	 * window.byzoAdmin globals.
+	 */
+	private static function boot_js() {
+		return sprintf(
+			'wp.apiFetch.use( wp.apiFetch.createNonceMiddleware( %s ) );wp.apiFetch.use( wp.apiFetch.createRootURLMiddleware( %s ) );%s',
 			wp_json_encode( wp_create_nonce( 'wp_rest' ) ),
 			wp_json_encode( esc_url_raw( rest_url() ) ),
-			self::admin_globals_js(),
-			esc_url( $server )
+			self::admin_globals_js()
 		);
-		// phpcs:enable WordPress.WP.EnqueuedResources.NonEnqueuedScript, WordPress.Security.EscapeOutput.OutputNotEscaped
 	}
 
 	/**
@@ -205,7 +196,7 @@ class BYZO_Admin_Assets {
 		$currency = class_exists( 'BYZO_Settings' ) ? BYZO_Settings::get()['currency'] : 'USD';
 
 		return sprintf(
-			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s, maxShiftsPerDay: %s, proLicensed: %s, showGetPro: %s, getProUrl: %s, documents: %s, staff: %s };',
+			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s, showGetPro: %s, getProUrl: %s, documents: %s, staff: %s };',
 			wp_json_encode( admin_url( 'admin-post.php' ) ),
 			// Nonce action string must stay in sync with
 			// BYZO_Booking_Export::NONCE — not referencing the constant
@@ -220,17 +211,6 @@ class BYZO_Admin_Assets {
 			// navigation after this first one.
 			wp_json_encode( self::initial_route() ),
 			wp_json_encode( $currency ),
-			// ByzoWeeklyScheduleGrid.vue offers "+ Add shift" only while a
-			// day is under this; set_schedules() enforces the same cap.
-			// Capped so an "unlimited" PHP_INT_MAX stays an exact JS number.
-			wp_json_encode( min( BYZO_Capabilities::max_shifts_per_day(), 1000 ) ),
-			// ByzoSidebar.vue only renders the "Get Pro" row while this is
-			// false — kept in lockstep with BYZO_Plugin::routes() (which
-			// only registers the matching WP submenu page under the same
-			// condition) via the same byzo_is_pro_licensed() call, so the
-			// sidebar link and the page it points to can never disagree
-			// about whether Get Pro should exist right now.
-			wp_json_encode( byzo_is_pro_licensed() ),
 			// Whether the Get Pro page is offered at all (byzo_show_get_pro(),
 			// hidden for now) — the same call BYZO_Plugin uses for its submenu
 			// page and Plugins-screen link, so they always agree.
@@ -307,17 +287,7 @@ class BYZO_Admin_Assets {
 			}
 		}
 
-		// wp.apiFetch needs the REST nonce middleware configured before
-		// the app's own code runs its first request — inject it as a
-		// preamble rather than a second enqueued script, since it's a
-		// few lines of glue, not a module of its own.
-		$nonce_script = sprintf(
-			'wp.apiFetch.use( wp.apiFetch.createNonceMiddleware( %s ) );wp.apiFetch.use( wp.apiFetch.createRootURLMiddleware( %s ) );%s',
-			wp_json_encode( wp_create_nonce( 'wp_rest' ) ),
-			wp_json_encode( esc_url_raw( rest_url() ) ),
-			self::admin_globals_js()
-		);
-		wp_add_inline_script( 'byzo-admin', $nonce_script, 'before' );
+		wp_add_inline_script( 'byzo-admin', self::boot_js(), 'before' );
 	}
 
 	/**
@@ -349,7 +319,7 @@ class BYZO_Admin_Assets {
 	 * bundle) is untouched by construction.
 	 */
 	public static function add_module_type( $attributes ) {
-		if ( isset( $attributes['id'] ) && 'byzo-admin-js' === $attributes['id'] ) {
+		if ( isset( $attributes['id'] ) && in_array( $attributes['id'], array( 'byzo-admin-js', 'byzo-vite-client-js' ), true ) ) {
 			$attributes['type'] = 'module';
 		}
 

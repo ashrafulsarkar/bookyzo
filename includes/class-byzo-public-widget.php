@@ -124,14 +124,16 @@ class BYZO_Public_Widget {
 			$attrs .= ' data-type="' . esc_attr( $config['type'] ) . '"';
 		}
 
-		// Marketing pixel injection (Phase 2 step 15, DETAILED-SPEC.md §3
-		// B9) — Pro hooks this to append the standard FB Pixel/GA/GTM
-		// base snippets right where the widget itself renders. Free never
-		// hooks it, so the widget's own markup is byte-for-byte unchanged
-		// without Pro.
-		$after_mount = apply_filters( 'byzo_widget_after_mount', '', $config );
+		/**
+		 * Fires each time a booking form is rendered, so an add-on can
+		 * enqueue its own front-end scripts for the page (they print in
+		 * the footer, through wp_enqueue_script()).
+		 *
+		 * @param array $config The form's config, as passed to render().
+		 */
+		do_action( 'byzo_widget_rendered', $config );
 
-		return self::pinned_item_notice( $config ) . '<div class="bookyzo-widget-mount"' . $attrs . '></div>' . $after_mount;
+		return self::pinned_item_notice( $config ) . '<div class="bookyzo-widget-mount"' . $attrs . '></div>';
 	}
 
 	/**
