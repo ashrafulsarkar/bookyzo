@@ -129,12 +129,10 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			)
 		);
 
-		// Guest-allowed (public_permissions_check) — the widget calls this
-		// right after creating its own booking, in the same guest session,
-		// no admin auth available. Guarded instead by requiring the
-		// request to know the booking's customer_email (see
-		// create_payment_intent()) — not the booking's numeric id alone,
-		// which is sequentially guessable.
+		// Guest-reachable: the widget calls this right after creating its
+		// own booking, with no session. The caller must send the booking's
+		// signed token (returned by POST /bookings) — see
+		// booking_token_permissions_check().
 		register_rest_route(
 			self::NAMESPACE_V1,
 			'/' . $this->get_rest_base() . '/(?P<id>\d+)/payment-intent',
@@ -142,12 +140,12 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'create_payment_intent' ),
-					'permission_callback' => array( $this, 'public_permissions_check' ),
+					'permission_callback' => array( $this, 'booking_token_permissions_check' ),
 				),
 			)
 		);
 
-		// Same guest-allowed, email-guarded shape as the route above.
+		// Same token-guarded shape as the route above.
 		// Called by the widget once Stripe confirms the card client-side,
 		// so a booking is marked paid even where the webhook can't be
 		// delivered (local/staging sites, firewalled hosts, or a webhook
@@ -160,7 +158,7 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'confirm_payment' ),
-					'permission_callback' => array( $this, 'public_permissions_check' ),
+					'permission_callback' => array( $this, 'booking_token_permissions_check' ),
 				),
 			)
 		);
@@ -183,7 +181,7 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			)
 		);
 
-		// Same guest-allowed, email-guarded shape again. Called by the
+		// Same token-guarded shape again. Called by the
 		// widget when the payment step opens (`stripe`) and when the
 		// customer picks "Pay in person instead" (`in_person`), so an
 		// abandoned card form and a deliberate pay-later booking are told
@@ -195,7 +193,7 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 				array(
 					'methods'             => WP_REST_Server::CREATABLE,
 					'callback'            => array( $this, 'choose_payment_method' ),
-					'permission_callback' => array( $this, 'public_permissions_check' ),
+					'permission_callback' => array( $this, 'booking_token_permissions_check' ),
 				),
 			)
 		);
@@ -595,16 +593,10 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 	}
 
 	/**
-	 * Body: `{ "customer_email": "..." }` — must match the booking's
-	 * stored email, since this route has no admin session to rely on
-	 * (called by the guest widget right after booking creation). This
-	 * is a lightweight ownership check, not a strong auth boundary — the
-	 * actual security-sensitive part (the charge amount) is server-computed
-	 * from the booking's own payment_amount, never client-suppliable
-	 * (see BYZO_Booking::create()), so the worst a wrong-email guess
-	 * enables is creating a PaymentIntent for someone else's booking,
-	 * which still requires a real card to complete and charges the
-	 * correct (server-computed) amount to THAT booking either way.
+	 * Body: `{ "token": "..." }` — the booking's signed token, checked by
+	 * booking_token_permissions_check(). The charge amount is always
+	 * server-computed from the booking's own payment_amount, never
+	 * client-suppliable (see BYZO_Booking::create()).
 	 */
 	public function create_payment_intent( WP_REST_Request $request ) {
 		$id      = (int) $request->get_param( 'id' );
@@ -612,13 +604,6 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 
 		if ( ! $booking ) {
 			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
-		}
-
-		if ( ! current_user_can( 'manage_options' ) ) {
-			$body = $request->get_json_params();
-			if ( empty( $body['customer_email'] ) || strtolower( trim( $body['customer_email'] ) ) !== strtolower( $booking['customer_email'] ) ) {
-				return new WP_Error( 'byzo_email_mismatch', __( 'customer_email does not match this booking.', 'bookyzo' ), array( 'status' => 403 ) );
-			}
 		}
 
 		$result = BYZO_Stripe::create_payment_intent( $booking );
@@ -719,12 +704,6 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 
 		$body = (array) $request->get_json_params();
 
-		if ( ! current_user_can( 'manage_options' ) ) {
-			if ( empty( $body['customer_email'] ) || strtolower( trim( $body['customer_email'] ) ) !== strtolower( $booking['customer_email'] ) ) {
-				return new WP_Error( 'byzo_email_mismatch', __( 'customer_email does not match this booking.', 'bookyzo' ), array( 'status' => 403 ) );
-			}
-		}
-
 		$method = sanitize_key( (string) ( $body['payment_method'] ?? '' ) );
 		if ( ! in_array( $method, array( 'stripe', 'in_person' ), true ) ) {
 			return new WP_Error( 'byzo_invalid_payment_method', __( 'payment_method must be "stripe" or "in_person".', 'bookyzo' ), array( 'status' => 400 ) );
@@ -769,12 +748,6 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 
 		$body = (array) $request->get_json_params();
 
-		if ( ! current_user_can( 'manage_options' ) ) {
-			if ( empty( $body['customer_email'] ) || strtolower( trim( $body['customer_email'] ) ) !== strtolower( $booking['customer_email'] ) ) {
-				return new WP_Error( 'byzo_email_mismatch', __( 'customer_email does not match this booking.', 'bookyzo' ), array( 'status' => 403 ) );
-			}
-		}
-
 		if ( empty( $body['payment_intent_id'] ) ) {
 			return new WP_Error( 'byzo_missing_payment_intent', __( 'payment_intent_id is required.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
@@ -786,8 +759,8 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 		}
 
 		// The intent must have been created for THIS booking. Without this
-		// check, knowing any succeeded intent id plus a booking's email
-		// would be enough to mark that booking paid.
+		// check, any succeeded intent id plus a booking's token would be
+		// enough to mark that booking paid.
 		if ( (int) ( $intent['metadata']['booking_id'] ?? 0 ) !== $booking['id'] ) {
 			return new WP_Error( 'byzo_intent_mismatch', __( 'That payment does not belong to this booking.', 'bookyzo' ), array( 'status' => 403 ) );
 		}

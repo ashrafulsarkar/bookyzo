@@ -62,26 +62,28 @@ export const getQuote = (payload) => request('/bookings/quote', { method: 'POST'
 export const createBooking = (payload) => request('/bookings', { method: 'POST', body: JSON.stringify(payload) });
 // Only called when window.byzoWidget.waitlistEnabled (an add-on's route).
 export const joinWaitlist = (payload) => request('/waitlist', { method: 'POST', body: JSON.stringify(payload) });
-export const createBookingPaymentIntent = (bookingId, customerEmail) =>
-  request(`/bookings/${bookingId}/payment-intent`, { method: 'POST', body: JSON.stringify({ customer_email: customerEmail }) });
+// `token` on these four is the booking's manage_token from POST /bookings —
+// the server only lets a guest act on a booking they hold the token for.
+export const createBookingPaymentIntent = (bookingId, token) =>
+  request(`/bookings/${bookingId}/payment-intent`, { method: 'POST', body: JSON.stringify({ token }) });
 
 // Tells the server the card cleared. The server re-checks the intent with
 // Stripe rather than believing this call, so it's safe to expose to a
 // guest — see BYZO_REST_Bookings_Controller::confirm_payment().
-export const confirmBookingPayment = (bookingId, customerEmail, paymentIntentId) =>
+export const confirmBookingPayment = (bookingId, token, paymentIntentId) =>
   request(`/bookings/${bookingId}/confirm-payment`, {
     method: 'POST',
-    body: JSON.stringify({ customer_email: customerEmail, payment_intent_id: paymentIntentId }),
+    body: JSON.stringify({ token, payment_intent_id: paymentIntentId }),
   });
 
 // Records how the customer is paying (`stripe` when the card form opens,
 // `in_person` for "Pay in person instead") so the server can tell an
 // abandoned online payment from a deliberate pay-later booking — only the
 // former is ever auto-released (BYZO_Booking_Cleanup).
-export const setBookingPaymentMethod = (bookingId, customerEmail, paymentMethod) =>
+export const setBookingPaymentMethod = (bookingId, token, paymentMethod) =>
   request(`/bookings/${bookingId}/payment-method`, {
     method: 'POST',
-    body: JSON.stringify({ customer_email: customerEmail, payment_method: paymentMethod }),
+    body: JSON.stringify({ token, payment_method: paymentMethod }),
   });
 
 // Phase 5 (DETAILED-SPEC.md §3 B9) — only ever called when the selected
@@ -89,5 +91,5 @@ export const setBookingPaymentMethod = (bookingId, customerEmail, paymentMethod)
 // bookyzo-woocommerce bridge plugin is active and enabled for this item;
 // the route itself only exists then too. Harmless dead code on every
 // other install, same as every other Pro-conditional call in this file.
-export const startWooCommerceCheckout = (bookingId, customerEmail) =>
-  request(`/wc-checkout/${bookingId}`, { method: 'POST', body: JSON.stringify({ customer_email: customerEmail }) });
+export const startWooCommerceCheckout = (bookingId, token) =>
+  request(`/wc-checkout/${bookingId}`, { method: 'POST', body: JSON.stringify({ token }) });

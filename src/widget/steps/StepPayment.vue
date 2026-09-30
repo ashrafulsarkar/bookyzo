@@ -96,7 +96,7 @@ function loadStripeJs() {
 // The worst case is a pay-later booking recorded as an abandoned card
 // payment, which the server only releases after the hold window.
 function recordPaymentMethod(method) {
-  return setBookingPaymentMethod(props.booking.id, props.booking.customer_email, method).catch(() => {});
+  return setBookingPaymentMethod(props.booking.id, props.booking.manage_token, method).catch(() => {});
 }
 
 async function payInPerson() {
@@ -108,7 +108,7 @@ async function pay() {
   payError.value = '';
   paying.value = true;
   try {
-    const { client_secret: clientSecret } = await createBookingPaymentIntent(props.booking.id, props.booking.customer_email);
+    const { client_secret: clientSecret } = await createBookingPaymentIntent(props.booking.id, props.booking.manage_token);
     const result = await stripe.confirmCardPayment(clientSecret, {
       payment_method: { card: cardElement },
     });
@@ -127,7 +127,7 @@ async function pay() {
     try {
       await confirmBookingPayment(
         props.booking.id,
-        props.booking.customer_email,
+        props.booking.manage_token,
         result.paymentIntent.id
       );
     } catch (e) {

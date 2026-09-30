@@ -47,6 +47,10 @@ These come from wordpress.org/plugins/developers/add, the Detailed Plugin Guidel
 - **Activation on a clean install with `WP_DEBUG` on**: no fatal/warning/notice, no output, every table created with `$wpdb->prefix` + `get_charset_collate()` + dbDelta formatting, no remote request.
 - **Assets only on our own screens**: admin CSS/JS only when `BYZO_Admin_Assets::is_bookyzo_screen()`, widget assets only when a form renders, CSS scoped so it can't restyle wp-admin.
 
+**Flagged in the 2026-09-30 review — REST permissions:**
+- **Every `register_rest_route()` has a `permission_callback` that really decides access.** A guest route that acts on one existing booking (`/bookings/{id}/…`: payment intent/method/confirm, PayPal, WooCommerce checkout) uses `booking_token_permissions_check()` (the booking's signed `manage_token`, which `POST /bookings` returns). **Never** accept "booking id + customer email" as proof: the id is sequential and the email is not a secret. Don't check ownership only inside the callback either; the reviewer reads the permission callback.
+- `public_permissions_check()` is only for data anyone may see (public item/slot/add-on lists, the price quote) and for creating a new booking. Anything that reads private data or changes an existing record needs a real check.
+
 **Slug and headers:**
 - **The slug comes from the `Plugin Name` header** ("Bookyzo – Booking & Appointments" becomes `bookyzo-booking-appointments`). It must be `bookyzo` to match the text domain and folder. Change it on the submission page right after uploading; that's allowed once, before review. **After approval it can never change.** The display name can change later.
 - `Version` in the header equals `Stable tag` in readme.txt. `Tested up to` = the current WordPress major (check api.wordpress.org/core/version-check/1.7/).

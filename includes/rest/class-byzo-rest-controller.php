@@ -72,6 +72,28 @@ abstract class BYZO_REST_Controller {
 	}
 
 	/**
+	 * A guest action on one existing booking (/bookings/{id}/...): the
+	 * caller must send that booking's signed token (`token`, returned by
+	 * POST /bookings and carried by the manage-booking link). The id alone
+	 * is sequential and the email is not a secret, so neither is enough.
+	 * Admins pass without one.
+	 */
+	public function booking_token_permissions_check( WP_REST_Request $request ) {
+		if ( current_user_can( 'manage_options' ) ) {
+			return true;
+		}
+
+		$body  = (array) $request->get_json_params();
+		$token = (string) ( $body['token'] ?? $request->get_param( 'token' ) );
+
+		if ( '' !== $token && BYZO_Booking_Token::verify_for_booking( (int) $request->get_param( 'id' ), $token ) ) {
+			return true;
+		}
+
+		return new WP_Error( 'byzo_invalid_booking_token', __( 'You are not allowed to change this booking.', 'bookyzo' ), array( 'status' => rest_authorization_required_code() ) );
+	}
+
+	/**
 	 * Permission callback for routes the public booking widget calls
 	 * (guest-allowed). Always true today — reserved as a named hook point
 	 * so a rate-limit/honeypot guard (DETAILED-SPEC.md §4's abuse-guard

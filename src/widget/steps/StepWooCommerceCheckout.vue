@@ -46,13 +46,13 @@ const error = ref('');
 // Refused server-side when the merchant turned "Pay in person" off —
 // swallowed either way, this button is error recovery (see above).
 async function payInPerson() {
-  await setBookingPaymentMethod(props.booking.id, props.booking.customer_email, 'in_person').catch(() => {});
+  await setBookingPaymentMethod(props.booking.id, props.booking.manage_token, 'in_person').catch(() => {});
   emit('skip');
 }
 
 onMounted(async () => {
   try {
-    const { checkout_url: checkoutUrl } = await startWooCommerceCheckout(props.booking.id, props.booking.customer_email);
+    const { checkout_url: checkoutUrl } = await startWooCommerceCheckout(props.booking.id, props.booking.manage_token);
     window.location.href = checkoutUrl;
   } catch (e) {
     error.value = e.message || i18n.__('Could not start checkout. Please try again.', 'bookyzo');
