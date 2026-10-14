@@ -4,7 +4,7 @@ Tags: booking calendar, appointment booking, event booking, table reservation, s
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.0
+Stable tag: 1.0.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -145,10 +145,25 @@ The admin app, the booking widget and the account page are Vue apps, built with 
 
 == Changelog ==
 
+= 1.0.1 - 14-10-2026 =
+* Fix: Reloading the page in the middle of the setup wizard no longer loses your answers — the Review step used to show an empty type and name and "Closed every day".
+* Fix: Notices from WordPress and other plugins on Bookyzo screens were half hidden behind the Bookyzo sidebar. They now appear under the page header, all in the same style, and can still be dismissed.
+* Fix: A blank strip above the WordPress admin menu on Bookyzo screens when PHP prints a warning.
+* Fix: Search boxes, date pickers and dropdowns now share one height, and the Currency setting fills its column.
+* Fix: In the booking form, the calendar now fills the form's width when the times are listed below it.
+* Fix: The WordPress admin menu lists Bookyzo's screens in the same order as Bookyzo's own sidebar, and no longer highlights Dashboard on add-on screens.
+* Tweak: The setup wizard's step bar fits the page and shows the current step's name; label and value on the Review step no longer run together.
+* Tweak: The Appearance preview shows the coming month instead of a fixed date.
+* Tweak: The sidebar shows the installed version number.
+* Dev: The Vue source and build setup are no longer bundled with the plugin; they are on GitHub (see the FAQ).
+
 = 1.0.0 - 01-10-2026 =
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.0.1 =
+Fixes the setup wizard losing its answers on reload, admin notices hidden behind the sidebar, and several layout issues.
 
 = 1.0.0 =
 Initial release.

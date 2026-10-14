@@ -59,7 +59,7 @@
     </nav>
 
     <div class="border-t px-4 py-3 text-xs" style="border-color: var(--byzo-border); color: var(--byzo-text-muted)">
-      {{ __('Bookyzo v1.0.0', 'bookyzo') }}
+      {{ sprintf(/*! translators: %s: plugin version number. */ __('Bookyzo v%s', 'bookyzo'), pluginVersion) }}
     </div>
   </aside>
 </template>
@@ -222,6 +222,8 @@ const SECTION_LABELS = {
 // call decides the WP submenu page (BYZO_Plugin::routes()) and the
 // Plugins-screen link, so this can never link to a 404.
 const showGetPro = !!(window.byzoAdmin && window.byzoAdmin.showGetPro);
+// BYZO_VERSION from PHP — the footer used to hardcode "v1.0.0".
+const pluginVersion = (window.byzoAdmin && window.byzoAdmin.version) || '';
 const getProItem = {
   to: '/get-pro',
   label: i18n.__('Get Pro', 'bookyzo'),

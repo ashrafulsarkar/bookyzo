@@ -196,7 +196,7 @@ class BYZO_Admin_Assets {
 		$currency = class_exists( 'BYZO_Settings' ) ? BYZO_Settings::get()['currency'] : 'USD';
 
 		return sprintf(
-			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s, showGetPro: %s, getProUrl: %s, documents: %s, staff: %s };',
+			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s, showGetPro: %s, getProUrl: %s, documents: %s, staff: %s, version: %s };',
 			wp_json_encode( admin_url( 'admin-post.php' ) ),
 			// Nonce action string must stay in sync with
 			// BYZO_Booking_Export::NONCE — not referencing the constant
@@ -227,7 +227,9 @@ class BYZO_Admin_Assets {
 			// A staff login's app shows only their own screens (QA report
 			// §6.2.9); null for admins. The REST routes enforce the same
 			// limits on their own — this only shapes the UI.
-			wp_json_encode( BYZO_Staff::is_staff() ? array( 'itemIds' => BYZO_Staff::item_ids() ) : null )
+			wp_json_encode( BYZO_Staff::is_staff() ? array( 'itemIds' => BYZO_Staff::item_ids() ) : null ),
+			// The sidebar footer shows it, so it can't fall behind a release.
+			wp_json_encode( BYZO_VERSION )
 		);
 	}
 
