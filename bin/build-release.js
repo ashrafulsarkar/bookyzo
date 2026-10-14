@@ -53,7 +53,14 @@ function isIgnored(relativePath, patterns) {
       const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
       return new RegExp(`^${escaped}$`).test(name);
     }
-    return topLevel === pattern || relativePath === pattern;
+    // rsync semantics, so this zip and the GitHub deploy ship the same
+    // files: "/name" is anchored to the plugin root, a bare "name"
+    // matches a file or folder of that name at any depth.
+    if (pattern.startsWith('/')) {
+      const anchored = pattern.slice(1).replace(/\/$/, '');
+      return relativePath.split(path.sep).join('/') === anchored || topLevel === anchored;
+    }
+    return relativePath.split(path.sep).includes(pattern);
   });
 }
 

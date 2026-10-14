@@ -132,7 +132,7 @@ As many as you need, of every type. There is no limit on bookable items, shifts 
 
 = Where is the source code for the JavaScript? =
 
-The admin app, the booking widget and the account page are Vue apps, built with Vite. Their source is included with the plugin in the `src/` folder, along with `package.json` and the Vite configuration. Run `npm install` and then `npm run build` to rebuild the files in `assets/`.
+The admin app, the booking widget and the account page are Vue apps, built with Vite into the minified files in `assets/`. Their full, human-readable source, with `package.json` and the Vite configuration, is public on GitHub: https://github.com/ashrafulsarkar/bookyzo. To rebuild, clone the repository, run `npm ci` and then `npm run build`.
 
 == Screenshots ==
 
@@ -145,7 +145,7 @@ The admin app, the booking widget and the account page are Vue apps, built with 
 
 == Changelog ==
 
-= 1.0.0 =
+= 1.0.0 - 01-10-2026 =
 * Initial release.
 
 == Upgrade Notice ==

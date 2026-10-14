@@ -1,0 +1,80 @@
+# Publishing a GitHub release builds the plugin and deploys it to the
+# WordPress.org plugin directory (SVN trunk + a tag named after the
+# release, and .wordpress-org/ → SVN assets/). The built zip is attached
+# to the release as well.
+#
+# Needs two repository secrets (Settings → Secrets and variables →
+# Actions): SVN_USERNAME and SVN_PASSWORD, the WordPress.org account that
+# has commit access to the plugin.
+#
+# What ships is everything in the repository plus the freshly built
+# assets/admin, assets/widget and assets/account, minus .distignore.
+
+name: Deploy to WordPress.org
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write # upload the zip to the release
+
+concurrency:
+  group: wporg-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Build and deploy
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The tag (with or without a leading "v") must match all three, or
+      # WordPress.org would serve a version that disagrees with itself.
+      - name: Check version numbers
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME#v}"
+          HEADER=$(sed -n 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*//p' bookyzo.php | head -n1 | tr -d '[:space:]')
+          CONSTANT=$(sed -n "s/^define( 'BYZO_VERSION', '\([^']*\)' );/\1/p" bookyzo.php | head -n1 | tr -d '[:space:]')
+          STABLE=$(sed -n 's/^Stable tag:[[:space:]]*//p' readme.txt | head -n1 | tr -d '[:space:]')
+          echo "Tag: $TAG | Version header: $HEADER | BYZO_VERSION: $CONSTANT | Stable tag: $STABLE"
+          if [ "$TAG" != "$HEADER" ] || [ "$TAG" != "$CONSTANT" ] || [ "$TAG" != "$STABLE" ]; then
+            echo "::error::Release tag $TAG must equal the Version header, BYZO_VERSION and readme.txt's Stable tag."
+            exit 1
+          fi
+          echo "version=$TAG" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build assets
+        run: npm run build
+
+      # The Ubuntu 24.04 runner image no longer ships Subversion.
+      - name: Install Subversion
+        run: sudo apt-get update && sudo apt-get install -y subversion
+
+      - name: Deploy to WordPress.org
+        id: deploy
+        uses: 10up/action-wordpress-plugin-deploy@stable
+        with:
+          generate-zip: true
+        env:
+          SVN_USERNAME: ${{ secrets.SVN_USERNAME }}
+          SVN_PASSWORD: ${{ secrets.SVN_PASSWORD }}
+          SLUG: bookyzo
+          VERSION: ${{ steps.version.outputs.version }}
+
+      - name: Attach zip to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release upload "$GITHUB_REF_NAME" "${{ steps.deploy.outputs.zip-path }}" --clobber

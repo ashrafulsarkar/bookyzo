@@ -1,37 +1,42 @@
-# Files and folders that must never ship in the WordPress.org release
-# zip (see bin/build-release.js, ROADMAP.md Phase 1 step 10). Mirrors
-# the codeholt-bundles-for-woocommerce precedent's .distignore, adapted
-# for Bookyzo's own root-level Vue source/tooling layout (see
-# ROADMAP.md Phase 1 step 1's "File layout — FINAL" note for why
-# src/, node_modules, and every build config live at the plugin root).
-.git
-.gitignore
-.gitattributes
-.github
-.distignore
-.editorconfig
-.claude
-.dev-server-running
+# Files and folders that must never ship in the WordPress.org release.
+# Read by bin/build-release.js (the local zip) and by the GitHub deploy
+# workflow (.github/workflows/deploy.yml), which hands it to rsync. A
+# leading "/" anchors a pattern to the plugin root — without it rsync
+# would also drop any nested folder of the same name.
+/.git
+/.gitignore
+/.gitattributes
+/.github
+/.distignore
+/.editorconfig
+/.claude
+/.dev-server-running
 # WordPress.org banners, icons and screenshots go to the SVN assets/
 # folder, not into the plugin.
-.wordpress-org
-DETAILED-SPEC.md
-ROADMAP.md
-FEATURES.md
-README.md
-bin
-node_modules
-release
-scratchpad
+/.wordpress-org
+/DETAILED-SPEC.md
+/ROADMAP.md
+/FEATURES.md
+/README.md
+/bin
+/node_modules
+/release
+/scratchpad
 *.zip
 *.log
 # Local QA notes, never shipped.
 BOOKYZO-QA-REPORT-*.md
-# Editor and shadcn-vue CLI settings; the build never reads them.
-jsconfig.json
-components.json
-# src/ and the build setup (package.json, package-lock.json, the vite,
-# tailwind and postcss configs) DO ship: the assets/ bundles are
-# minified, and WordPress.org requires the source that builds them to be
-# in the plugin (Guideline 4). readme.txt's FAQ says how to rebuild. Once
-# the repository is public, a link in readme.txt can replace them.
+# Vue source and the build setup. The repository is public, so
+# readme.txt's FAQ links to it for the source of the minified bundles in
+# assets/ (WordPress.org Guideline 4) instead of shipping it.
+/src
+/package.json
+/package-lock.json
+/vite.config.js
+/vite.widget.config.js
+/vite.account.config.js
+/vite.translator-comments.js
+/tailwind.config.js
+/postcss.config.js
+/jsconfig.json
+/components.json
