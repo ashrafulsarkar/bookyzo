@@ -90,6 +90,8 @@ Unlike `license-envato-pro`'s admin (which uses red-bold "Get Pro"/"Activate Lic
 
 - wp-admin chrome (WP menu/toolbar) stays native — the Vue app mounts into the page content area only, same as any other wp-admin screen, not a full takeover.
 - Internal navigation (Dashboard / Bookable Items / Calendar / Bookings / Settings) is a client-side Vue Router inside one top-level wp-admin menu page, not five separate `add_submenu_page()` PHP routes each bootstrapping their own Vue instance — keeps state (e.g. selected date range) alive across navigation and avoids five separate script bundles.
+- wp-admin notices (core update nag, other plugins' `admin_notices`, legacy `.updated`/`.error`) are moved by `src/lib/wp-notices.js` into one `.byzo-wp-notices` host directly under the screen's page header and restyled as one card family (`styles/tailwind.css`). Every screen must keep `ByzoPageHeader` (Pro: `.byzop-header`) as the first child of its root for that to work. Don't hide notices.
+- Form controls are 40px (`h-10`) everywhere, filter bars included — WP 7's forms.css gives native inputs `min-height: 40px`, so an `h-9` Input next to an `h-9` Select came out 40px vs 36px.
 - Match native WP admin conventions where Vue doesn't have a strong reason to diverge (list-table-style rows for the booking list, WP's own date-picker conventions) — the goal is "feels like a well-designed part of wp-admin," not "feels like an embedded unrelated web app."
 
 ## Sidebar nav is grouped into sections, not one flat list

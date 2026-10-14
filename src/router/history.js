@@ -72,6 +72,15 @@ if (staffMode) {
  * does have one. Anything unmatched falls back to the top-level page.
  */
 function slugFor(route) {
+  return rowSlugFor(route) || SLUG_FOR_ROUTE['/'];
+}
+
+/**
+ * The admin page whose left-nav row belongs to `route`, or null when none
+ * does — an add-on's own screen (`/pro/services`) rides on the dashboard
+ * slug in the URL, but highlighting the Dashboard row for it was wrong.
+ */
+function rowSlugFor(route) {
   if (SLUG_FOR_ROUTE[route]) {
     return SLUG_FOR_ROUTE[route];
   }
@@ -80,7 +89,7 @@ function slugFor(route) {
     .filter((path) => path !== '/' && route.startsWith(path + '/'))
     .sort((a, b) => b.length - a.length)[0];
 
-  return section ? SLUG_FOR_ROUTE[section] : SLUG_FOR_ROUTE['/'];
+  return section ? SLUG_FOR_ROUTE[section] : null;
 }
 
 function currentSearch() {
@@ -176,25 +185,29 @@ function syncMenuHighlight(route) {
     return;
   }
 
-  const target = submenu.querySelector('a[href$="admin.php?page=' + slugFor(route) + '"]');
+  const rowSlug = rowSlugFor(route);
+  const target = rowSlug ? submenu.querySelector('a[href$="admin.php?page=' + rowSlug + '"]') : null;
 
-  if (!target) {
+  if (rowSlug && !target) {
     return;
   }
 
-  // Clear only within our own submenu, then mark the active row. WP also
-  // sets aria-current="page" on the active link (screen-reader affordance,
-  // separate from the `current` class) — kept in sync the same way.
+  // Clear only within our own submenu, then mark the active row (none for
+  // a screen without one). WP also sets aria-current="page" on the active
+  // link (screen-reader affordance, separate from the `current` class) —
+  // kept in sync the same way.
   submenu.querySelectorAll('.current').forEach((el) => el.classList.remove('current'));
   submenu.querySelectorAll('a[aria-current="page"]').forEach((el) => el.removeAttribute('aria-current'));
 
-  target.classList.add('current');
-  target.setAttribute('aria-current', 'page');
+  if (target) {
+    target.classList.add('current');
+    target.setAttribute('aria-current', 'page');
 
-  const row = target.closest('li');
+    const row = target.closest('li');
 
-  if (row) {
-    row.classList.add('current');
+    if (row) {
+      row.classList.add('current');
+    }
   }
 
   // WordPress renders the open section with these on the top-level <li>.
