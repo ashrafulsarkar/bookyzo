@@ -316,15 +316,18 @@ class BYZO_Plugin {
 				'label' => __( 'Customers', 'bookyzo' ),
 				'title' => __( 'Bookyzo Customers', 'bookyzo' ),
 			),
-			'bookyzo-emails' => array(
-				'route' => '/settings/email-templates',
-				'label' => __( 'Emails', 'bookyzo' ),
-				'title' => __( 'Bookyzo Email Templates', 'bookyzo' ),
-			),
+			// Same order as ByzoSidebar.vue renders: its sections go
+			// Pricing & Payments before Customization, so Payments comes
+			// before Emails/Appearance in both menus.
 			'bookyzo-payments' => array(
 				'route' => '/settings/payments',
 				'label' => __( 'Payments', 'bookyzo' ),
 				'title' => __( 'Bookyzo Payment Settings', 'bookyzo' ),
+			),
+			'bookyzo-emails' => array(
+				'route' => '/settings/email-templates',
+				'label' => __( 'Emails', 'bookyzo' ),
+				'title' => __( 'Bookyzo Email Templates', 'bookyzo' ),
 			),
 			'bookyzo-appearance' => array(
 				'route' => '/settings/appearance',
