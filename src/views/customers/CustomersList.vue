@@ -30,7 +30,7 @@
         <Label class="text-xs font-medium text-muted-foreground" for="c-search">{{ __('Search', 'bookyzo') }}</Label>
         <div class="relative w-72">
           <SearchIcon class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input id="c-search" v-model="search" type="text" :placeholder="__('Name, email, or phone…', 'bookyzo')" class="h-9 !pl-9 !pr-8" />
+          <Input id="c-search" v-model="search" type="text" :placeholder="__('Name, email, or phone…', 'bookyzo')" class="h-10 !pl-9 !pr-8" />
           <button
             v-if="search"
             type="button"

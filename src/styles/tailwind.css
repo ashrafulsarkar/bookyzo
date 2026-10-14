@@ -111,6 +111,112 @@
   display: none;
 }
 
+/*
+ * wp-admin notices (src/lib/wp-notices.js moves them under the page
+ * header). Hidden where WordPress prints them until that runs, so they
+ * never flash above the app or push wp-admin's menu down with the update
+ * nag's collapsing top margin. Inside the host, core's notice, the update
+ * nag and the legacy `.updated`/`.error` boxes all get one look: a white
+ * card with a coloured left edge, like the rest of Bookyzo's cards.
+ * `.byzo-wp-notices > …` (two classes) outranks core's `div.updated`,
+ * `.notice` and `.update-nag` rules without !important.
+ */
+.byzo-admin-screen #wpbody-content > .notice,
+.byzo-admin-screen #wpbody-content > .update-nag,
+.byzo-admin-screen #wpbody-content > .updated,
+.byzo-admin-screen #wpbody-content > .error {
+  display: none;
+}
+
+/* Same 1.5rem side padding as every screen body (px-6), so the notices
+   line up with the cards under them at every width. */
+.byzo-wp-notices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.byzo-wp-notices:empty {
+  display: none;
+}
+
+/* Below 783px the page header isn't sticky and has no bottom margin, so
+   the notices need their own gap above. */
+@media screen and (max-width: 782px) {
+  .byzo-wp-notices {
+    margin-top: 0.25rem;
+  }
+}
+
+/* The setup wizard has no header — the notices sit above its step bar. */
+.byzo-setup > .byzo-wp-notices {
+  padding: 0;
+}
+
+.byzo-wp-notices > .notice,
+.byzo-wp-notices > .update-nag,
+.byzo-wp-notices > .updated,
+.byzo-wp-notices > .error {
+  position: relative;
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  margin: 0;
+  padding: 0.625rem 1rem;
+  background: var(--byzo-surface);
+  border: 1px solid var(--byzo-border);
+  border-left: 4px solid var(--byzo-text-muted);
+  border-radius: var(--byzo-radius-sm);
+  box-shadow: var(--byzo-shadow);
+  color: var(--byzo-text);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Doubled class: core's `div.updated p` / `div.error p` (0,1,2) would
+   otherwise keep their larger margins and the legacy boxes stand taller. */
+.byzo-wp-notices.byzo-wp-notices p {
+  margin: 0.25em 0;
+  padding: 0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.byzo-wp-notices > .notice-info {
+  border-left-color: var(--byzo-primary);
+}
+
+.byzo-wp-notices > .notice-success,
+.byzo-wp-notices > .updated {
+  border-left-color: var(--byzo-success);
+}
+
+.byzo-wp-notices > .notice-warning,
+.byzo-wp-notices > .update-nag {
+  border-left-color: var(--byzo-warning);
+}
+
+.byzo-wp-notices > .notice-error,
+.byzo-wp-notices > .error {
+  border-left-color: var(--byzo-danger);
+}
+
+.byzo-wp-notices > .is-dismissible {
+  padding-right: 2.75rem;
+}
+
+.byzo-wp-notices > .is-dismissible .notice-dismiss {
+  top: 50%;
+  right: 0.25rem;
+  transform: translateY(-50%);
+}
+
+.byzo-wp-notices a {
+  color: var(--byzo-primary);
+}
+
 .byzo-admin-screen #byzo-admin-app {
   /* The mount point is the shell's height source — without this the
      100vh-based min-height on .byzo-shell has nothing to stretch inside. */
@@ -156,6 +262,15 @@
     display: none;
   }
 
+  /* WordPress adds body.php-error when PHP printed a warning before the
+     admin header (WP_DEBUG with display_errors on) and pushes the menu
+     2em down to make room for it. On a pinned menu that only leaves a
+     white strip between the admin bar and the menu. */
+  .byzo-admin-screen.php-error #adminmenuwrap,
+  .byzo-admin-screen.php-error #adminmenuback {
+    margin-top: 0;
+  }
+
   .byzo-admin-screen #adminmenu .wp-not-current-submenu .wp-submenu,
   .byzo-admin-screen.folded #adminmenu li.menu-top .wp-submenu {
     position: fixed;
@@ -197,6 +312,12 @@
   border-radius: var(--byzo-radius-sm);
   border: 1px solid hsl(var(--input));
   background-color: hsl(var(--background));
+}
+
+/* forms.css also caps every select at `max-width: 25rem`, so a w-full
+   select (Settings → Currency) stopped short of the inputs beside it. */
+#byzo-admin-app select {
+  max-width: none;
 }
 
 /*

@@ -445,7 +445,17 @@
   container-type: inline-size;
 }
 
-@container (max-width: 520px) {
+/* 560px: the calendar (320) + gap (22) + the times' 200px basis need
+   542px side by side, so anything narrower has already wrapped. Once
+   wrapped, the calendar spans the row like the times under it — at its
+   natural 320px it sat left-aligned in the default 460px widget with an
+   empty strip beside it. The grid's space-between spreads the days. */
+@container (max-width: 560px) {
+  .bookyzo-widget .picker .cal {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
   .bookyzo-widget .picker .times-scroll {
     overflow-y: visible;
     max-height: none;

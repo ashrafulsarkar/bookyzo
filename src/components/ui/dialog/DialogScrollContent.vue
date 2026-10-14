@@ -64,7 +64,7 @@ const forwarded = useForwardPropsEmits(delegatedProps, emits);
         <slot />
 
         <DialogClose
-          class="absolute top-3 right-3 p-0.5 transition-colors rounded-md hover:bg-secondary"
+          class="absolute top-3 right-3 rounded-md p-0.5 opacity-70 ring-offset-background transition-opacity hover:bg-secondary hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
         >
           <X class="w-4 h-4" />
           <span class="sr-only">{{ __('Close', 'bookyzo') }}</span>

@@ -1,6 +1,6 @@
 <template>
   <Dialog :open="open" @update:open="(v) => !v && close()">
-    <DialogScrollContent class="max-w-xl" @pointer-down-outside="onPointerDownOutside" @escape-key-down="onEscapeKeyDown">
+    <DialogScrollContent class="max-w-xl outline-none" @open-auto-focus="onOpenAutoFocus" @pointer-down-outside="onPointerDownOutside" @escape-key-down="onEscapeKeyDown">
       <DialogHeader>
         <DialogTitle>{{ isEdit ? __('Edit bookable item', 'bookyzo') : __('Add bookable item', 'bookyzo') }}</DialogTitle>
         <DialogDescription>
@@ -536,6 +536,15 @@ function onEscapeKeyDown(event) {
   if (saving.value || document.body.classList.contains('modal-open')) {
     event.preventDefault();
   }
+}
+
+// The edit form renders only once the item has loaded, so on open the X
+// was the only focusable element and got the focus (and its ring) every
+// time. Keep focus on the dialog itself instead — Tab still reaches the
+// fields, and Esc/the X still close it.
+function onOpenAutoFocus(event) {
+  event.preventDefault();
+  event.target?.focus?.({ preventScroll: true });
 }
 
 function close() {

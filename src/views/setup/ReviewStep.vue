@@ -5,29 +5,29 @@
       <CardDescription>{{ __('Everything looks right? Create your first bookable item and finish setup.', 'bookyzo') }}</CardDescription>
     </CardHeader>
     <CardContent class="flex flex-col gap-3 text-sm">
-      <div class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">{{ __('Type', 'bookyzo') }}</span>
-        <span class="font-medium">{{ typeLabel }}</span>
+      <div class="flex justify-between gap-4 border-b border-border pb-2">
+        <span class="shrink-0 text-muted-foreground">{{ __('Type', 'bookyzo') }}</span>
+        <span class="text-right font-medium">{{ typeLabel }}</span>
       </div>
-      <div class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">{{ __('Name', 'bookyzo') }}</span>
-        <span class="font-medium">{{ data.name }}</span>
+      <div class="flex justify-between gap-4 border-b border-border pb-2">
+        <span class="shrink-0 text-muted-foreground">{{ __('Name', 'bookyzo') }}</span>
+        <span class="text-right font-medium">{{ data.name }}</span>
       </div>
-      <div v-if="data.type !== 'event'" class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">{{ __('Duration', 'bookyzo') }}</span>
-        <span class="font-medium">{{ sprintf(/*! translators: %s: number of minutes. */ _n('%s minute', '%s minutes', data.duration_minutes, 'bookyzo'), data.duration_minutes) }}</span>
+      <div v-if="data.type !== 'event'" class="flex justify-between gap-4 border-b border-border pb-2">
+        <span class="shrink-0 text-muted-foreground">{{ __('Duration', 'bookyzo') }}</span>
+        <span class="text-right font-medium">{{ sprintf(/*! translators: %s: number of minutes. */ _n('%s minute', '%s minutes', data.duration_minutes, 'bookyzo'), data.duration_minutes) }}</span>
       </div>
-      <div v-if="data.type !== 'appointment'" class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">{{ __('Capacity', 'bookyzo') }}</span>
-        <span class="font-medium">{{ data.capacity }}</span>
+      <div v-if="data.type !== 'appointment'" class="flex justify-between gap-4 border-b border-border pb-2">
+        <span class="shrink-0 text-muted-foreground">{{ __('Capacity', 'bookyzo') }}</span>
+        <span class="text-right font-medium">{{ data.capacity }}</span>
       </div>
-      <div class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">{{ data.type === 'event' ? __('Dates', 'bookyzo') : __('Availability', 'bookyzo') }}</span>
-        <span class="font-medium">{{ availabilitySummary }}</span>
+      <div class="flex justify-between gap-4 border-b border-border pb-2">
+        <span class="shrink-0 text-muted-foreground">{{ data.type === 'event' ? __('Dates', 'bookyzo') : __('Availability', 'bookyzo') }}</span>
+        <span class="text-right font-medium">{{ availabilitySummary }}</span>
       </div>
-      <div class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">{{ __('Price', 'bookyzo') }}</span>
-        <span class="font-medium">{{ formatMoney(data.price, { currency: data.currency, emptyLabel: __('Free', 'bookyzo') }) }}</span>
+      <div class="flex justify-between gap-4 border-b border-border pb-2">
+        <span class="shrink-0 text-muted-foreground">{{ __('Price', 'bookyzo') }}</span>
+        <span class="text-right font-medium">{{ formatMoney(data.price, { currency: data.currency, emptyLabel: __('Free', 'bookyzo') }) }}</span>
       </div>
       <div v-if="data.location" class="flex justify-between gap-4 border-b border-border pb-2">
         <span class="shrink-0 text-muted-foreground">{{ __('Location', 'bookyzo') }}</span>
@@ -37,17 +37,17 @@
         <span class="shrink-0 text-muted-foreground">{{ __('Meeting link', 'bookyzo') }}</span>
         <span class="break-words text-right font-medium">{{ data.meeting_link }}</span>
       </div>
-      <div class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">{{ __('Phone required', 'bookyzo') }}</span>
-        <span class="font-medium">{{ data.require_phone ? __('Yes', 'bookyzo') : __('No', 'bookyzo') }}</span>
+      <div class="flex justify-between gap-4 border-b border-border pb-2">
+        <span class="shrink-0 text-muted-foreground">{{ __('Phone required', 'bookyzo') }}</span>
+        <span class="text-right font-medium">{{ data.require_phone ? __('Yes', 'bookyzo') : __('No', 'bookyzo') }}</span>
       </div>
-      <div class="flex justify-between border-b border-border pb-2">
-        <span class="text-muted-foreground">{{ __('New bookings are', 'bookyzo') }}</span>
-        <span class="font-medium">{{ data.auto_confirm ? __('Auto-confirmed', 'bookyzo') : __('Pending review', 'bookyzo') }}</span>
+      <div class="flex justify-between gap-4 border-b border-border pb-2">
+        <span class="shrink-0 text-muted-foreground">{{ __('New bookings are', 'bookyzo') }}</span>
+        <span class="text-right font-medium">{{ data.auto_confirm ? __('Auto-confirmed', 'bookyzo') : __('Pending review', 'bookyzo') }}</span>
       </div>
-      <div class="flex justify-between">
-        <span class="text-muted-foreground">{{ __('Notifications', 'bookyzo') }}</span>
-        <span class="font-medium">{{ notificationsSummary }}</span>
+      <div class="flex justify-between gap-4">
+        <span class="shrink-0 text-muted-foreground">{{ __('Notifications', 'bookyzo') }}</span>
+        <span class="text-right font-medium">{{ notificationsSummary }}</span>
       </div>
 
       <p v-if="error" class="text-sm text-destructive">{{ error }}</p>

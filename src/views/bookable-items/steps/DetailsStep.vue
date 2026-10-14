@@ -67,7 +67,7 @@
       <div v-if="!compact" class="flex flex-col gap-1.5">
         <Label>{{ __('Status', 'bookyzo') }}</Label>
         <Select v-model="form.status">
-          <SelectTrigger class="h-9"><SelectValue /></SelectTrigger>
+          <SelectTrigger class="h-10"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="active">{{ __('Active', 'bookyzo') }}</SelectItem>
             <SelectItem value="inactive">{{ __('Inactive', 'bookyzo') }}</SelectItem>

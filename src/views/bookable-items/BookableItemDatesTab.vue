@@ -8,7 +8,7 @@
       <CardContent class="flex flex-col gap-4">
         <div class="flex flex-col gap-1.5">
           <Label for="occurrence-date">{{ __('Date', 'bookyzo') }}</Label>
-          <Input id="occurrence-date" v-model="draft.date" type="date" class="h-9 w-48" />
+          <Input id="occurrence-date" v-model="draft.date" type="date" class="h-10 w-48" />
         </div>
 
         <div class="flex items-center gap-2">

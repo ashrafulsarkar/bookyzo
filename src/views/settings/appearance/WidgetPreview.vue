@@ -63,7 +63,7 @@
 
           <template v-else-if="step === 'time'">
             <h2 class="byzo-preview__title">{{ __('Pick a time', 'bookyzo') }}</h2>
-            <p class="byzo-preview__subtitle">{{ __('Maya Chen — Senior Stylist', 'bookyzo') }}</p>
+            <p class="byzo-preview__subtitle">{{ services[0].name }}</p>
 
             <!-- Month calendar beside grouped times, same as StepSlot.vue's
                  real .picker layout (not the old flat run of date chips). -->
@@ -71,7 +71,7 @@
               <div class="byzo-preview__cal">
                 <div class="byzo-preview__cal-head">
                   <span class="byzo-preview__cal-nav">&#8249;</span>
-                  <span class="byzo-preview__cal-title">{{ __('September 2026', 'bookyzo') }}</span>
+                  <span class="byzo-preview__cal-title">{{ monthLabel }}</span>
                   <span class="byzo-preview__cal-nav">&#8250;</span>
                 </div>
                 <div class="byzo-preview__cal-grid byzo-preview__cal-dow">
@@ -92,20 +92,20 @@
               </div>
 
               <div class="byzo-preview__times">
-                <div class="byzo-preview__times-head">{{ __('Thursday, September 10', 'bookyzo') }}</div>
+                <div class="byzo-preview__times-head">{{ selectedDayLabel }}</div>
                 <div class="byzo-preview__time-group">
                   <div class="byzo-preview__time-group-label">{{ __('Morning', 'bookyzo') }}</div>
                   <div class="byzo-preview__chips">
-                    <span class="byzo-preview__chip">9:00</span>
-                    <span class="byzo-preview__chip byzo-preview__chip--selected">10:50</span>
-                    <span class="byzo-preview__chip">11:30</span>
+                    <span class="byzo-preview__chip">{{ timeLabel(9, 0) }}</span>
+                    <span class="byzo-preview__chip byzo-preview__chip--selected">{{ timeLabel(10, 30) }}</span>
+                    <span class="byzo-preview__chip">{{ timeLabel(11, 30) }}</span>
                   </div>
                 </div>
                 <div class="byzo-preview__time-group">
                   <div class="byzo-preview__time-group-label">{{ __('Afternoon', 'bookyzo') }}</div>
                   <div class="byzo-preview__chips">
-                    <span class="byzo-preview__chip">12:40</span>
-                    <span class="byzo-preview__chip">2:15</span>
+                    <span class="byzo-preview__chip">{{ timeLabel(12, 30) }}</span>
+                    <span class="byzo-preview__chip">{{ timeLabel(14, 15) }}</span>
                   </div>
                 </div>
               </div>
@@ -125,11 +125,11 @@
             <div class="byzo-preview__summary">
               <div class="byzo-preview__summary-row">
                 <span class="byzo-preview__summary-label">{{ __('Service', 'bookyzo') }}</span>
-                <span class="byzo-preview__summary-value">{{ __('Maya Chen — Senior Stylist', 'bookyzo') }}</span>
+                <span class="byzo-preview__summary-value">{{ services[0].name }}</span>
               </div>
               <div class="byzo-preview__summary-row">
                 <span class="byzo-preview__summary-label">{{ __('When', 'bookyzo') }}</span>
-                <span class="byzo-preview__summary-value">{{ __('Thu 10 Sept, 10:50', 'bookyzo') }}</span>
+                <span class="byzo-preview__summary-value">{{ whenLabel }}</span>
               </div>
               <div class="byzo-preview__summary-row byzo-preview__summary-row--total">
                 <span class="byzo-preview__summary-label">{{ __('Total', 'bookyzo') }}</span>
@@ -174,8 +174,9 @@
 </template>
 
 <script setup>
-import { i18n } from '@/lib/i18n';
+import { i18n, locale } from '@/lib/i18n';
 import { ref, computed } from 'vue';
+import { addDays, startOfMonth, endOfMonth, formatDayLabel, formatMonthLabel, formatTime } from '@/lib/date';
 
 const props = defineProps({
   appearance: { type: Object, required: true },
@@ -204,19 +205,32 @@ const dayNames = [
   i18n._x('Sa', 'Saturday, two letters', 'bookyzo'),
 ];
 
-// September 2026 starts on a Tuesday — 2 leading blanks, then 30 days.
-// A handful marked "open" (bookable) and one "selected", the rest muted,
-// same three cell states StepSlot.vue's real calendar uses.
-const OPEN_DAYS = new Set([3, 4, 8, 11, 15, 17, 18, 22, 24, 25, 29]);
-const SELECTED_DAY = 10;
+// Tomorrow's month, in the site's language — a fixed sample month went
+// stale as soon as it passed. Tomorrow is "selected", later days are open
+// except Sundays and every third day (so all three cell states StepSlot.vue's
+// real calendar uses show), earlier days are muted.
+const selectedDate = addDays(new Date(), 1);
+const previewMonth = startOfMonth(selectedDate);
+const monthLabel = formatMonthLabel(previewMonth);
+const selectedDayLabel = selectedDate.toLocaleDateString(locale, { weekday: 'long', month: 'long', day: 'numeric' });
+
+function timeLabel(hours, minutes) {
+  const date = new Date(selectedDate);
+  date.setHours(hours, minutes, 0, 0);
+  return formatTime(date);
+}
+
+const whenLabel = `${formatDayLabel(selectedDate)}, ${timeLabel(10, 30)}`;
 
 const calendarCells = computed(() => {
-  const cells = new Array(2).fill(null);
-  for (let day = 1; day <= 30; day += 1) {
-    cells.push({
-      day,
-      state: day === SELECTED_DAY ? 'selected' : OPEN_DAYS.has(day) ? 'open' : 'muted',
-    });
+  const cells = new Array(previewMonth.getDay()).fill(null);
+  const selectedDay = selectedDate.getDate();
+  for (let day = 1; day <= endOfMonth(previewMonth).getDate(); day += 1) {
+    const weekday = new Date(previewMonth.getFullYear(), previewMonth.getMonth(), day).getDay();
+    let state = 'muted';
+    if (day === selectedDay) state = 'selected';
+    else if (day > selectedDay && weekday !== 0 && day % 3 !== 0) state = 'open';
+    cells.push({ day, state });
   }
   return cells;
 });
@@ -447,8 +461,10 @@ const previewStyle = computed(() => {
   gap: 16px;
 }
 
+/* Spans the row, matching the real widget at its default width (where the
+   times wrap under the calendar — widget.css's container query). */
 .byzo-preview__cal {
-  flex: 0 0 auto;
+  flex: 1 1 100%;
   background: #f6f7f9;
   border-radius: var(--byzo-radius-sm);
   padding: 10px 12px;

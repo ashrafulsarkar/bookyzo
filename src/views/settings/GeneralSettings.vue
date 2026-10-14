@@ -36,7 +36,7 @@
                      change it. (This used to be an editable field that was
                      saved but never used.) -->
                 <Label>{{ __('Timezone', 'bookyzo') }}</Label>
-                <p id="s-timezone" class="flex h-9 items-center text-sm">{{ timezoneLabel }}</p>
+                <p id="s-timezone" class="flex h-10 items-center text-sm">{{ timezoneLabel }}</p>
                 <p class="text-xs text-muted-foreground">
                   {{ __('Bookyzo uses your site\'s timezone.', 'bookyzo') }}
                   <a href="options-general.php#timezone_string" class="text-primary underline-offset-2 hover:underline">{{ __('Change it in Settings → General', 'bookyzo') }}</a>.
@@ -52,7 +52,7 @@
                 <select
                   id="s-currency"
                   v-model="form.currency"
-                  class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
                 >
                   <option v-for="code in currencyOptions" :key="code" :value="code">{{ currencyLabel(code) }}</option>
                 </select>

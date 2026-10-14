@@ -1,42 +1,49 @@
 <template>
-  <div class="byzo-setup mx-auto max-w-xl px-6 py-12">
-    <div class="mb-8 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <div
-          v-for="(label, index) in stepLabels"
-          :key="label"
-          class="flex items-center gap-2"
-        >
-          <div
-            :title="label"
-            :aria-current="index === currentIndex ? 'step' : undefined"
-            :class="[
-              'flex h-7 w-7 items-center justify-center rounded-full text-xs font-medium',
-              index < currentIndex
-                ? 'bg-primary text-primary-foreground'
-                : index === currentIndex
-                  ? 'border-2 border-primary text-primary'
-                  : 'border border-border text-muted-foreground',
-            ]"
-          >
-            {{ index + 1 }}
-          </div>
-          <div
-            v-if="index < stepLabels.length - 1"
-            class="h-px w-8"
-            :class="index < currentIndex ? 'bg-primary' : 'bg-border'"
-          />
-        </div>
-      </div>
+  <div class="byzo-setup mx-auto max-w-xl px-4 py-12 sm:px-6">
+    <!-- The step dots stretch to the card's own width (flex-1 connectors)
+         instead of a fixed 32px each — nine fixed-width steps plus the
+         Skip link ran ~140px past the card on the right. -->
+    <div class="mb-3 flex min-h-5 items-center justify-between gap-4 text-sm">
+      <span v-if="currentIndex >= 0 && currentIndex < stepLabels.length" class="text-muted-foreground">
+        {{ sprintf(/*! translators: 1: current step number, 2: total steps, 3: step name. */ __('Step %1$s of %2$s · %3$s', 'bookyzo'), currentIndex + 1, stepLabels.length, stepLabels[currentIndex]) }}
+      </span>
       <button
         v-if="!['review', 'done'].includes(state.step)"
         type="button"
-        class="text-sm text-muted-foreground underline-offset-4 hover:underline"
+        class="ml-auto shrink-0 whitespace-nowrap text-muted-foreground underline-offset-4 hover:underline"
         @click="skip"
       >
         {{ __('Skip setup', 'bookyzo') }}
       </button>
     </div>
+    <ol class="mb-8 flex w-full items-center">
+      <li
+        v-for="(label, index) in stepLabels"
+        :key="label"
+        class="flex items-center"
+        :class="index < stepLabels.length - 1 ? 'flex-1' : ''"
+      >
+        <div
+          :title="label"
+          :aria-current="index === currentIndex ? 'step' : undefined"
+          :class="[
+            'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-medium sm:h-7 sm:w-7',
+            index < currentIndex
+              ? 'bg-primary text-primary-foreground'
+              : index === currentIndex
+                ? 'border-2 border-primary text-primary'
+                : 'border border-border text-muted-foreground',
+          ]"
+        >
+          {{ index + 1 }}
+        </div>
+        <div
+          v-if="index < stepLabels.length - 1"
+          class="mx-1 h-px flex-1 sm:mx-2"
+          :class="index < currentIndex ? 'bg-primary' : 'bg-border'"
+        />
+      </li>
+    </ol>
 
     <!-- Each step is v-if-mounted, so its local form state dies on Back.
          `:initial` hands the accumulated wizardData back in and every step
@@ -149,11 +156,8 @@ const state = ref({ step: 'welcome', skipped: false, needed: true });
 // ONCE, from the Review step's Create action (DETAILED-SPEC.md §A1:
 // "Create action — unchanged endpoint sequence... no new REST calls"
 // from Review itself) — unlike the old wizard, where each step saved
-// immediately. Known trade-off: reloading the browser mid-wizard still
-// resumes at the right STEP (byzo_setup_step persists server-side), but
-// this accumulated data does not survive a real page reload, only a
-// same-session step-back/forward. Not built out further since nothing
-// in the spec calls for full draft persistence.
+// immediately. byzo_setup_step persists the STEP server-side; the answers
+// themselves survive a reload through the browser draft below.
 //
 // `schedules: null` (not []) until the Availability step has been visited
 // — AvailabilityStep.vue reads null as "seed every day from the default
@@ -196,13 +200,67 @@ const currentIndex = computed(() => {
   return order.indexOf(state.value.step);
 });
 
+// The step is saved server-side (byzo_setup_step) but the answers only
+// live in wizardData, so a reload used to resume at Review with an empty
+// type and name and "Closed every day" — one click from creating a broken
+// item. The answers are now kept in this browser too, and a resume that
+// still lacks them is sent back to the first step that asks for them.
+// Keyed by admin path so two sites on one host don't share a draft.
+const DRAFT_KEY = `byzo_setup_draft:${window.location.pathname}`;
+const STEP_ORDER = ['welcome', 'booking_type', 'business_profile', 'booking_details', 'availability', 'customer_fields', 'pricing', 'confirmation', 'review', 'done'];
+
+function saveDraft() {
+  try {
+    window.localStorage.setItem(DRAFT_KEY, JSON.stringify(wizardData));
+  } catch (e) {
+    // Storage blocked (private window, quota) — same-session Back/Next still works.
+  }
+}
+
+function loadDraft() {
+  try {
+    const raw = window.localStorage.getItem(DRAFT_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch (e) {
+    return null;
+  }
+}
+
+function clearDraft() {
+  try {
+    window.localStorage.removeItem(DRAFT_KEY);
+  } catch (e) {
+    // Nothing to clear.
+  }
+}
+
+/** The earliest step whose answer the resumed step depends on but is missing. */
+function firstMissingStep(step) {
+  const at = STEP_ORDER.indexOf(step);
+  if (at > STEP_ORDER.indexOf('booking_type') && !wizardData.type) return 'booking_type';
+  if (at > STEP_ORDER.indexOf('booking_details') && !String(wizardData.name || '').trim()) return 'booking_details';
+  if (at > STEP_ORDER.indexOf('availability') && 'event' !== wizardData.type && null === wizardData.schedules) return 'availability';
+  return null;
+}
+
 onMounted(async () => {
   try {
-    state.value = await api.get('/setup');
-    if (!state.value.needed) {
+    const loaded = await api.get('/setup');
+    if (!loaded.needed) {
+      clearDraft();
+      state.value = loaded;
       markSetupComplete();
       router.replace({ name: 'dashboard' });
+      return;
     }
+    const draft = loadDraft();
+    if (draft && 'object' === typeof draft) {
+      Object.keys(wizardData).forEach((key) => {
+        if (key in draft) wizardData[key] = draft[key];
+      });
+    }
+    const missing = 'done' === loaded.step ? null : firstMissingStep(loaded.step);
+    state.value = missing ? await api.put('/setup', { step: missing }) : loaded;
   } catch (error) {
     // Setup state failing to load shouldn't strand the owner on a blank
     // page — fall back to step 1 rather than showing an error screen for
@@ -212,6 +270,7 @@ onMounted(async () => {
 });
 
 async function advanceTo(step) {
+  saveDraft();
   state.value = await api.put('/setup', { step });
 }
 
@@ -275,6 +334,7 @@ async function createEverything() {
     createdId.value = null;
     createdType.value = '';
     state.value = await api.put('/setup', { step: 'done' });
+    clearDraft();
     // Tell the route guard setup is done now, even though SuccessStep is
     // shown in place rather than redirecting immediately — its own
     // "View Dashboard" button is what actually navigates away.
@@ -305,6 +365,7 @@ function goAddAnother() {
 
 async function skip() {
   await api.put('/setup', { skip: true });
+  clearDraft();
   markSetupComplete();
   router.replace({ name: 'dashboard' });
 }

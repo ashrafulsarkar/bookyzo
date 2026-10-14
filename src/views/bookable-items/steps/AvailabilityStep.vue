@@ -14,17 +14,17 @@
         <div class="flex flex-wrap items-end gap-3">
           <div class="flex flex-col gap-1.5">
             <Label for="wizard-occurrence-date">{{ __('Date', 'bookyzo') }}</Label>
-            <Input id="wizard-occurrence-date" v-model="occurrenceDraft.date" type="date" class="h-9 w-44" />
+            <Input id="wizard-occurrence-date" v-model="occurrenceDraft.date" type="date" class="h-10 w-44" />
           </div>
           <div class="flex flex-col gap-1.5">
             <Label for="wizard-occurrence-start">{{ __('Time', 'bookyzo') }}</Label>
             <div class="flex items-center gap-2">
-              <Input id="wizard-occurrence-start" v-model="occurrenceDraft.start_time" type="time" class="h-9 w-auto" />
+              <Input id="wizard-occurrence-start" v-model="occurrenceDraft.start_time" type="time" class="h-10 w-auto" />
               <span class="text-sm text-muted-foreground">{{ __('to', 'bookyzo') }}</span>
-              <Input v-model="occurrenceDraft.end_time" type="time" class="h-9 w-auto" />
+              <Input v-model="occurrenceDraft.end_time" type="time" class="h-10 w-auto" />
             </div>
           </div>
-          <Button variant="outline" class="h-9" @click="addOccurrence">{{ __('Add date', 'bookyzo') }}</Button>
+          <Button variant="outline" class="h-10" @click="addOccurrence">{{ __('Add date', 'bookyzo') }}</Button>
         </div>
 
         <div v-if="occurrences.length > 0" class="divide-y divide-border rounded-lg border border-border">
@@ -70,18 +70,18 @@
           <div class="mt-3 flex flex-wrap items-end gap-3">
             <div class="flex flex-col gap-1.5">
               <Label for="wizard-exception-date">{{ __('Date', 'bookyzo') }}</Label>
-              <Input id="wizard-exception-date" v-model="exceptionDraft.date" type="date" class="h-9 w-44" />
+              <Input id="wizard-exception-date" v-model="exceptionDraft.date" type="date" class="h-10 w-44" />
             </div>
-            <label class="flex h-9 items-center gap-2 text-sm">
+            <label class="flex h-10 items-center gap-2 text-sm">
               <Switch v-model="exceptionDraft.is_closed" />
               {{ __('Fully closed', 'bookyzo') }}
             </label>
-            <div v-if="!exceptionDraft.is_closed" class="flex h-9 items-center gap-2">
-              <Input v-model="exceptionDraft.start_time" type="time" class="h-9 w-auto" />
+            <div v-if="!exceptionDraft.is_closed" class="flex h-10 items-center gap-2">
+              <Input v-model="exceptionDraft.start_time" type="time" class="h-10 w-auto" />
               <span class="text-sm text-muted-foreground">{{ __('to', 'bookyzo') }}</span>
-              <Input v-model="exceptionDraft.end_time" type="time" class="h-9 w-auto" />
+              <Input v-model="exceptionDraft.end_time" type="time" class="h-10 w-auto" />
             </div>
-            <Button variant="outline" class="h-9" @click="addException">{{ __('Add exception', 'bookyzo') }}</Button>
+            <Button variant="outline" class="h-10" @click="addException">{{ __('Add exception', 'bookyzo') }}</Button>
           </div>
 
           <div v-if="exceptions.length > 0" class="mt-3 divide-y divide-border rounded-lg border border-border">

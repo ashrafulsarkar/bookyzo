@@ -92,7 +92,7 @@
             <p v-else-if="slots.length === 0" class="text-sm text-muted-foreground">{{ __('No other available times.', 'bookyzo') }}</p>
             <template v-else>
               <Select v-model="rescheduleDate">
-                <SelectTrigger id="reschedule-date" class="h-9"><SelectValue /></SelectTrigger>
+                <SelectTrigger id="reschedule-date" class="h-10"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem v-for="day in slotDays" :key="day.key" :value="day.key">{{ day.label }} ({{ day.slots.length }})</SelectItem>
                 </SelectContent>

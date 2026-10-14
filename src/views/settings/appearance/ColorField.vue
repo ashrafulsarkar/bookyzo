@@ -10,7 +10,7 @@
       <input
         :id="id"
         type="color"
-        class="h-9 w-12 cursor-pointer rounded-md border border-input bg-background p-1"
+        class="h-10 w-12 cursor-pointer rounded-md border border-input bg-background p-1"
         :value="modelValue"
         @input="commit($event.target.value)"
       />

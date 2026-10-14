@@ -18,7 +18,7 @@
       <div v-if="!loading && items.length > 0" class="mb-4 flex flex-col gap-1.5">
         <Label class="text-xs text-muted-foreground">{{ __('Type', 'bookyzo') }}</Label>
         <Select v-model="typeFilter">
-          <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger class="h-10 w-40"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">{{ __('All', 'bookyzo') }}</SelectItem>
             <SelectItem v-for="type in TYPES" :key="type" :value="type">{{ TYPE_LABELS[type] }}</SelectItem>

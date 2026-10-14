@@ -21,7 +21,7 @@
       <div class="mb-4 flex flex-wrap items-end gap-4 rounded-lg border border-border bg-muted/30 p-4">
         <div class="flex flex-col gap-1.5">
           <Label for="bookings-search" class="text-xs font-medium text-muted-foreground">{{ __('Search', 'bookyzo') }}</Label>
-          <Input id="bookings-search" v-model="filters.search" type="search" :placeholder="__('Name, email or phone', 'bookyzo')" class="h-9 w-56" />
+          <Input id="bookings-search" v-model="filters.search" type="search" :placeholder="__('Name, email or phone', 'bookyzo')" class="h-10 w-56" />
         </div>
 
         <div class="flex flex-col gap-1.5">
@@ -31,7 +31,7 @@
               <Button
                 type="button"
                 variant="outline"
-                class="h-9 w-40 justify-start font-normal"
+                class="h-10 w-40 justify-start font-normal"
                 :class="!filters.from && 'text-muted-foreground'"
               >
                 <CalendarIcon class="h-4 w-4 shrink-0" />
@@ -50,7 +50,7 @@
               <Button
                 type="button"
                 variant="outline"
-                class="h-9 w-40 justify-start font-normal"
+                class="h-10 w-40 justify-start font-normal"
                 :class="!filters.to && 'text-muted-foreground'"
               >
                 <CalendarIcon class="h-4 w-4 shrink-0" />
@@ -65,7 +65,7 @@
         <div class="flex flex-col gap-1.5">
           <Label class="text-xs font-medium text-muted-foreground">{{ __('Bookable item', 'bookyzo') }}</Label>
           <Select v-model="filters.bookable_item_id">
-            <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger class="h-10 w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">{{ __('All', 'bookyzo') }}</SelectItem>
               <SelectItem v-for="item in items" :key="item.id" :value="String(item.id)">{{ item.name }}</SelectItem>
@@ -75,7 +75,7 @@
         <div v-if="locations.length" class="flex flex-col gap-1.5">
           <Label class="text-xs font-medium text-muted-foreground">{{ __('Location', 'bookyzo') }}</Label>
           <Select v-model="filters.location_id">
-            <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger class="h-10 w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">{{ __('All', 'bookyzo') }}</SelectItem>
               <SelectItem v-for="location in locations" :key="location.id" :value="String(location.id)">{{ location.name }}</SelectItem>
@@ -85,7 +85,7 @@
         <div class="flex flex-col gap-1.5">
           <Label class="text-xs font-medium text-muted-foreground">{{ __('Status', 'bookyzo') }}</Label>
           <Select v-model="filters.status">
-            <SelectTrigger class="h-9 w-40"><SelectValue /></SelectTrigger>
+            <SelectTrigger class="h-10 w-40"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="__all__">{{ __('All', 'bookyzo') }}</SelectItem>
               <SelectItem v-for="status in statuses" :key="status" :value="status">{{ statusLabel(status) }}</SelectItem>

@@ -9,14 +9,14 @@
       </template>
       <template #actions>
         <Select v-model="itemFilter">
-          <SelectTrigger class="h-9 w-44"><SelectValue /></SelectTrigger>
+          <SelectTrigger class="h-10 w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">{{ __('All bookable items', 'bookyzo') }}</SelectItem>
             <SelectItem v-for="item in items" :key="item.id" :value="String(item.id)">{{ item.name }}</SelectItem>
           </SelectContent>
         </Select>
         <Select v-if="locations.length" v-model="locationFilter">
-          <SelectTrigger class="h-9 w-44"><SelectValue /></SelectTrigger>
+          <SelectTrigger class="h-10 w-44"><SelectValue /></SelectTrigger>
           <SelectContent>
             <SelectItem value="__all__">{{ __('All locations', 'bookyzo') }}</SelectItem>
             <SelectItem v-for="location in locations" :key="location.id" :value="String(location.id)">{{ location.name }}</SelectItem>

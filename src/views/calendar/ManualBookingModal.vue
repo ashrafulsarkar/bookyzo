@@ -9,7 +9,7 @@
         <div class="flex flex-col gap-1.5">
           <Label for="mb-item">{{ __('Bookable item', 'bookyzo') }}</Label>
           <Select v-model="selectedBookableItemId">
-            <SelectTrigger id="mb-item" class="h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="mb-item" class="h-10"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="item in items" :key="item.id" :value="item.id">{{ item.name }}</SelectItem>
             </SelectContent>
@@ -22,7 +22,7 @@
         <div v-if="servicesForItem.length" class="flex flex-col gap-1.5">
           <Label for="mb-service">{{ __('Service', 'bookyzo') }}</Label>
           <Select v-model="selectedServiceId">
-            <SelectTrigger id="mb-service" class="h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="mb-service" class="h-10"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem :value="NO_SERVICE">{{ __('None', 'bookyzo') }}</SelectItem>
               <SelectItem v-for="service in servicesForItem" :key="service.id" :value="service.id">{{ service.label }}</SelectItem>
@@ -33,7 +33,7 @@
         <div class="flex flex-col gap-1.5">
           <Label for="mb-slot">{{ __('Time slot', 'bookyzo') }}</Label>
           <Select v-model="selectedSlotId" :disabled="loadingSlots || slots.length === 0">
-            <SelectTrigger id="mb-slot" class="h-9">
+            <SelectTrigger id="mb-slot" class="h-10">
               <SelectValue :placeholder="loadingSlots ? __('Loading…', 'bookyzo') : (slots.length === 0 ? __('No available slots in the next 2 weeks', 'bookyzo') : undefined)" />
             </SelectTrigger>
             <SelectContent>
@@ -54,7 +54,7 @@
         <div v-if="ticketTiers.length" class="flex flex-col gap-1.5">
           <Label for="mb-tier">{{ __('Ticket type', 'bookyzo') }}</Label>
           <Select v-model="form.ticket_tier_id">
-            <SelectTrigger id="mb-tier" class="h-9"><SelectValue /></SelectTrigger>
+            <SelectTrigger id="mb-tier" class="h-10"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem v-for="tier in ticketTiers" :key="tier.id" :value="tier.id">{{ tier.name }} — {{ formatMoney(tier.price) }}</SelectItem>
             </SelectContent>
@@ -80,7 +80,7 @@
           <template v-else>
             <Label :for="`mb-cf-${field.id}`">{{ field.label }}<span v-if="field.required"> *</span></Label>
             <Select v-if="field.field_type === 'dropdown'" v-model="form.custom_fields[field.id]">
-              <SelectTrigger :id="`mb-cf-${field.id}`" class="h-9"><SelectValue /></SelectTrigger>
+              <SelectTrigger :id="`mb-cf-${field.id}`" class="h-10"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem v-for="choice in field.options?.choices || []" :key="choice" :value="choice">{{ choice }}</SelectItem>
               </SelectContent>
