@@ -73,7 +73,7 @@ Publishing a GitHub release deploys that version to WordPress.org through [`.git
 2. Commit and push to `main`.
 3. Create a release with a tag of the same version (`1.2.0` or `v1.2.0`) and publish it.
 
-The workflow then checks that the tag matches all three version numbers (and stops if it doesn't), installs dependencies, builds the bundles, commits the result to the WordPress.org SVN `trunk` and a new SVN tag, syncs `.wordpress-org/` to the SVN `assets/` folder, and attaches the built `bookyzo.zip` to the GitHub release. The source in `src/` and the build configuration are not shipped (see `.distignore`); `readme.txt` links back to this repository for them.
+The workflow then checks that the tag matches all three version numbers (and stops if it doesn't), installs dependencies, builds the bundles, generates `languages/bookyzo.pot` with WP-CLI, commits the result to the WordPress.org SVN `trunk` and a new SVN tag, syncs `.wordpress-org/` to the SVN `assets/` folder, and attaches the built `bookyzo.zip` to the GitHub release. The source in `src/` and the build configuration are not shipped (see `.distignore`); `readme.txt` links back to this repository for them.
 
 One-time setup: add the WordPress.org account that has commit access to the plugin as repository secrets **SVN_USERNAME** and **SVN_PASSWORD** (**Settings → Secrets and variables → Actions**).
 

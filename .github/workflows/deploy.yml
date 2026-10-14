@@ -8,7 +8,8 @@
 # has commit access to the plugin.
 #
 # What ships is everything in the repository plus the freshly built
-# assets/admin, assets/widget and assets/account, minus .distignore.
+# assets/admin, assets/widget and assets/account and languages/bookyzo.pot,
+# minus .distignore.
 
 name: Deploy to WordPress.org
 
@@ -58,6 +59,18 @@ jobs:
 
       - name: Build assets
         run: npm run build
+
+      # languages/ is gitignored, so the .pot is generated here — after the
+      # build, so the strings in the built JS bundles are in it too. Same
+      # command as bin/build-release.js, so the local zip and WordPress.org
+      # ship the same file. The runner image has PHP; WP-CLI's i18n commands
+      # don't need a WordPress install.
+      - name: Generate languages/bookyzo.pot
+        run: |
+          curl -sSfL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o "$RUNNER_TEMP/wp-cli.phar"
+          mkdir -p languages
+          php "$RUNNER_TEMP/wp-cli.phar" i18n make-pot . languages/bookyzo.pot --domain=bookyzo --slug=bookyzo --exclude=src,release,scratchpad,.claude,bin
+          test -s languages/bookyzo.pot
 
       # The Ubuntu 24.04 runner image no longer ships Subversion.
       - name: Install Subversion
