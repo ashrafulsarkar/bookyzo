@@ -4,7 +4,7 @@ Tags: booking calendar, appointment booking, event booking, table reservation, s
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.1
+Stable tag: 1.0.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -69,7 +69,7 @@ Customers can optionally create an account (turn it on under **Bookyzo → Setti
 
 = Growing out of the free plugin (Pro) =
 
-Everything in this plugin is complete on its own, with no limits and no locked-out UI. Bookyzo Pro is a separate paid add-on with more features: services with per-staff pricing and "any available staff" booking, deposits and PayPal, SMS/WhatsApp reminders on your own schedule, seasonal and dynamic pricing, add-ons and booking fees, custom form fields, a table floor plan, event ticket tiers with QR e-tickets and a check-in scanner, staff calendar sync, an analytics dashboard, and WooCommerce checkout.
+Everything in this plugin is complete on its own, with no limits and no locked-out UI. [Bookyzo Pro](https://codeholt.com/products/bookyzo-pro/) is a separate paid add-on with more features: services with per-staff pricing and "any available staff" booking, multiple locations, staff logins, deposits and PayPal, refunds on cancellation, discount codes and prepaid packages, SMS/WhatsApp reminders on your own schedule, email and SMS campaigns, seasonal and dynamic pricing, add-ons and booking fees, a waitlist for full times, recurring bookings, custom form fields, a table floor plan, event ticket tiers with QR e-tickets and a check-in scanner, branded PDF invoices, staff calendar sync, an analytics dashboard, and WooCommerce checkout. **Bookyzo → Get Pro** compares the two.
 
 == External services ==
 
@@ -145,6 +145,17 @@ The admin app, the booking widget and the account page are Vue apps, built with 
 
 == Changelog ==
 
+= 1.0.2 - 31-10-2026 =
+* New: A **Get Pro** page compares the free plugin with Bookyzo Pro, linked from the Bookyzo menu and the Plugins screen while Pro isn't active. If Pro is installed but switched off, it offers to activate it instead.
+* New: The setup wizard has an optional page about Bookyzo Pro near the end; "Continue with Free" carries on as before. It isn't shown once Pro is active.
+* Tweak: A redesigned setup wizard — a welcome screen that says what you'll set up, an icon for each booking type, a currency picker instead of a text box, a Back button on the Type step, a wider layout that no longer changes width between steps, and "Skip setup" moved below the card.
+* Tweak: The last setup screen shows your booking form's shortcode with a Copy button.
+* Tweak: Weekly hours on the Review steps are summarised ("Every day, 09:00–17:00" or "Mon–Fri 09:00–17:00 · Sat 10:00–14:00") instead of listing all seven days.
+* Fix: The booking form's summary now shows the item's own price whenever a discount, fee, add-on or tax turns the last line into a total.
+* Fix: The Action column of the Bookable Items list was cut off on 1366px-wide screens.
+* Fix: On phones, the closing time in the weekly hours editor was cut off. Its time fields are now the same 40px height as every other field.
+* Fix: The time in a booking's popup header was cut off next to its status.
+
 = 1.0.1 - 14-10-2026 =
 * Fix: Reloading the page in the middle of the setup wizard no longer loses your answers — the Review step used to show an empty type and name and "Closed every day".
 * Fix: Notices from WordPress and other plugins on Bookyzo screens were half hidden behind the Bookyzo sidebar. They now appear under the page header, all in the same style, and can still be dismissed.
@@ -161,6 +172,9 @@ The admin app, the booking widget and the account page are Vue apps, built with 
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.0.2 =
+A redesigned setup wizard, a Get Pro comparison page, and fixes to the booking form's price summary and several layouts.
 
 = 1.0.1 =
 Fixes the setup wizard losing its answers on reload, admin notices hidden behind the sidebar, and several layout issues.
