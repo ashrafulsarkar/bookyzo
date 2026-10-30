@@ -25,6 +25,17 @@
            "Confirm booking" with no amount anywhere on screen. Shown for
            free items too ("Free"), since silence about the price is
            exactly what makes people hesitate here. -->
+      <!-- Once a discount, fee, add-on or tax turns the last row into a
+           "Total", the price it starts from has to be on screen too —
+           otherwise "−$5, +$5 fee, Total $50" doesn't add up. -->
+      <div v-if="showBreakdown && basePriceAmount !== null" class="summary-row">
+        <span class="summary-label">{{ quantity > 1 ? sprintf(/*! translators: %d: number of people or tickets. */ __('Price × %d', 'bookyzo'), quantity) : __('Price', 'bookyzo') }}</span>
+        <span class="summary-value">{{ formatMoney(basePriceAmount) }}</span>
+      </div>
+      <div v-if="showBreakdown && quote && quote.addons_total" class="summary-row">
+        <span class="summary-label">{{ __('Add-ons', 'bookyzo') }}</span>
+        <span class="summary-value">{{ formatMoney(quote.addons_total) }}</span>
+      </div>
       <div v-if="quote && quote.discount_amount" class="summary-row summary-row-discount">
         <span class="summary-label">{{ quote.package ? __('Package credit', 'bookyzo') : __('Discount', 'bookyzo') }} ({{ quote.discount_code }})</span>
         <span class="summary-value">−{{ formatMoney(quote.discount_amount) }}</span>
@@ -470,6 +481,15 @@ const totalLabel = computed(() => {
   const hasExtras = quote.value && (quote.value.booking_fee_amount || quote.value.tax_amount || quote.value.addons_total || quote.value.discount_amount);
 
   return quantity.value > 1 || taxRate > 0 || hasExtras ? i18n.__('Total', 'bookyzo') : i18n.__('Price', 'bookyzo');
+});
+
+const showBreakdown = computed(() => totalLabel.value === i18n.__('Total', 'bookyzo'));
+
+// The quote's subtotal is the price × quantity after pricing rules,
+// before add-ons, fees and tax.
+const basePriceAmount = computed(() => {
+  if (!quote.value || quote.value.subtotal === null || quote.value.subtotal === undefined) return null;
+  return Number(quote.value.subtotal);
 });
 
 const totalValue = computed(() => formatMoney(totalAmount.value, { emptyLabel: i18n.__('Free', 'bookyzo') }));

@@ -12,8 +12,15 @@
 
       <div class="flex flex-col gap-1.5">
         <Label for="currency">{{ __('Currency', 'bookyzo') }}</Label>
-        <Input id="currency" v-model="form.currency" type="text" maxlength="3" :placeholder="__('USD', 'bookyzo')" class="w-24 uppercase" />
-        <p class="text-xs text-muted-foreground">{{ __('3-letter code, e.g. USD, BDT, GBP.', 'bookyzo') }}</p>
+        <!-- Same picker as Settings → General (lib/currency.js), instead of
+             a free-text box that accepted any three letters. -->
+        <select
+          id="currency"
+          v-model="form.currency"
+          class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+        >
+          <option v-for="code in currencyChoices" :key="code" :value="code">{{ currencyLabel(code) }}</option>
+        </select>
       </div>
 
       <div class="grid grid-cols-2 gap-4">
@@ -38,7 +45,8 @@
 
 <script setup>
 import { i18n } from '@/lib/i18n';
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
+import { currencyOptions, currencyLabel } from '@/lib/currency';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -55,6 +63,7 @@ const form = ref({
 });
 const saving = ref(false);
 const error = ref('');
+const currencyChoices = computed(() => currencyOptions(form.value.currency));
 
 onMounted(async () => {
   try {

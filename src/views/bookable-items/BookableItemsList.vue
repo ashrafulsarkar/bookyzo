@@ -41,7 +41,7 @@
       </Card>
 
       <Card v-else class="overflow-hidden">
-        <Table class="min-w-[900px]">
+        <Table class="min-w-[760px]">
           <TableHeader>
             <TableRow>
               <TableHead class="min-w-[170px]">{{ __('Name', 'bookyzo') }}</TableHead>
@@ -63,9 +63,9 @@
               <TableCell>
                 <div class="flex items-center gap-1.5">
                   <!-- Truncated so the Action column stays on screen at
-                       common laptop widths (it was cut off at 1440px) — the
+                       common laptop widths (it was cut off at 1440px, and again at 1366px with 13rem) — the
                        full shortcode is in the tooltip and on the copy button. -->
-                  <code class="block max-w-[13rem] truncate whitespace-nowrap rounded bg-muted px-1.5 py-0.5 text-xs" :title="shortcode(item)">{{ shortcode(item) }}</code>
+                  <code class="block max-w-[9rem] truncate whitespace-nowrap rounded bg-muted px-1.5 py-0.5 text-xs" :title="shortcode(item)">{{ shortcode(item) }}</code>
                   <Button variant="ghost" size="icon" class="h-6 w-6" :title="__('Copy shortcode', 'bookyzo')" @click="copyShortcode(item)">
                     <Copy class="h-3.5 w-3.5" />
                   </Button>

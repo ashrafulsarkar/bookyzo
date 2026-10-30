@@ -8,23 +8,28 @@
         </svg>
       </template>
       <template #actions>
-        <a v-if="getProUrl" :href="getProUrl" target="_blank" rel="noopener noreferrer">
-          <Button style="background: var(--byzo-danger); border-color: var(--byzo-danger)">{{ __('Get Bookyzo Pro', 'bookyzo') }}</Button>
+        <a v-if="activateProUrl" :href="activateProUrl">
+          <Button>{{ __('Activate Bookyzo Pro', 'bookyzo') }}</Button>
+        </a>
+        <a v-else-if="getProUrl" :href="getProUrl" target="_blank" rel="noopener noreferrer">
+          <Button style="background: var(--byzo-danger); border-color: var(--byzo-danger)">
+            {{ __('Get Bookyzo Pro', 'bookyzo') }}
+            <ExternalLink class="ml-1.5 h-3.5 w-3.5" />
+          </Button>
         </a>
       </template>
     </ByzoPageHeader>
 
     <div class="px-6 pb-8 flex flex-col gap-4">
-      <!-- NOTE: placeholder href="#" below — wire it to the real purchase
-           URL (byzo_get_pro_url()) before this page is shown again; the
-           whole page is hidden for now, see byzo_show_get_pro(). -->
-      <div v-if="!getProUrl" class="rounded-lg border px-4 py-3 text-sm flex items-center justify-between gap-4" style="border-color: var(--byzo-border); background: var(--byzo-surface-alt); color: var(--byzo-text-muted)">
-        <span>
-          {{ __('Bookyzo Pro is a separate add-on. If you already have a license key, install and activate the Bookyzo Pro plugin, then enter the key under Bookyzo → License.', 'bookyzo') }}
+      <!-- Installed but switched off → activate it; otherwise how a bought
+           license gets onto this site. -->
+      <div class="rounded-lg border px-4 py-3 text-sm flex flex-wrap items-center justify-between gap-4" style="border-color: var(--byzo-border); background: var(--byzo-surface-alt); color: var(--byzo-text-muted)">
+        <span v-if="activateProUrl">
+          {{ __('Bookyzo Pro is installed on this site but not active. Activate it, then enter your license key under Bookyzo → Activate License.', 'bookyzo') }}
         </span>
-        <a href="#" class="shrink-0">
-          <Button style="background: var(--byzo-danger); border-color: var(--byzo-danger)">{{ __('Purchase Bookyzo Pro', 'bookyzo') }}</Button>
-        </a>
+        <span v-else>
+          {{ __('Bookyzo Pro is a separate add-on. If you already have a license key, install and activate the Bookyzo Pro plugin, then enter the key under Bookyzo → Activate License.', 'bookyzo') }}
+        </span>
       </div>
 
       <Card>
@@ -65,28 +70,43 @@ import { i18n } from '@/lib/i18n';
 // active rather than sticking around as a dead tab.
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { ExternalLink } from 'lucide-vue-next';
 import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 
 const getProUrl = window.byzoAdmin?.getProUrl || '';
+const activateProUrl = window.byzoAdmin?.activateProUrl || '';
 
 // Summarized from FEATURES.md Part B — not a line-by-line dump of every
 // bullet there, just the rows a site owner actually weighs when deciding
 // to upgrade. Keep this in sync if FEATURES.md's B1-B11 headline items
-// change materially.
+// change materially. Checked against what bookyzo-pro actually ships on
+// 2026-10-31: every row here exists there, and nothing here is in Free.
 const rows = [
-  { label: i18n.__('Multi-location / multi-branch scheduling', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('SMS & WhatsApp reminders', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('Deposits & multiple payment gateways', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('Coupons, package credits & dynamic pricing', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('Bulk actions, notes & tags', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('Recurring class series', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('Table floor plan editor & walk-in waitlist', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('Event ticket tiers, QR e-tickets & check-in scanner', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('Analytics dashboard & report exports', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('Staff calendar sync (Google / Outlook)', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('Webhooks, marketing pixels & calendar feeds', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('Custom form field builder', 'bookyzo'), free: '—', pro: '✓' },
-  { label: i18n.__('Custom CSS for the booking widget', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Services with per-staff pricing & "any available staff" booking', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Multiple locations, each with its own timezone and hours', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Staff logins that see only their own bookings', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('SMS & WhatsApp messages, with your own reminder timings', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Email & SMS campaigns and post-visit follow-up emails', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Deposits and PayPal alongside Stripe', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Refunds on cancellation, approved by you', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Discount codes & prepaid packages', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Seasonal, weekday & lead-time pricing', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Add-ons, booking fees & per-item tax', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Waitlist for full times', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Recurring bookings', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Bulk actions, internal notes & tags', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Table floor plan, combined tables & walk-in waitlist', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Event ticket tiers, QR e-tickets, check-in scanner & attendee export', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Branded PDF invoices', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Analytics dashboard & CSV reports', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Commission & payout tracking', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Live alerts for new bookings, cancellations & no-shows', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Google Calendar & Outlook two-way sync', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('WooCommerce checkout', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Webhooks & marketing pixels', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Custom form fields', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Custom CSS for the booking form', 'bookyzo'), free: '—', pro: '✓' },
+  { label: i18n.__('Customer list export with booking history', 'bookyzo'), free: '—', pro: '✓' },
   { label: i18n.__('Automatic Pro plugin updates', 'bookyzo'), free: '—', pro: '✓' },
 ];
 </script>

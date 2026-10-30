@@ -783,8 +783,6 @@ Same pattern throughout for everything not called out above: Pro adds its own ta
 | `/reports/summary` | GET | admin-only, today/this-week/this-month booking counts by status (§A8), added 2026-09-02 for the Dashboard |
 | `/stripe-webhook` | POST | Stripe only, signature-verified, not nonce-based |
 | `/customers` | GET, POST, PUT | admin-only — list/search (A10), create/edit; reads/writes `wp_byzo_customers` (§1.5); added 2026-09-03 |
-| `/calendar-feed/{bookable_item_id}/{token}` | GET | public, no nonce, Pro — gated by `token` (`BYZOP_Calendar_Feed_Token`, HMAC of `bookable_item_id`); registered only while Pro is licensed — subscribable `.ics` feed for external calendars (B9); built 2026-09-12, Phase 2 step 15, moved from Free to Pro 2026-09-26. |
-| `/calendar-feed-url/{bookable_item_id}` | GET | admin-only, Pro — builds and returns the full `/calendar-feed/{id}/{token}` URL for the "Integrations" screen's copy button; built 2026-09-12, Phase 2 step 15. |
 | `/webhooks` | GET, POST | admin-only, Pro — list (secrets masked)/create (secret returned once, unmasked) on `wp_byzo_webhooks` (§1.6); built 2026-09-12, Phase 2 step 15. |
 | `/webhooks/{id}` | PUT, DELETE | admin-only, Pro — update (secret masked in the response)/delete; built 2026-09-12, Phase 2 step 15. |
 | `/campaigns/preview` | POST | admin-only, Pro — segment filters in the body, returns `{count, customers}` (first 20) via `BYZO_Customer::query_for_campaign()`; built 2026-09-12, Phase 2 step 15. |

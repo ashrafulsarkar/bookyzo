@@ -10,10 +10,11 @@
         <div class="flex items-start justify-between gap-3 pr-6">
           <div class="min-w-0">
             <DialogTitle class="truncate">{{ booking.customer_name }}</DialogTitle>
-            <DialogDescription class="mt-0.5 flex items-center gap-1.5">
-              <CalendarClock class="h-3.5 w-3.5 shrink-0" />
-              <span class="truncate">{{ timeRangeLabel }}</span>
-              <span class="shrink-0 font-mono text-xs">· #{{ booking.id }}</span>
+            <!-- Wraps rather than truncates: next to the status badge the
+                 end time was cut to "10:00 AM –…". -->
+            <DialogDescription class="mt-0.5 flex items-start gap-1.5">
+              <CalendarClock class="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span class="min-w-0">{{ timeRangeLabel }} <span class="whitespace-nowrap font-mono text-xs">· #{{ booking.id }}</span></span>
             </DialogDescription>
           </div>
           <ByzoBadge :status="booking.status" class="shrink-0">{{ statusLabel(booking.status) }}</ByzoBadge>

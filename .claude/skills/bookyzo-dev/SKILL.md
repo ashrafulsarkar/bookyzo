@@ -29,7 +29,7 @@ Apply this from the start in Bookyzo, don't wait for a rejection to learn it aga
 - **A control that shows in Free and always fails on save is a visible lock**, and hiding it at a cap is still a cap (see above). Make the feature free or move it into Pro.
 - **No license check in Free.** Free never calls `byzop_is_licensed()` or reads Pro's license state, not even to hide a menu item: "Remove all license checks" is a line in the review email. To know whether Pro is there, use `defined( 'BYZOP_VERSION' )`.
 - **Known residual risk (left on the owner's call):** `BYZO_Capabilities` still holds add-on UI switches (waitlist, discount/package codes, marketing opt-in, invoice/ticket links, staff logins) whose backend lives only in Pro. The 2026-09-28 reviewer read that class and flagged only the count limits, but warned that more issues "of the same nature" end the review. Don't add new switches of this kind; if a review cites them, move that UI into Pro through a widget-extension mechanism.
-- The Get Pro page is hidden behind `byzo_show_get_pro()` (default `false`, owner's call 2026-09-27) until Pro can actually be bought. Wire `byzo_get_pro_url()` to the real purchase page before flipping it back.
+- The Get Pro page is on (`byzo_show_get_pro()` default `true` since 2026-10-31) whenever Pro isn't active: Plugins-row link, WP submenu, sidebar CTA and the setup wizard's optional `pro` step. `byzo_get_pro_url()` is `https://codeholt.com/products/bookyzo-pro/`. A Pro that's installed but switched off gets "Activate Bookyzo Pro" (`byzo_pro_activate_url()`) instead of a purchase. "Activate License" (Plugins rows, submenu, sidebar) comes from **Pro**, never Free, because Free reads no license state.
 
 ## WordPress.org submission checklist (Free plugin)
 

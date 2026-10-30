@@ -57,30 +57,54 @@ function byzo_enqueue_standalone_page_style() {
 
 /**
  * Whether the "Get Pro" page is offered at all: its sidebar row, its WP
- * submenu page and the Plugins-screen link. Hidden for now (owner's
- * decision 2026-09-27) until Pro can actually be bought; change the
- * default to true, or return true from the `byzo_show_get_pro` filter,
- * to bring it back. Never shown once Bookyzo Pro is active.
+ * submenu page, the Plugins-screen link and the setup wizard's Pro step.
+ * On whenever Bookyzo Pro isn't active (owner's decision 2026-10-31, now
+ * that byzo_get_pro_url() has a real purchase page); the
+ * `byzo_show_get_pro` filter can still turn it off.
+ *
+ * Only ever asks whether Pro is active — never about Pro's license. Free
+ * reads no license state at all (WordPress.org review: "Remove all
+ * license checks"); an installed Pro shows "Activate License" itself.
  *
  * @return bool
  */
 function byzo_show_get_pro() {
-	return (bool) apply_filters( 'byzo_show_get_pro', false ) && ! defined( 'BYZOP_VERSION' );
+	return (bool) apply_filters( 'byzo_show_get_pro', true ) && ! defined( 'BYZOP_VERSION' );
 }
 
 /**
- * Where the Free plugin's "Get Pro" page sends a site owner to actually
- * buy Bookyzo Pro. NO real sales/purchase URL exists yet for this product
- * (per project notes: the "bookyzo" domain itself was only ever checked
- * for availability, never actually registered) — deliberately left empty
- * rather than guessing a plausible-looking domain that may not belong to
- * this plugin's author. Override via the `byzo_get_pro_url` filter (or a
- * future BYZO_GET_PRO_URL constant, same pattern as BYZOP_API_URL) once a
- * real one exists — GetPro.vue treats an empty value as "no purchase link
- * yet" and hides the buy button rather than linking out to nothing.
+ * Where the Free plugin's "Get Pro" page sends a site owner to buy
+ * Bookyzo Pro. Override via the `byzo_get_pro_url` filter.
  *
  * @return string
  */
 function byzo_get_pro_url() {
-	return apply_filters( 'byzo_get_pro_url', '' );
+	return apply_filters( 'byzo_get_pro_url', 'https://codeholt.com/products/bookyzo-pro/' );
+}
+
+/**
+ * The one-click "Activate" link for a Bookyzo Pro that is installed but
+ * switched off, so the Get Pro page and the setup wizard can offer that
+ * instead of a purchase the owner already made. Empty when Pro isn't
+ * installed, is already active, or the user can't activate plugins.
+ *
+ * @return string
+ */
+function byzo_pro_activate_url() {
+	$plugin = 'bookyzo-pro/bookyzo-pro.php';
+
+	if ( defined( 'BYZOP_VERSION' ) || ! current_user_can( 'activate_plugins' ) || ! file_exists( WP_PLUGIN_DIR . '/' . $plugin ) ) {
+		return '';
+	}
+
+	// A raw URL (not wp_nonce_url(), which HTML-encodes the `&`): it goes
+	// to the Vue app as JSON and is escaped wherever PHP prints it.
+	return add_query_arg(
+		array(
+			'action'   => 'activate',
+			'plugin'   => rawurlencode( $plugin ),
+			'_wpnonce' => wp_create_nonce( 'activate-plugin_' . $plugin ),
+		),
+		admin_url( 'plugins.php' )
+	);
 }

@@ -5,7 +5,7 @@
  * decision) and don't need timezone conversion since the browser and
  * WordPress are assumed to agree on "today" for admin-side viewing.
  */
-import { locale } from './i18n';
+import { i18n, locale } from './i18n';
 
 export function toDateKey(date) {
   const y = date.getFullYear();
@@ -90,6 +90,48 @@ export function formatHourLabel(date) {
 export function weekdayNames(style = 'long') {
   // 1 January 2023 was a Sunday.
   return Array.from({ length: 7 }, (_, i) => new Date(2023, 0, 1 + i).toLocaleDateString(locale, { weekday: style }));
+}
+
+/**
+ * Weekly hours as a Review-step line: "Every day, 09:00–17:00" or
+ * "Mon–Fri 09:00–17:00 · Sat 10:00–14:00". Consecutive days with the same
+ * shifts are grouped; listing all seven days one by one ran to two lines.
+ */
+export function summarizeWeeklyHours(schedules) {
+  const names = weekdayNames('short');
+  const byDay = Array.from({ length: 7 }, () => []);
+  (schedules || []).forEach((s) => byDay[s.weekday] && byDay[s.weekday].push(s));
+  const hours = byDay.map((shifts) =>
+    shifts
+      .slice()
+      .sort((a, b) => String(a.start_time).localeCompare(String(b.start_time)))
+      .map((s) => `${s.start_time}–${s.end_time}`)
+      .join(', ')
+  );
+
+  if (hours.every((h) => !h)) {
+    return i18n.__('Closed every day', 'bookyzo');
+  }
+  if (hours.every((h) => h && h === hours[0])) {
+    return i18n.sprintf(/*! translators: %s: opening hours, e.g. 09:00–17:00. */ i18n.__('Every day, %s', 'bookyzo'), hours[0]);
+  }
+
+  const groups = [];
+  hours.forEach((h, day) => {
+    const last = groups[groups.length - 1];
+    if (h && last && last.hours === h && last.to === day - 1) {
+      last.to = day;
+    } else if (h) {
+      groups.push({ from: day, to: day, hours: h });
+    }
+  });
+
+  return groups
+    .map((g) => {
+      const days = g.from === g.to ? names[g.from] : g.to - g.from === 1 ? `${names[g.from]}, ${names[g.to]}` : `${names[g.from]}–${names[g.to]}`;
+      return `${days} ${g.hours}`;
+    })
+    .join(' · ');
 }
 
 /**

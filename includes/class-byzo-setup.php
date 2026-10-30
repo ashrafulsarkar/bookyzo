@@ -10,7 +10,10 @@ class BYZO_Setup {
 
 	// Deepened 2026-09-03 (DETAILED-SPEC.md §A1) from the old 3-step
 	// version (booking_type -> business_profile -> first_bookable_item).
-	const STEPS = array( 'welcome', 'booking_type', 'business_profile', 'booking_details', 'availability', 'customer_fields', 'pricing', 'confirmation', 'review', 'done' );
+	// 'pro' (2026-10-31) is an optional page about Bookyzo Pro, only shown
+	// while Pro isn't active (byzo_show_get_pro()); the wizard skips it
+	// otherwise.
+	const STEPS = array( 'welcome', 'booking_type', 'business_profile', 'booking_details', 'availability', 'customer_fields', 'pricing', 'confirmation', 'pro', 'review', 'done' );
 
 	public static function get_state() {
 		return array(

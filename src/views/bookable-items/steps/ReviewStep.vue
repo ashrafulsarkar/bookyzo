@@ -20,7 +20,7 @@
 </template>
 
 <script setup>
-import { weekdayNames } from '@/lib/date';
+import { summarizeWeeklyHours } from '@/lib/date';
 import { i18n, locale } from '@/lib/i18n';
 import { computed } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -44,7 +44,6 @@ defineEmits(['create', 'back']);
 
 const TYPE_LABELS = { appointment: i18n.__('Appointment', 'bookyzo'), table: i18n.__('Table', 'bookyzo'), event: i18n.__('Event', 'bookyzo'), slot: i18n.__('Slot', 'bookyzo') };
 const STATUS_LABELS = { active: i18n.__('Active', 'bookyzo'), inactive: i18n.__('Inactive', 'bookyzo'), archived: i18n.__('Archived', 'bookyzo') };
-const WEEKDAY_NAMES = weekdayNames('short');
 
 function shortDate(date) {
   const parsed = new Date(`${date}T00:00:00`);
@@ -65,11 +64,7 @@ const availabilitySummary = computed(() => {
   if ('event' === props.data.type) {
     return listSummary(props.data.occurrences || [], 'date', (o) => `${shortDate(o.date)} ${o.start_time}–${o.end_time}`);
   }
-  const open = (props.data.schedules || []).slice().sort((a, b) => a.weekday - b.weekday);
-  if (open.length === 0) {
-    return i18n.__('Closed every day', 'bookyzo');
-  }
-  return open.map((s) => `${WEEKDAY_NAMES[s.weekday]} ${s.start_time}–${s.end_time}`).join(', ');
+  return summarizeWeeklyHours(props.data.schedules);
 });
 
 const exceptionsSummary = computed(() =>

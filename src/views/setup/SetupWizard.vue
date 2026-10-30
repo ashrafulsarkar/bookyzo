@@ -1,5 +1,10 @@
 <template>
-  <div class="byzo-setup mx-auto max-w-xl px-4 py-12 sm:px-6">
+  <!-- `w-full`: without it the column shrank to each step's own content,
+       so the card (and the step dots above it) jumped between 380px and
+       530px wide from one step to the next. The `[&_h3]` rule gives every
+       step's CardTitle a real heading size; at the app's default 14px it
+       read like a label. -->
+  <div class="byzo-setup mx-auto w-full max-w-2xl px-4 py-12 sm:px-6 [&_h3]:text-lg">
     <!-- The step dots stretch to the card's own width (flex-1 connectors)
          instead of a fixed 32px each — nine fixed-width steps plus the
          Skip link ran ~140px past the card on the right. -->
@@ -7,14 +12,6 @@
       <span v-if="currentIndex >= 0 && currentIndex < stepLabels.length" class="text-muted-foreground">
         {{ sprintf(/*! translators: 1: current step number, 2: total steps, 3: step name. */ __('Step %1$s of %2$s · %3$s', 'bookyzo'), currentIndex + 1, stepLabels.length, stepLabels[currentIndex]) }}
       </span>
-      <button
-        v-if="!['review', 'done'].includes(state.step)"
-        type="button"
-        class="ml-auto shrink-0 whitespace-nowrap text-muted-foreground underline-offset-4 hover:underline"
-        @click="skip"
-      >
-        {{ __('Skip setup', 'bookyzo') }}
-      </button>
     </div>
     <ol class="mb-8 flex w-full items-center">
       <li
@@ -56,6 +53,7 @@
       v-else-if="state.step === 'booking_type'"
       :initial="wizardData.type"
       @next="(type) => { wizardData.type = type; advanceTo('business_profile'); }"
+      @back="advanceTo('welcome')"
     />
 
     <BusinessProfileStep
@@ -103,9 +101,11 @@
     <ConfirmationStep
       v-else-if="state.step === 'confirmation'"
       :initial="wizardData"
-      @next="(confirmation) => { Object.assign(wizardData, confirmation); advanceTo('review'); }"
+      @next="(confirmation) => { Object.assign(wizardData, confirmation); advanceTo(showProStep ? 'pro' : 'review'); }"
       @back="advanceTo('pricing')"
     />
+
+    <ProStep v-else-if="state.step === 'pro'" @next="advanceTo('review')" @back="advanceTo('confirmation')" />
 
     <ReviewStep
       v-else-if="state.step === 'review'"
@@ -113,7 +113,7 @@
       :saving="creating"
       :error="createError"
       @create="createEverything"
-      @back="advanceTo('confirmation')"
+      @back="advanceTo(showProStep ? 'pro' : 'confirmation')"
     />
 
     <SuccessStep
@@ -123,6 +123,18 @@
       @go-manage="goManage"
       @add-another="goAddAnother"
     />
+
+    <!-- Below the card, not beside the step counter: up there it sat in the
+         eye line of every step and read like the main way forward. -->
+    <div v-if="!['review', 'done'].includes(state.step)" class="mt-6 text-center">
+      <button
+        type="button"
+        class="text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        @click="skip"
+      >
+        {{ __('Skip setup — I\'ll do this later', 'bookyzo') }}
+      </button>
+    </div>
   </div>
 </template>
 
@@ -140,6 +152,7 @@ import AvailabilityStep from '../bookable-items/steps/AvailabilityStep.vue';
 import CustomerFieldsStep from './CustomerFieldsStep.vue';
 import PricingStep from '../bookable-items/steps/PricingStep.vue';
 import ConfirmationStep from './ConfirmationStep.vue';
+import ProStep from './ProStep.vue';
 import ReviewStep from './ReviewStep.vue';
 import SuccessStep from './SuccessStep.vue';
 
@@ -149,7 +162,24 @@ const router = useRouter();
 // (type -> business profile -> first bookable item). Matches
 // BYZO_Setup::STEPS exactly, minus 'done' which SuccessStep renders
 // instead of counting as a numbered progress dot.
-const stepLabels = [i18n.__('Welcome', 'bookyzo'), i18n.__('Type', 'bookyzo'), i18n.__('Business', 'bookyzo'), i18n.__('Details', 'bookyzo'), i18n.__('Availability', 'bookyzo'), i18n.__('Customer info', 'bookyzo'), i18n.__('Pricing', 'bookyzo'), i18n.__('Confirmation', 'bookyzo'), i18n.__('Review', 'bookyzo')];
+// The Pro page only exists while Pro isn't active — the same
+// byzo_show_get_pro() that decides the Get Pro screen. It never reads
+// Pro's license (Free doesn't).
+const showProStep = !!(window.byzoAdmin && window.byzoAdmin.showGetPro);
+const STEP_LABELS = {
+  welcome: i18n.__('Welcome', 'bookyzo'),
+  booking_type: i18n.__('Type', 'bookyzo'),
+  business_profile: i18n.__('Business', 'bookyzo'),
+  booking_details: i18n.__('Details', 'bookyzo'),
+  availability: i18n.__('Availability', 'bookyzo'),
+  customer_fields: i18n.__('Customer info', 'bookyzo'),
+  pricing: i18n.__('Pricing', 'bookyzo'),
+  confirmation: i18n.__('Confirmation', 'bookyzo'),
+  pro: i18n.__('Pro', 'bookyzo'),
+  review: i18n.__('Review', 'bookyzo'),
+};
+const STEP_ORDER = Object.keys(STEP_LABELS).filter((step) => showProStep || 'pro' !== step).concat('done');
+const stepLabels = STEP_ORDER.filter((step) => 'done' !== step).map((step) => STEP_LABELS[step]);
 const state = ref({ step: 'welcome', skipped: false, needed: true });
 
 // Accumulated across every step client-side and only sent to the server
@@ -195,10 +225,7 @@ const createdItemId = ref(null);
 const createdId = ref(null);
 const createdType = ref('');
 
-const currentIndex = computed(() => {
-  const order = ['welcome', 'booking_type', 'business_profile', 'booking_details', 'availability', 'customer_fields', 'pricing', 'confirmation', 'review', 'done'];
-  return order.indexOf(state.value.step);
-});
+const currentIndex = computed(() => STEP_ORDER.indexOf(state.value.step));
 
 // The step is saved server-side (byzo_setup_step) but the answers only
 // live in wizardData, so a reload used to resume at Review with an empty
@@ -207,7 +234,6 @@ const currentIndex = computed(() => {
 // still lacks them is sent back to the first step that asks for them.
 // Keyed by admin path so two sites on one host don't share a draft.
 const DRAFT_KEY = `byzo_setup_draft:${window.location.pathname}`;
-const STEP_ORDER = ['welcome', 'booking_type', 'business_profile', 'booking_details', 'availability', 'customer_fields', 'pricing', 'confirmation', 'review', 'done'];
 
 function saveDraft() {
   try {
@@ -260,7 +286,10 @@ onMounted(async () => {
       });
     }
     const missing = 'done' === loaded.step ? null : firstMissingStep(loaded.step);
-    state.value = missing ? await api.put('/setup', { step: missing }) : loaded;
+    // Resumed on the Pro page after Pro was activated meanwhile: that
+    // page no longer applies, so carry on to Review.
+    const resumeAt = missing || ('pro' === loaded.step && !showProStep ? 'review' : null);
+    state.value = resumeAt ? await api.put('/setup', { step: resumeAt }) : loaded;
   } catch (error) {
     // Setup state failing to load shouldn't strand the owner on a blank
     // page — fall back to step 1 rather than showing an error screen for

@@ -1,24 +1,26 @@
 <template>
   <div class="flex flex-col divide-y divide-border">
-    <div v-for="weekday in weekdays" :key="weekday.value" class="flex items-center gap-4 py-3">
+    <!-- Stacked below `sm`: the weekday label (w-32) plus two time inputs
+         don't fit side by side on a phone, and the end time got cut off. -->
+    <div v-for="weekday in weekdays" :key="weekday.value" class="flex flex-col items-start gap-2 py-3 sm:flex-row sm:items-center sm:gap-4">
       <label class="flex w-32 shrink-0 items-center gap-2 text-sm">
         <Switch :model-value="isOpen(weekday.value)" @update:model-value="(checked) => toggleDay(weekday.value, checked)" />
         {{ weekday.label }}
       </label>
 
       <template v-if="isOpen(weekday.value)">
-        <div class="flex flex-1 flex-wrap items-center gap-x-4 gap-y-2">
+        <div class="flex min-w-0 flex-1 flex-wrap items-center gap-x-4 gap-y-2">
           <div v-for="(shift, index) in shiftsFor(weekday.value)" :key="index" class="flex items-center gap-2">
             <Input
               type="time"
-              class="h-8 w-auto"
+              class="h-10 w-auto"
               :model-value="shift.start_time"
               @update:model-value="(value) => updateShift(weekday.value, index, 'start_time', value)"
             />
             <span class="text-sm text-muted-foreground">{{ __('to', 'bookyzo') }}</span>
             <Input
               type="time"
-              class="h-8 w-auto"
+              class="h-10 w-auto"
               :model-value="shift.end_time"
               @update:model-value="(value) => updateShift(weekday.value, index, 'end_time', value)"
             />

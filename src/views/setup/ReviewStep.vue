@@ -60,7 +60,7 @@
 </template>
 
 <script setup>
-import { weekdayNames } from '@/lib/date';
+import { summarizeWeeklyHours } from '@/lib/date';
 import { i18n } from '@/lib/i18n';
 import { computed } from 'vue';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -77,8 +77,6 @@ defineEmits(['create', 'back']);
 const TYPE_LABELS = { appointment: i18n.__('Appointment', 'bookyzo'), table: i18n.__('Table', 'bookyzo'), event: i18n.__('Event', 'bookyzo'), slot: i18n.__('Slot', 'bookyzo') };
 const typeLabel = computed(() => TYPE_LABELS[props.data.type] || props.data.type);
 
-const WEEKDAY_NAMES = weekdayNames('short');
-
 const availabilitySummary = computed(() => {
   if ('event' === props.data.type) {
     const occurrences = props.data.occurrences || [];
@@ -89,17 +87,13 @@ const availabilitySummary = computed(() => {
     return occurrences.length > 3 ? `${shown} ` + i18n.sprintf(/*! translators: %s: number of further items not shown. */ i18n.__('+%s more', 'bookyzo'), occurrences.length - 3) : shown;
   }
 
-  const open = (props.data.schedules || []).slice().sort((a, b) => a.weekday - b.weekday);
-  if (open.length === 0) {
-    return i18n.__('Closed every day', 'bookyzo');
-  }
-  return open.map((s) => `${WEEKDAY_NAMES[s.weekday]} ${s.start_time}–${s.end_time}`).join(', ');
+  return summarizeWeeklyHours(props.data.schedules);
 });
 
 const notificationsSummary = computed(() => {
   const parts = [];
-  if (props.data.send_confirmation_email) parts.push(i18n.__('customer confirmation', 'bookyzo'));
-  if (props.data.send_admin_notification) parts.push(i18n.__('admin new-booking alert', 'bookyzo'));
-  return parts.length > 0 ? parts.join(' + ') : i18n.__('None', 'bookyzo');
+  if (props.data.send_confirmation_email) parts.push(i18n.__('Customer confirmation', 'bookyzo'));
+  if (props.data.send_admin_notification) parts.push(i18n.__('New-booking alert to you', 'bookyzo'));
+  return parts.length > 0 ? parts.join(', ') : i18n.__('None', 'bookyzo');
 });
 </script>

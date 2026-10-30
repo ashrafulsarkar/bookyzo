@@ -196,7 +196,7 @@ class BYZO_Admin_Assets {
 		$currency = class_exists( 'BYZO_Settings' ) ? BYZO_Settings::get()['currency'] : 'USD';
 
 		return sprintf(
-			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s, showGetPro: %s, getProUrl: %s, documents: %s, staff: %s, version: %s };',
+			'window.byzoAdmin = { exportBookingsUrl: %s, exportNonce: %s, importCustomersUrl: %s, importCustomersNonce: %s, initialRoute: %s, currency: %s, showGetPro: %s, getProUrl: %s, activateProUrl: %s, documents: %s, staff: %s, version: %s };',
 			wp_json_encode( admin_url( 'admin-post.php' ) ),
 			// Nonce action string must stay in sync with
 			// BYZO_Booking_Export::NONCE — not referencing the constant
@@ -211,11 +211,14 @@ class BYZO_Admin_Assets {
 			// navigation after this first one.
 			wp_json_encode( self::initial_route() ),
 			wp_json_encode( $currency ),
-			// Whether the Get Pro page is offered at all (byzo_show_get_pro(),
-			// hidden for now) — the same call BYZO_Plugin uses for its submenu
-			// page and Plugins-screen link, so they always agree.
+			// Whether the Get Pro page is offered at all (byzo_show_get_pro())
+			// — the same call BYZO_Plugin uses for its submenu page and
+			// Plugins-screen link, so they always agree.
 			wp_json_encode( byzo_show_get_pro() ),
 			wp_json_encode( byzo_get_pro_url() ),
+			// Set when Pro is installed but switched off: Get Pro and the
+			// setup wizard offer "Activate" instead of a purchase.
+			wp_json_encode( byzo_pro_activate_url() ),
 			// Which booking documents exist (the email template editor lists
 			// {ticket_link}/{invoice_link} only when they do).
 			wp_json_encode(

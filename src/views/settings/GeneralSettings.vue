@@ -194,7 +194,7 @@
 </template>
 
 <script setup>
-import { i18n, locale } from '@/lib/i18n';
+import { i18n } from '@/lib/i18n';
 import { ref, computed, onMounted } from 'vue';
 import { toast } from 'vue-sonner';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
@@ -206,6 +206,7 @@ import ByzoPageHeader from '@/components/base/ByzoPageHeader.vue';
 import ByzoLoading from '@/components/base/ByzoLoading.vue';
 import ByzoWeeklyScheduleGrid from '@/components/base/ByzoWeeklyScheduleGrid.vue';
 import { api } from '@/api/client';
+import { currencyOptions as buildCurrencyOptions, currencyLabel } from '@/lib/currency';
 
 // The single ongoing home for every byzo_settings field the setup
 // wizard only ever writes ONCE (Phase 1.5 steps 1/6/7) — without this
@@ -240,23 +241,8 @@ const form = ref({
   collect_attendee_details: false,
   delete_data_on_uninstall: false,
 });
-// The currencies most sites use, plus whatever this site already saved —
-// the field was free text, so an existing value must never disappear.
-const COMMON_CURRENCIES = ['USD', 'EUR', 'GBP', 'AUD', 'CAD', 'NZD', 'CHF', 'SEK', 'NOK', 'DKK', 'PLN', 'CZK', 'JPY', 'CNY', 'HKD', 'SGD', 'INR', 'BDT', 'PKR', 'LKR', 'NPR', 'IDR', 'MYR', 'THB', 'PHP', 'VND', 'AED', 'SAR', 'QAR', 'TRY', 'ILS', 'EGP', 'NGN', 'KES', 'ZAR', 'GHS', 'MAD', 'BRL', 'MXN', 'ARS', 'CLP', 'COP', 'RUB', 'UAH', 'KRW'];
-const currencyOptions = computed(() => {
-  const current = (form.value.currency || '').toUpperCase();
-  return current && !COMMON_CURRENCIES.includes(current) ? [current, ...COMMON_CURRENCIES] : COMMON_CURRENCIES;
-});
-
-// "USD — US Dollar" where the browser knows the name, just the code otherwise.
-function currencyLabel(code) {
-  try {
-    const name = new Intl.DisplayNames(locale, { type: 'currency' }).of(code);
-    return name && name !== code ? `${code} — ${name}` : code;
-  } catch {
-    return code;
-  }
-}
+// Shared with the setup wizard's Business step (lib/currency.js).
+const currencyOptions = computed(() => buildCurrencyOptions(form.value.currency));
 
 // WordPress reports a bare offset ("+06:00") when no named zone is set.
 const timezoneLabel = computed(() => (/^[+-]/.test(form.value.timezone) ? `UTC${form.value.timezone}` : form.value.timezone));
