@@ -64,12 +64,14 @@ jobs:
       # build, so the strings in the built JS bundles are in it too. Same
       # command as bin/build-release.js, so the local zip and WordPress.org
       # ship the same file. The runner image has PHP; WP-CLI's i18n commands
-      # don't need a WordPress install.
+      # don't need a WordPress install. The image also enables Xdebug, whose
+      # 256-frame nesting limit kills the JS parser on the deeply nested
+      # minified bundles, so it's switched off for this command.
       - name: Generate languages/bookyzo.pot
         run: |
           curl -sSfL https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar -o "$RUNNER_TEMP/wp-cli.phar"
           mkdir -p languages
-          php "$RUNNER_TEMP/wp-cli.phar" i18n make-pot . languages/bookyzo.pot --domain=bookyzo --slug=bookyzo --exclude=src,release,scratchpad,.claude,bin
+          XDEBUG_MODE=off php "$RUNNER_TEMP/wp-cli.phar" i18n make-pot . languages/bookyzo.pot --domain=bookyzo --slug=bookyzo --exclude=src,release,scratchpad,.claude,bin
           test -s languages/bookyzo.pot
 
       # The Ubuntu 24.04 runner image no longer ships Subversion.
