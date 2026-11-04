@@ -14,62 +14,170 @@ Appointments, table reservations, event tickets and generic time-slot bookings �
 
 **Bookyzo** turns your WordPress site into a real booking system, whatever you're booking. Add a staff member for one-on-one appointments, a table for restaurant reservations, an event for ticketed occurrences, or a generic slot for anything else — set its availability, drop a booking form onto any page with a shortcode or block, and start taking bookings. No page builder plugin, no external booking service, no WooCommerce required.
 
+https://youtu.be/QLQLZp_e42k
+
 = Why Bookyzo? =
 
 * All four booking types — Appointment, Table, Event, Slot — in the free plugin, not locked behind an upsell
+* No limits on bookable items, shifts or bookings
 * Runs entirely on your own site — your booking data stays in your own database
 * No WooCommerce dependency — works on any WordPress site
-* A real Vue-powered admin panel, not a wall of settings screens
-* No limits on bookable items, shifts or bookings — add as many staff members, tables, events and slots as you need
+* A guided setup wizard and a real Vue-powered admin panel, not a wall of settings screens
 
-= Four booking types, one plugin =
+= Free features =
 
-* **Appointment** — one staff member, one customer per time slot (haircuts, consultations, tutoring)
-* **Table** — a restaurant table or venue space with a party-size capacity
-* **Event** — a specific date/time occurrence you create yourself (a class, a workshop, a ticketed show), sold by ticket quantity
-* **Slot** — a generic recurring time slot with room for more than one booking at once (a rental, a group session, anything that doesn't fit the other three)
+All of these are in the free plugin, with no license needed.
 
-Add as many bookable items as you need, set a name/price/photo, and configure the availability that fits its type — a weekly schedule with exceptions for Appointment/Table/Slot (its own, or your shared business hours, with as many shifts per day as you like, e.g. lunch and dinner), or specific dates you add yourself for Event. Available time slots (or your entered event dates) are kept up to date automatically in the background. For events, the booking form can optionally ask for each ticket holder's name when someone books several tickets.
+**Booking types**
 
-= Booking calendar =
+* Appointment — one staff member, one customer per time slot (haircuts, consultations, tutoring)
+* Table — a restaurant table or venue space with a party-size capacity
+* Event — a date and time you create yourself (a class, a workshop, a ticketed show), sold by ticket quantity
+* Slot — a recurring time slot with room for more than one booking (a rental, a group session, anything that doesn't fit the other three)
+* No limits on bookable items, shifts or bookings
 
-A day/week/month calendar in the admin panel shows every booking, color-coded by status. Click a booking to see its details or change its status, or add a walk-in/phone booking yourself straight from the calendar.
+**Bookable items & availability**
 
-= Booking list & CSV export =
+* Name, description, photo, price, duration and capacity for each item
+* A location and an online meeting link on any item
+* A weekly schedule per item, with as many shifts per day as you like (e.g. lunch and dinner)
+* Shared business hours an item can follow instead of its own schedule
+* Date exceptions to block a holiday or change the hours for a single date
+* Specific dates added by hand for events
+* Available times kept up to date automatically in the background
 
-Filter every booking by date, bookable item or status, change status inline, and export the filtered list to CSV whenever you need it outside WordPress.
+**Customer booking form**
 
-= Customer booking widget =
+* The `[bookyzo_booking]` shortcode, the Booking Form block and the Elementor widget
+* Show every item, one booking type (`[bookyzo_booking type="table"]`) or a single item (`[bookyzo_booking bookable_item_id="5"]`)
+* Guest booking with a name, an email and a phone number, and you choose whether phone is required
+* Party size for tables, ticket quantity for events and spots for slots
+* Optional ticket holder names when someone books several event tickets
+* Add to Google Calendar or download an .ics file from the confirmation screen
+* Appearance settings for colors, width, font, corner rounding and shadow, with a live preview
+* Spam protection with a honeypot field and a per-IP rate limit
 
-Add `[bookyzo_booking]` anywhere with the shortcode, use the **Booking Form** block, or drop it in with the Elementor widget if you build pages that way. Customers pick a time, enter their details, get a booking confirmation, and can add it straight to Google Calendar or download it as an .ics file — no account required.
+**Booking management**
 
-= Customer management =
+* Day, week, month and agenda calendar views, color-coded by status
+* Drag a booking to another time on the calendar to reschedule it
+* Add walk-in and phone bookings yourself
+* Filter the booking list by date, bookable item or status, and change a status inline
+* Export the filtered booking list to CSV
+* Pending, confirmed, completed, cancelled, rejected and no-show statuses
+* Confirm new bookings automatically, or review each one first
 
-Every customer is saved automatically the first time they book — searchable by name, email or phone under **Bookyzo → Customers**, with notes and tags you can add yourself. Already have a customer list elsewhere? Import it from a CSV file.
+**Dashboard**
 
-= Email notifications =
+* Booking counts for today, this week and this month
+* Revenue for the current month
+* A chart of the last 14 days of bookings
+* A list of upcoming bookings
 
-Automatic emails when a booking is received, confirmed or cancelled, plus a reminder email the day before it's due. Every email carries the booking's own details — number, quantity, total and location — and a self-service link the customer can use themselves: from it they can move their booking to another open time or cancel it, right up to your cancellation cutoff. Every email's subject and body is a plain-text template you can edit yourself, with placeholders for the customer's name, the bookable item, the booking time, the total and your business name.
+**Customers**
 
-= Payments =
+* Customers saved automatically the first time they book
+* Search by name, email or phone
+* Your own notes and tags on each customer
+* Import an existing customer list from a CSV file
 
-Mark bookings as paid manually for cash or in-person payments, or connect a Stripe account to let customers pay online by card when they book. An optional flat tax rate is added to every paid booking's total automatically.
+**Emails**
 
-= Dashboard =
+* Automatic emails when a booking is received, confirmed or cancelled
+* A reminder email the day before a booking
+* An email to you for each new booking, which you can turn off
+* Editable plain-text subject and body for every email, with placeholders for the customer's name, the bookable item, the booking time, the total and your business name
 
-See today's, this week's and this month's booking counts at a glance when you log in.
+**Customer self-service**
 
-= Developer friendly =
+* A link in each email to move a booking to another open time or cancel it, up to your cancellation cutoff, with no account needed
+* Optional customer accounts (off by default) with a `[bookyzo_account]` page for upcoming and past bookings, rescheduling and cancelling
 
-Actions and filters throughout (REST controllers, pricing, rate limiting, notifications) and a REST API under `bookyzo/v1`. See **Other Notes** for the hook list.
+**Payments**
 
-= Customer accounts =
+* Online card payments through your own Stripe account
+* Mark bookings as paid manually for cash or in-person payments
+* A "Pay in person" choice for customers, which you can turn off
+* An optional flat tax rate on every paid booking's total
+* A time released automatically when a customer leaves an online payment unfinished
 
-Customers can optionally create an account (turn it on under **Bookyzo → Settings**) and manage their own bookings from a `[bookyzo_account]` page — upcoming and past bookings, rescheduling and cancelling within your cutoff. Off by default: guests can book, and manage that booking from the link in their email, without one.
+**Privacy, translation & developer tools**
 
-= Growing out of the free plugin (Pro) =
+* WordPress's Export and Erase Personal Data tools
+* Your booking data stays when you delete the plugin, unless you choose to remove it in Settings
+* Translation-ready, including the booking form, the account page and the admin screens
+* Actions, filters and a REST API under `bookyzo/v1`
 
-Everything in this plugin is complete on its own, with no limits and no locked-out UI. [Bookyzo Pro](https://codeholt.com/products/bookyzo-pro/) is a separate paid add-on with more features: services with per-staff pricing and "any available staff" booking, multiple locations, staff logins, deposits and PayPal, refunds on cancellation, discount codes and prepaid packages, SMS/WhatsApp reminders on your own schedule, email and SMS campaigns, seasonal and dynamic pricing, add-ons and booking fees, a waitlist for full times, recurring bookings, custom form fields, a table floor plan, event ticket tiers with QR e-tickets and a check-in scanner, branded PDF invoices, staff calendar sync, an analytics dashboard, and WooCommerce checkout. **Bookyzo → Get Pro** compares the two.
+= Pro features =
+
+These come only with [Bookyzo Pro](https://codeholt.com/products/bookyzo-pro/), a separate paid plugin that needs the free plugin installed. None of them are in the free plugin.
+
+**Booking tools**
+
+* Services with per-staff pricing and "any available staff" booking
+* Recurring bookings you create for any non-event item, repeating every 1 to 4 weeks
+* A waitlist for full times that emails the next person when a place frees up
+* Bulk actions to confirm, complete, cancel or mark no-show on several bookings at once
+* Internal notes and tags on a booking
+* Duplicate a booking to start a new one
+* Google Calendar and Outlook two-way sync — bookings go in, busy times block slots
+
+**Locations & staff**
+
+* Multiple locations, each with its own timezone and opening hours
+* Staff logins that see only their own items' bookings
+
+**Pricing & payments**
+
+* Deposits as a percentage or a fixed amount
+* PayPal alongside Stripe
+* Refunds on cancellation, approved by you — refund in full, keep the deposit or booking fee, or decline
+* Discount codes as a percentage or a fixed amount, limited by item, booking type, date range and number of uses
+* Prepaid packages (e.g. "10 classes for $150") with their own store (`[bookyzo_packages]`, block and Elementor widget)
+* Seasonal and dynamic pricing by date range, day of the week or booking lead time
+* Add-ons customers can attach to a booking
+* Booking fees and per-item tax
+* WooCommerce checkout when WooCommerce is active
+
+**Messages**
+
+* SMS (Twilio) and WhatsApp confirmations, cancellations and reminders
+* Your own reminder timings (e.g. one 48 hours before and another closer to the booking)
+* Email and SMS campaigns to a filtered customer list
+* Post-visit follow-up emails, sent a set number of hours after a booking is completed
+* Live admin alerts for new bookings, cancellations and no-shows
+
+**Tables**
+
+* A floor plan to arrange your tables and see each one's state in a live view
+* Combined tables for larger parties
+* A walk-in waitlist
+
+**Events**
+
+* Ticket tiers (e.g. Early Bird, Regular, VIP) with their own prices and capacity
+* QR e-tickets
+* A web check-in scanner that uses the device's camera, with no app to install and a manual fallback
+* Attendee list export
+
+**Reports**
+
+* An analytics dashboard for revenue, occupancy, no-shows, repeat customers, conversion rate, popular items and hours, filterable by date and location, with CSV export
+* Commission and payout tracking
+* Customer list export with booking history
+* Branded PDF invoices
+
+**Customization & integrations**
+
+* Custom form fields (text, dropdown, checkbox, date, number and address), for all items or just one
+* Custom CSS for the booking form
+* Signed webhooks when a booking is created or its status changes
+* Marketing pixels for Facebook, GA4 and Google Tag Manager
+
+**License & updates**
+
+* Automatic Pro updates on the Plugins screen
+* If a license expires, everything already set up keeps working; only creating new Pro items stops
 
 == External services ==
 
@@ -120,7 +228,7 @@ An hourly background task checks for bookings starting in roughly 24 hours and s
 
 = Does this plugin hide or lock any features behind an upsell? =
 
-No. Every feature listed above is fully usable with no artificial limits, nag screens or disabled UI.
+No. Every feature of this plugin is fully usable with no artificial limits, nag screens or disabled UI.
 
 = Does Bookyzo support anything besides one-on-one appointments? =
 
@@ -145,7 +253,7 @@ The admin app, the booking widget and the account page are Vue apps, built with 
 
 == Changelog ==
 
-= 1.0.2 - 31-10-2026 =
+= 1.0.2 - 04-11-2026 =
 * New: A **Get Pro** page compares the free plugin with Bookyzo Pro, linked from the Bookyzo menu and the Plugins screen while Pro isn't active. If Pro is installed but switched off, it offers to activate it instead.
 * New: The setup wizard has an optional page about Bookyzo Pro near the end; "Continue with Free" carries on as before. It isn't shown once Pro is active.
 * Tweak: A redesigned setup wizard — a welcome screen that says what you'll set up, an icon for each booking type, a currency picker instead of a text box, a Back button on the Type step, a wider layout that no longer changes width between steps, and "Skip setup" moved below the card.
