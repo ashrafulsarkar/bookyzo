@@ -4,7 +4,7 @@ Tags: booking calendar, appointment booking, event booking, table reservation, s
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.2
+Stable tag: 1.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -226,6 +226,12 @@ Yes, from **Bookyzo → Emails** in the admin panel. Every email is a plain-text
 
 An hourly background task checks for bookings starting in roughly 24 hours and sends a reminder — no setup needed beyond keeping the booking confirmed.
 
+= What happens when a payment arrives after the booking's hold has expired? =
+
+When a customer starts paying online, their time is held for them for a short while (15 minutes by default, set under **Bookyzo → Settings → General**). If they don't finish in time, the booking is cancelled so someone else can book that time, and the unfinished Stripe payment is cancelled.
+
+If their payment still comes through afterwards (a slow bank check, for example), Bookyzo looks at the time again. If the place is still free, the booking is brought back and confirmed, and the customer gets the usual confirmation email. If someone else has taken it, the booking stays cancelled and is marked "Refund due": you and the customer each get an email, and you refund the payment with your payment provider. You can list these bookings with the Payment filter on the Bookings screen.
+
 = Does this plugin hide or lock any features behind an upsell? =
 
 No. Every feature of this plugin is fully usable with no artificial limits, nag screens or disabled UI.
@@ -252,6 +258,13 @@ The admin app, the booking widget and the account page are Vue apps, built with 
 6. The email template editor.
 
 == Changelog ==
+
+= 1.0.3 - 13-11-2026 =
+* Fix: A payment that arrives after its booking's hold has expired now takes the place again if it is still free, or marks the booking for refund and emails you and the customer. Before, it was recorded as paid on a cancelled booking with no notice. Thanks to PeepSo for flagging it.
+* Fix: Two changes to the same booking at the same moment (for example an automatic cancellation and a payment confirmation) can no longer release a place twice.
+* New: Online-payment holds are now a short, explicit window (default 15 minutes) and the unfinished Stripe payment is cancelled when it ends.
+* New: Buffer time can be set per bookable item.
+* New: Cancellation cut-off can be set per bookable item and is shown to customers before they book.
 
 = 1.0.2 - 04-11-2026 =
 * New: A **Get Pro** page compares the free plugin with Bookyzo Pro, linked from the Bookyzo menu and the Plugins screen while Pro isn't active. If Pro is installed but switched off, it offers to activate it instead.
@@ -280,6 +293,9 @@ The admin app, the booking widget and the account page are Vue apps, built with 
 * Initial release.
 
 == Upgrade Notice ==
+
+= 1.0.3 =
+Fixes late online payments on released bookings and a rare double release of a place. Adds a short online-payment hold, and per-item buffer time and cancellation cut-off.
 
 = 1.0.2 =
 A redesigned setup wizard, a Get Pro comparison page, and fixes to the booking form's price summary and several layouts.
