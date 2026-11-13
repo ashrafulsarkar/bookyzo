@@ -89,6 +89,12 @@ class BYZO_REST_Slots_Controller extends BYZO_REST_Controller {
 			return new WP_Error( 'byzo_not_found', __( 'Bookable item not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
+		// Places held by abandoned online checkouts whose hold has run out
+		// are given back before the times are listed (1.0.3), instead of
+		// showing as taken until the hourly sweep. Nothing a visitor sends
+		// decides what is released: only bookings already past their hold.
+		BYZO_Booking::release_expired_holds( array( 'bookable_item_id' => $item['id'] ) );
+
 		$slots = BYZO_Slot::query(
 			array(
 				'bookable_item_id' => $item['id'],

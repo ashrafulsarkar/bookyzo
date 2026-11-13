@@ -65,6 +65,12 @@ class BYZO_Settings {
 			// slot forever, today's exact behavior on every existing install
 			// until this setting is touched).
 			'pending_booking_hold_hours' => 24,
+			// Added 2026-11-13 (1.0.3) — how long an online payment that was
+			// started but not finished holds its place, in minutes. Stored on
+			// the booking as hold_expires_at when the payment starts, and the
+			// unfinished Stripe payment is cancelled when it runs out. 0 =
+			// use pending_booking_hold_hours instead.
+			'online_payment_hold_minutes' => 15,
 			// Added 2026-09-22 — gates StepPayment.vue's "Pay in person
 			// instead" button (BYZO_Public_Widget's payInPersonEnabled).
 			// On by default so an existing site's widget keeps behaving
@@ -172,6 +178,17 @@ class BYZO_Settings {
 
 		if ( isset( $data['pending_booking_hold_hours'] ) ) {
 			$patch['pending_booking_hold_hours'] = max( 0, absint( $data['pending_booking_hold_hours'] ) );
+		}
+
+		if ( isset( $data['online_payment_hold_minutes'] ) ) {
+			$raw = $data['online_payment_hold_minutes'];
+			// A week is far more than any checkout needs; refusing larger
+			// values catches a typo (hours typed as minutes the other way
+			// round is the likely one) instead of saving it.
+			if ( ! is_numeric( $raw ) || (float) $raw !== (float) (int) $raw || (int) $raw < 0 || (int) $raw > 10080 ) {
+				return new WP_Error( 'byzo_invalid_online_payment_hold_minutes', __( 'online_payment_hold_minutes must be a whole number of minutes between 0 and 10080.', 'bookyzo' ), array( 'status' => 400 ) );
+			}
+			$patch['online_payment_hold_minutes'] = (int) $raw;
 		}
 
 		if ( isset( $data['business_hours'] ) ) {

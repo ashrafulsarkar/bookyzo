@@ -747,6 +747,11 @@ class BYZO_Booking {
 			return self::create_for_service( $validated );
 		}
 
+		// An abandoned online checkout on this slot whose hold has run out
+		// gives its place back first (1.0.3), so it can't make the slot look
+		// full to the next customer until the hourly sweep.
+		self::release_expired_holds( array( 'slot_ids' => array( $validated['slot_id'] ) ) );
+
 		$slot = BYZO_Slot::get( $validated['slot_id'] );
 		if ( ! $slot || 'open' !== $slot['status'] ) {
 			return new WP_Error( 'byzo_slot_unavailable', __( 'This time slot is no longer available.', 'bookyzo' ), array( 'status' => 409 ) );
@@ -794,6 +799,8 @@ class BYZO_Booking {
 		if ( empty( $candidates ) ) {
 			return new WP_Error( 'byzo_service_unavailable', __( 'No staff currently offer this service.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
+
+		self::release_expired_holds_at( $candidates, $validated['start_datetime'] );
 
 		$slots = BYZO_Slot::open_at( $candidates, $validated['start_datetime'] );
 
@@ -1330,7 +1337,7 @@ class BYZO_Booking {
 	 *
 	 * @param int    $id
 	 * @param string $new_status
-	 * @param array  $context    Optional, reserved for details of the change.
+	 * @param array  $context    Optional. `reason` (cancellations only): why, e.g. `hold_expired`.
 	 * @return true|WP_Error A 409 `byzo_booking_conflict` when the booking changed under this call.
 	 */
 	public static function update_status( $id, $new_status, $context = array() ) {
@@ -1369,6 +1376,10 @@ class BYZO_Booking {
 		$updates = array( 'status' => $new_status, 'updated_at' => current_time( 'mysql' ) );
 		if ( 'cancelled' === $new_status ) {
 			$updates['cancelled_at'] = current_time( 'mysql' );
+			// Why it was cancelled, when the caller knows (1.0.3): a hold
+			// that ran out is `hold_expired`, which is what lets a payment
+			// that arrives afterwards take the place back (apply_online_payment()).
+			$updates['cancel_reason'] = isset( $context['reason'] ) ? substr( sanitize_key( $context['reason'] ), 0, 20 ) : null;
 		} elseif ( 'completed' === $new_status ) {
 			// Added 2026-09-05 (Phase 1.6) — reserved for Pro's post-visit
 			// follow-up email (FEATURES.md B5), which needs "N hours after
@@ -1415,6 +1426,178 @@ class BYZO_Booking {
 	 */
 	public static function is_conflict( $result ) {
 		return is_wp_error( $result ) && 'byzo_booking_conflict' === $result->get_error_code();
+	}
+
+	/**
+	 * When an online payment started now stops holding its place
+	 * (site-local), or null when holds never expire. online_payment_hold_minutes
+	 * (default 15); 0 there falls back to pending_booking_hold_hours; 0 in
+	 * both means no expiry.
+	 *
+	 * @return string|null 'Y-m-d H:i:s'
+	 */
+	public static function online_hold_expires_at() {
+		$settings = BYZO_Settings::get();
+		$minutes  = (int) $settings['online_payment_hold_minutes'];
+		if ( $minutes <= 0 ) {
+			$minutes = 60 * (int) $settings['pending_booking_hold_hours'];
+		}
+
+		return $minutes > 0 ? wp_date( 'Y-m-d H:i:s', time() + $minutes * MINUTE_IN_SECONDS ) : null;
+	}
+
+	/**
+	 * Starts the hold clock for a booking whose online payment just began:
+	 * only an unpaid pending booking, and only once (opening the card form
+	 * a second time doesn't buy more time).
+	 *
+	 * @param int $id
+	 */
+	private static function start_online_hold( $id ) {
+		global $wpdb;
+
+		$expires = self::online_hold_expires_at();
+		if ( ! $expires ) {
+			return;
+		}
+
+		$table = self::table();
+		$wpdb->query( $wpdb->prepare( "UPDATE {$table} SET hold_expires_at = %s WHERE id = %d AND status = 'pending' AND payment_status = 'unpaid' AND hold_expires_at IS NULL", $expires, (int) $id ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+	}
+
+	/**
+	 * Keeps the Stripe PaymentIntent opened for this booking, so it can be
+	 * cancelled if the hold runs out before the customer pays.
+	 *
+	 * @param int    $id
+	 * @param string $payment_intent_id
+	 */
+	public static function set_payment_intent_id( $id, $payment_intent_id ) {
+		global $wpdb;
+
+		$wpdb->update( self::table(), array( 'payment_intent_id' => substr( sanitize_text_field( (string) $payment_intent_id ), 0, 100 ) ), array( 'id' => (int) $id ) );
+	}
+
+	/**
+	 * Cancels unpaid online-payment bookings whose hold has run out, through
+	 * update_status() like every other cancellation. Called by the hourly
+	 * cron for everything, and right before a booking claims a slot for just
+	 * that slot, so an abandoned checkout never blocks the next customer for
+	 * longer than the hold.
+	 *
+	 * Bookings made before 1.0.3 have no hold_expires_at; theirs is still
+	 * created_at + pending_booking_hold_hours, as before.
+	 *
+	 * @param array $args {
+	 *     @type int[] $slot_ids         Only these slots.
+	 *     @type int   $bookable_item_id Only this item's bookings (ignored when slot_ids is given).
+	 *     Neither = every booking.
+	 * }
+	 * @return int How many holds this call released.
+	 */
+	public static function release_expired_holds( $args = array() ) {
+		global $wpdb;
+
+		$table    = self::table();
+		$now      = current_time( 'mysql' );
+		$slot_ids = array_values( array_filter( array_map( 'absint', (array) ( $args['slot_ids'] ?? array() ) ) ) );
+
+		$where  = "status = 'pending' AND payment_status = 'unpaid' AND payment_method IS NOT NULL AND payment_method <> 'in_person'";
+		$params = array( $now );
+
+		$legacy_hours = (int) BYZO_Settings::get()['pending_booking_hold_hours'];
+		if ( $legacy_hours > 0 ) {
+			$expired  = '( hold_expires_at < %s OR ( hold_expires_at IS NULL AND created_at < %s ) )';
+			$params[] = wp_date( 'Y-m-d H:i:s', time() - $legacy_hours * HOUR_IN_SECONDS );
+		} else {
+			$expired = 'hold_expires_at < %s';
+		}
+
+		$slot_sql = '';
+		if ( $slot_ids ) {
+			$slot_sql = ' AND slot_id IN (' . implode( ',', array_fill( 0, count( $slot_ids ), '%d' ) ) . ')';
+			$params   = array_merge( $params, $slot_ids );
+		} elseif ( ! empty( $args['bookable_item_id'] ) ) {
+			$slot_sql = ' AND bookable_item_id = %d';
+			$params[] = absint( $args['bookable_item_id'] );
+		}
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare -- table name and fixed clauses; every value is a placeholder.
+		$ids = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$table} WHERE {$where} AND {$expired}{$slot_sql}", $params ) );
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared, WordPress.DB.PreparedSQLPlaceholders.UnfinishedPrepare
+
+		$released = 0;
+		foreach ( $ids as $id ) {
+			if ( self::expire_hold( (int) $id ) ) {
+				++$released;
+			}
+		}
+
+		return $released;
+	}
+
+	/**
+	 * Holds that ran out on the slots an "any available staff" booking is
+	 * about to try (the same start time across several items).
+	 *
+	 * @param int[]  $item_ids
+	 * @param string $start_datetime Site-local 'Y-m-d H:i:s'.
+	 */
+	private static function release_expired_holds_at( $item_ids, $start_datetime ) {
+		global $wpdb;
+
+		$item_ids = array_values( array_filter( array_map( 'absint', (array) $item_ids ) ) );
+		if ( ! $item_ids ) {
+			return;
+		}
+
+		$slots_table = $wpdb->prefix . 'byzo_slots';
+		$in          = implode( ',', array_fill( 0, count( $item_ids ), '%d' ) );
+		// phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name and a placeholder list.
+		$slot_ids = $wpdb->get_col( $wpdb->prepare( "SELECT id FROM {$slots_table} WHERE start_datetime = %s AND bookable_item_id IN ({$in})", array_merge( array( $start_datetime ), $item_ids ) ) );
+
+		if ( $slot_ids ) {
+			self::release_expired_holds( array( 'slot_ids' => $slot_ids ) );
+		}
+	}
+
+	/**
+	 * Ends one booking's hold: cancels it (reason `hold_expired`), cancels
+	 * the Stripe payment that was never finished, and tells add-ons so they
+	 * can do the same for theirs (a PayPal order).
+	 *
+	 * @param int $id
+	 * @return bool True when this call did it; false when the booking had
+	 *              already moved on (paid, cancelled) in the meantime.
+	 */
+	private static function expire_hold( $id ) {
+		$booking = self::get( $id );
+		if ( ! $booking ) {
+			return false;
+		}
+
+		$result = self::update_status( $id, 'cancelled', array( 'reason' => 'hold_expired' ) );
+		if ( true !== $result ) {
+			return false;
+		}
+
+		if ( 'stripe' === $booking['payment_method'] && ! empty( $booking['payment_intent_id'] ) && class_exists( 'BYZO_Stripe' ) ) {
+			// Best effort: a failure here (Stripe unreachable) only means the
+			// customer could still pay a cancelled booking, which the
+			// webhook's late-payment handling deals with.
+			BYZO_Stripe::cancel_payment_intent( $booking['payment_intent_id'] );
+		}
+
+		/**
+		 * Fires after an unpaid online-payment booking was cancelled because
+		 * its hold ran out. Free has already cancelled its own Stripe
+		 * payment; an add-on cancels its gateway's (a PayPal order).
+		 *
+		 * @param int $booking_id
+		 */
+		do_action( 'byzo_booking_hold_expired', $id );
+
+		return true;
 	}
 
 	/**
@@ -1785,6 +1968,8 @@ class BYZO_Booking {
 			array( 'id' => $id )
 		);
 
+		self::start_online_hold( $id );
+
 		return true;
 	}
 
@@ -1810,11 +1995,19 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
-		$wpdb->update(
-			self::table(),
-			array( 'payment_method' => $payment_method, 'updated_at' => current_time( 'mysql' ) ),
-			array( 'id' => $id )
-		);
+		$data = array( 'payment_method' => $payment_method, 'updated_at' => current_time( 'mysql' ) );
+
+		// Paying in person isn't an online payment in progress: it has no
+		// short hold (1.0.3). Switching back to the card form starts one.
+		if ( 'in_person' === $payment_method ) {
+			$data['hold_expires_at'] = null;
+		}
+
+		$wpdb->update( self::table(), $data, array( 'id' => $id ) );
+
+		if ( 'in_person' !== $payment_method ) {
+			self::start_online_hold( $id );
+		}
 
 		return true;
 	}

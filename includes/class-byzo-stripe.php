@@ -135,6 +135,58 @@ class BYZO_Stripe {
 	}
 
 	/**
+	 * Cancels a PaymentIntent that was never paid, when its booking's hold
+	 * runs out (1.0.3), so the customer can't finish paying for a place
+	 * that was given away. An intent that already succeeded or was already
+	 * cancelled isn't an error here: the first is the webhook's job (a late
+	 * payment), the second is already done.
+	 *
+	 * @param string $payment_intent_id
+	 * @return true|WP_Error
+	 */
+	public static function cancel_payment_intent( $payment_intent_id ) {
+		if ( 0 !== strpos( (string) $payment_intent_id, 'pi_' ) ) {
+			return new WP_Error( 'byzo_no_payment_reference', __( 'This booking has no Stripe payment to cancel.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+		if ( ! BYZO_Payment_Settings::is_stripe_ready() ) {
+			return new WP_Error( 'byzo_stripe_not_configured', __( 'Online card payment is not available right now.', 'bookyzo' ), array( 'status' => 503 ) );
+		}
+
+		$stripe   = BYZO_Payment_Settings::get()['gateways']['stripe'];
+		$response = wp_remote_post(
+			self::API_BASE . '/payment_intents/' . rawurlencode( $payment_intent_id ) . '/cancel',
+			array(
+				'headers' => array(
+					'Authorization' => 'Bearer ' . $stripe['secret_key'],
+					'Content-Type'  => 'application/x-www-form-urlencoded',
+				),
+				'body'    => array( 'cancellation_reason' => 'abandoned' ),
+				'timeout' => 15,
+			)
+		);
+
+		if ( is_wp_error( $response ) ) {
+			return new WP_Error( 'byzo_stripe_request_failed', __( 'Could not reach the payment provider. Please try again.', 'bookyzo' ), array( 'status' => 502 ) );
+		}
+
+		$code = wp_remote_retrieve_response_code( $response );
+		$body = json_decode( wp_remote_retrieve_body( $response ), true );
+
+		if ( $code >= 200 && $code < 300 ) {
+			return true;
+		}
+
+		// payment_intent_unexpected_state: it has succeeded, or is already
+		// cancelled. Either way there is nothing left to cancel.
+		$status = $body['error']['payment_intent']['status'] ?? '';
+		if ( 'payment_intent_unexpected_state' === ( $body['error']['code'] ?? '' ) || in_array( $status, array( 'succeeded', 'canceled' ), true ) ) {
+			return true;
+		}
+
+		return new WP_Error( 'byzo_stripe_error', $body['error']['message'] ?? __( 'The payment provider rejected this request.', 'bookyzo' ), array( 'status' => 502 ) );
+	}
+
+	/**
 	 * Stripe's signing scheme: the header is `t=<timestamp>,v1=<sig>[,v1=<sig2>...]`
 	 * (multiple v1 values appear during secret rotation — any match is
 	 * valid). The signed payload is the literal string "{timestamp}.{raw_body}",

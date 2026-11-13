@@ -612,6 +612,7 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return $result;
 		}
 
+		BYZO_Booking::set_payment_intent_id( $booking['id'], $result['payment_intent_id'] );
 		BYZO_Booking::set_payment_method( $booking['id'], 'stripe' );
 
 		return rest_ensure_response( $result );

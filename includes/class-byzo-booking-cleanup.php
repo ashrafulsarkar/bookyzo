@@ -17,6 +17,12 @@ defined( 'ABSPATH' ) || exit;
  * Now only a booking whose `payment_method` records an online payment in
  * progress (anything but NULL / `in_person`, see BYZO_Booking::set_payment_method())
  * qualifies.
+ *
+ * 1.0.3: the hold is the booking's own `hold_expires_at` (default 15
+ * minutes after the payment started, `online_payment_hold_minutes`), and
+ * the work moved to BYZO_Booking::release_expired_holds(), which a new
+ * booking also calls for its own slot before claiming it. This hourly run
+ * is the sweep for everything else.
  */
 class BYZO_Booking_Cleanup {
 
@@ -25,29 +31,6 @@ class BYZO_Booking_Cleanup {
 	}
 
 	public static function release_stale_pending_bookings() {
-		global $wpdb;
-
-		$hold_hours = (int) BYZO_Settings::get()['pending_booking_hold_hours'];
-		if ( $hold_hours <= 0 ) {
-			return;
-		}
-
-		// created_at is stored in site-local time (current_time( 'mysql' )),
-		// so the cutoff must be too — wp_date() formats in wp_timezone().
-		$cutoff = wp_date( 'Y-m-d H:i:s', time() - ( $hold_hours * HOUR_IN_SECONDS ) );
-		$table  = $wpdb->prefix . 'byzo_bookings';
-
-		$stale_ids = $wpdb->get_col(
-			$wpdb->prepare(
-				"SELECT id FROM {$table} WHERE status = 'pending' AND payment_status = 'unpaid' AND payment_method IS NOT NULL AND payment_method <> 'in_person' AND created_at < %s", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
-				$cutoff
-			)
-		);
-
-		foreach ( $stale_ids as $id ) {
-			// Goes through the same state machine (and capacity release)
-			// every other cancellation uses — no bespoke cleanup path.
-			BYZO_Booking::update_status( (int) $id, 'cancelled' );
-		}
+		BYZO_Booking::release_expired_holds();
 	}
 }

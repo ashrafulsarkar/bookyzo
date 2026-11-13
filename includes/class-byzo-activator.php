@@ -240,6 +240,16 @@ class BYZO_Activator {
 		// auto-cancels a booking whose online payment was started and
 		// never finished, so a booking merely waiting for admin approval
 		// is never swept up by it.
+		// `hold_expires_at`/`cancel_reason`/`payment_intent_id` added
+		// 2026-11-13 (1.0.3, BYZO_DB_VERSION 3.3->3.4). hold_expires_at
+		// (site-local) is when an unpaid online payment stops holding its
+		// place; it is set when the payment starts and is NULL for every
+		// other booking. cancel_reason says why a booking was cancelled when
+		// the code knows (`hold_expired`), so a payment that arrives after
+		// the hold ran out can take the place back. payment_intent_id is the
+		// Stripe PaymentIntent opened for the booking, kept so it can be
+		// cancelled when the hold expires (payment_reference stays "what was
+		// actually charged", which refunds rely on).
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookings (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			slot_id BIGINT UNSIGNED NULL,
@@ -261,6 +271,8 @@ class BYZO_Activator {
 			payment_status VARCHAR(20) NOT NULL DEFAULT 'unpaid',
 			payment_method VARCHAR(20) NULL,
 			payment_reference VARCHAR(100) NULL,
+			payment_intent_id VARCHAR(100) NULL,
+			hold_expires_at DATETIME NULL,
 			amount_paid DECIMAL(10,2) NULL,
 			refund_status VARCHAR(20) NULL,
 			refund_amount DECIMAL(10,2) NULL,
@@ -278,6 +290,7 @@ class BYZO_Activator {
 			created_at DATETIME NOT NULL,
 			updated_at DATETIME NOT NULL,
 			cancelled_at DATETIME NULL,
+			cancel_reason VARCHAR(20) NULL,
 			completed_at DATETIME NULL,
 			rescheduled_at DATETIME NULL,
 			reminder_sent_at DATETIME NULL,
@@ -289,7 +302,8 @@ class BYZO_Activator {
 			KEY status (status),
 			KEY customer_email (customer_email),
 			KEY customer_id (customer_id),
-			KEY cart_id (cart_id)
+			KEY cart_id (cart_id),
+			KEY hold_expires_at (hold_expires_at)
 		) {$charset_collate};";
 
 		// wp_byzo_customers (added 2026-09-05, Phase 1.5 step 9,

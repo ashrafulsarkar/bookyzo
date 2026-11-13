@@ -117,13 +117,24 @@
             </div>
 
             <div class="flex flex-col gap-1.5">
-              <Label for="s-hold-hours">{{ __('Unfinished online payments', 'bookyzo') }}</Label>
+              <Label for="s-hold-minutes">{{ __('Time to finish an online payment', 'bookyzo') }}</Label>
+              <div class="flex items-center gap-2">
+                <Input id="s-hold-minutes" v-model.number="form.online_payment_hold_minutes" type="number" min="0" max="10080" step="1" class="w-24" />
+                <span class="text-sm text-muted-foreground">{{ __('minutes, then the time is freed and the unfinished payment is cancelled', 'bookyzo') }}</span>
+              </div>
+              <p class="text-xs text-muted-foreground">
+                {{ __('A customer who opens the online payment form holds that time while they pay. If they don\'t finish in time, the booking is cancelled so someone else can book. If their payment still comes through afterwards, Bookyzo gives them the place back when it is still free, or marks the booking for a refund and emails you both.', 'bookyzo') }}
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <Label for="s-hold-hours">{{ __('Longer hold, used when the time above is 0', 'bookyzo') }}</Label>
               <div class="flex items-center gap-2">
                 <Input id="s-hold-hours" v-model.number="form.pending_booking_hold_hours" type="number" min="0" step="1" class="w-24" />
                 <span class="text-sm text-muted-foreground">{{ __('hours, then the booking is cancelled (0 = never)', 'bookyzo') }}</span>
               </div>
               <p class="text-xs text-muted-foreground">
-                {{ __('A customer who opens the online payment form but never finishes paying holds that time until then. Bookings waiting for your approval, free bookings and "Pay in person" bookings are never cancelled automatically.', 'bookyzo') }}
+                {{ __('Bookings waiting for your approval, free bookings and "Pay in person" bookings are never cancelled automatically.', 'bookyzo') }}
               </p>
             </div>
 
@@ -238,6 +249,8 @@ const form = ref({
   // Added 2026-09-22 — gates StepPayment.vue's "Pay in person instead".
   allow_pay_in_person: true,
   pending_booking_hold_hours: 24,
+  // 1.0.3 — the short hold for an online payment in progress.
+  online_payment_hold_minutes: 15,
   collect_attendee_details: false,
   delete_data_on_uninstall: false,
 });
