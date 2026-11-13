@@ -328,6 +328,9 @@ async function createEverything() {
       capacity: wizardData.type === 'appointment' ? 1 : Math.max(1, Number(wizardData.capacity) || 1),
       location: wizardData.location || null,
       meeting_link: wizardData.meeting_link || null,
+      // 1.0.3 — the Availability step's optional buffer; null = business-wide.
+      buffer_before_minutes: wizardData.buffer_before_minutes ?? null,
+      buffer_after_minutes: wizardData.buffer_after_minutes ?? null,
     };
     if ('event' !== wizardData.type) {
       payload.duration_minutes = wizardData.duration_minutes;

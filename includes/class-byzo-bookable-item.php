@@ -161,7 +161,34 @@ class BYZO_Bookable_Item {
 			do_action( 'byzo_bookable_item_activated', $id );
 		}
 
+		// The gaps between bookings changed, so the future times on offer
+		// change too (1.0.3). Times that already have bookings stay as they
+		// are; see BYZO_Slot_Generator::regenerate_unbooked().
+		foreach ( array( 'buffer_before_minutes', 'buffer_after_minutes' ) as $buffer_field ) {
+			if ( array_key_exists( $buffer_field, $validated ) && $validated[ $buffer_field ] !== $existing[ $buffer_field ] ) {
+				BYZO_Slot_Generator::regenerate_unbooked( $id );
+				break;
+			}
+		}
+
 		return true;
+	}
+
+	/**
+	 * The gaps this item keeps around each booking, in minutes (1.0.3). Its
+	 * own values when set; otherwise the business-wide one, which is a gap
+	 * after each booking (byzo_settings.buffer_minutes) and none before.
+	 *
+	 * @param array $item A get() row.
+	 * @return array{before:int,after:int}
+	 */
+	public static function buffers( $item ) {
+		$business = max( 0, (int) ( get_option( 'byzo_settings', array() )['buffer_minutes'] ?? 0 ) );
+
+		return array(
+			'before' => null === ( $item['buffer_before_minutes'] ?? null ) ? 0 : max( 0, (int) $item['buffer_before_minutes'] ),
+			'after'  => null === ( $item['buffer_after_minutes'] ?? null ) ? $business : max( 0, (int) $item['buffer_after_minutes'] ),
+		);
 	}
 
 	/**
@@ -608,6 +635,28 @@ class BYZO_Bookable_Item {
 			$out['uses_business_hours'] = (bool) $data['uses_business_hours'];
 		}
 
+		// This item's own buffer before/after each booking (1.0.3). A JSON
+		// null or '' clears it back to the business-wide value.
+		foreach ( array( 'buffer_before_minutes', 'buffer_after_minutes' ) as $buffer_field ) {
+			if ( ! array_key_exists( $buffer_field, $data ) ) {
+				continue;
+			}
+			$raw = $data[ $buffer_field ];
+			if ( null === $raw || '' === $raw ) {
+				$out[ $buffer_field ] = null;
+				continue;
+			}
+			if ( ! is_numeric( $raw ) || (float) $raw !== (float) (int) $raw || (int) $raw < 0 || (int) $raw > 1440 ) {
+				return new WP_Error(
+					'byzo_invalid_buffer',
+					/* translators: %s: field name (buffer_before_minutes or buffer_after_minutes). */
+					sprintf( __( '%s must be a whole number of minutes from 0 to 1440, or empty.', 'bookyzo' ), $buffer_field ),
+					array( 'status' => 400 )
+				);
+			}
+			$out[ $buffer_field ] = (int) $raw;
+		}
+
 		return $out;
 	}
 
@@ -618,6 +667,8 @@ class BYZO_Bookable_Item {
 		$row['min_party_size'] = ! empty( $row['min_party_size'] ) ? min( (int) $row['min_party_size'], (int) $row['capacity'] ) : null;
 		$row['price']       = null === $row['price'] ? null : (float) $row['price'];
 		$row['duration_minutes'] = (int) $row['duration_minutes'];
+		$row['buffer_before_minutes'] = isset( $row['buffer_before_minutes'] ) && null !== $row['buffer_before_minutes'] ? (int) $row['buffer_before_minutes'] : null;
+		$row['buffer_after_minutes']  = isset( $row['buffer_after_minutes'] ) && null !== $row['buffer_after_minutes'] ? (int) $row['buffer_after_minutes'] : null;
 		$row['location_id'] = $row['location_id'] ? (int) $row['location_id'] : null;
 		$row['group_id']    = $row['group_id'] ? (int) $row['group_id'] : null;
 		$row['uses_business_hours'] = (bool) $row['uses_business_hours'];

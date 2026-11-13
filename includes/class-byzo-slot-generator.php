@@ -68,7 +68,9 @@ class BYZO_Slot_Generator {
 		}
 
 		$duration_minutes = max( 1, (int) $item['duration_minutes'] );
-		$buffer_minutes   = max( 0, (int) $settings['buffer_minutes'] );
+		// The item's own buffer before/after each booking, or the business-wide
+		// one (a gap after, none before) where it has none (1.0.3).
+		$buffers = BYZO_Bookable_Item::buffers( $item );
 		$min_advance      = new DateTime( '+' . max( 0, (int) $settings['min_advance_hours'] ) . ' hours', wp_timezone() );
 
 		// Days and opening hours are the item's own (its location's
@@ -113,7 +115,7 @@ class BYZO_Slot_Generator {
 			foreach ( $windows as list( $start_time, $end_time ) ) {
 				$slots = array_merge(
 					$slots,
-					self::build_day_slots( $item, $date_str, $start_time, $end_time, $duration_minutes, $buffer_minutes, $min_advance, $item_tz )
+					self::build_day_slots( $item, $date_str, $start_time, $end_time, $duration_minutes, $buffers, $min_advance, $item_tz )
 				);
 			}
 		}
@@ -165,16 +167,84 @@ class BYZO_Slot_Generator {
 	}
 
 	/**
+	 * Throws away future slots nobody has booked or blocked, generates the
+	 * item's times again, then blocks any new time that would overlap one
+	 * that has bookings (with this item's buffers around it), so changing
+	 * the buffer never double-books (1.0.3). A slot with bookings is kept
+	 * exactly as it is: its customers keep their time. A blocked slot is
+	 * kept too (a blackout, a calendar-sync busy time, a combined table).
+	 *
+	 * @param int $bookable_item_id
+	 * @return int Slot rows upserted.
+	 */
+	public static function regenerate_unbooked( $bookable_item_id ) {
+		global $wpdb;
+
+		$item = BYZO_Bookable_Item::get( $bookable_item_id );
+		if ( ! $item || 'event' === $item['type'] ) {
+			return 0;
+		}
+
+		$slots    = $wpdb->prefix . 'byzo_slots';
+		$bookings = $wpdb->prefix . 'byzo_bookings';
+		$now      = current_time( 'mysql' );
+
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery -- table names only; every value is a placeholder.
+		$wpdb->query( $wpdb->prepare( "DELETE s FROM {$slots} s LEFT JOIN {$bookings} b ON b.slot_id = s.id AND b.status IN ('pending','confirmed') WHERE s.bookable_item_id = %d AND s.status = 'open' AND s.start_datetime > %s AND b.id IS NULL", $bookable_item_id, $now ) );
+
+		$count = self::generate_for_bookable_item( $bookable_item_id );
+
+		$buffers = BYZO_Bookable_Item::buffers( $item );
+		$wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$slots} s
+				 JOIN (
+					SELECT DISTINCT k.id, k.start_datetime, k.end_datetime FROM {$slots} k
+					JOIN {$bookings} kb ON kb.slot_id = k.id AND kb.status IN ('pending','confirmed')
+					WHERE k.bookable_item_id = %d AND k.end_datetime > %s
+				 ) kept ON kept.id <> s.id
+				 LEFT JOIN {$bookings} sb ON sb.slot_id = s.id AND sb.status IN ('pending','confirmed')
+				 SET s.status = 'blocked'
+				 WHERE s.bookable_item_id = %d AND s.status = 'open' AND sb.id IS NULL
+				   AND s.start_datetime < DATE_ADD(kept.end_datetime, INTERVAL %d MINUTE)
+				   AND s.end_datetime > DATE_SUB(kept.start_datetime, INTERVAL %d MINUTE)",
+				$bookable_item_id,
+				$now,
+				$bookable_item_id,
+				$buffers['after'] + $buffers['before'],
+				$buffers['before'] + $buffers['after']
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.DirectDatabaseQuery
+
+		return $count;
+	}
+
+	/**
 	 * Builds slot rows for one open window on one date, honoring the
 	 * minimum-advance-notice cutoff.
+	 *
+	 * 1.0.3: $buffers is the item's gap before and after each booking. The
+	 * first time starts `before` minutes into the window, and each next one
+	 * starts duration + after + before later, so both gaps fit between two
+	 * bookings. With no per-item buffer this is exactly the old rule: start
+	 * at the window, step duration + business buffer.
+	 *
+	 * @param array $buffers { before: int, after: int } minutes.
 	 */
-	private static function build_day_slots( $item, $date_str, $start_time, $end_time, $duration_minutes, $buffer_minutes, DateTime $min_advance, $tz = null ) {
+	private static function build_day_slots( $item, $date_str, $start_time, $end_time, $duration_minutes, $buffers, DateTime $min_advance, $tz = null ) {
 		$tz   = $tz ?: wp_timezone();
 		$site = wp_timezone();
 
+		$before = max( 0, (int) $buffers['before'] );
+		$after  = max( 0, (int) $buffers['after'] );
+
 		$cursor = new DateTime( "{$date_str} {$start_time}", $tz );
-		$end    = new DateTime( "{$date_str} {$end_time}", $tz );
-		$step   = new DateInterval( 'PT' . ( $duration_minutes + $buffer_minutes ) . 'M' );
+		if ( $before ) {
+			$cursor->modify( "+{$before} minutes" );
+		}
+		$end  = new DateTime( "{$date_str} {$end_time}", $tz );
+		$step = new DateInterval( 'PT' . ( $duration_minutes + $after + $before ) . 'M' );
 
 		$slots = array();
 

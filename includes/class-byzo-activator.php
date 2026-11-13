@@ -82,6 +82,10 @@ class BYZO_Activator {
 		// That user's admin view shows only the bookings of the items linked
 		// to them (BYZO_Staff). NULL on every Free install: only an add-on
 		// turning on BYZO_Capabilities::staff_logins_enabled() ever sets it.
+		// `buffer_before_minutes`/`buffer_after_minutes` added 2026-11-13
+		// (1.0.3, BYZO_DB_VERSION 3.4->3.5): this item's own gap before and
+		// after each booking. NULL = the business-wide setting, which is a
+		// gap after each booking (byzo_settings.buffer_minutes) and none before.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookable_items (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			type VARCHAR(20) NOT NULL DEFAULT 'appointment',
@@ -92,6 +96,8 @@ class BYZO_Activator {
 			min_party_size SMALLINT UNSIGNED NULL,
 			price DECIMAL(10,2) NULL,
 			duration_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 30,
+			buffer_before_minutes SMALLINT UNSIGNED NULL,
+			buffer_after_minutes SMALLINT UNSIGNED NULL,
 			status VARCHAR(20) NOT NULL DEFAULT 'active',
 			location_id BIGINT UNSIGNED NULL,
 			location VARCHAR(255) NULL,

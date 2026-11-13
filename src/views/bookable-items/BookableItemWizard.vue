@@ -183,6 +183,8 @@ function emptyData() {
     location: '',
     meeting_link: '',
     uses_business_hours: false,
+    buffer_before_minutes: null,
+    buffer_after_minutes: null,
     schedules: null,
     exceptions: null,
     occurrences: null,
@@ -327,6 +329,8 @@ async function loadItem(id) {
       location: item.location || '',
       meeting_link: item.meeting_link || '',
       uses_business_hours: Boolean(item.uses_business_hours),
+      buffer_before_minutes: item.buffer_before_minutes ?? null,
+      buffer_after_minutes: item.buffer_after_minutes ?? null,
       price: item.price === null || item.price === undefined ? null : String(item.price),
       schedules,
       exceptions,
@@ -399,6 +403,10 @@ function buildPayload() {
     // false there since AvailabilityStep.vue never shows this toggle for
     // that type, sent unconditionally anyway since it's harmless either way.
     uses_business_hours: Boolean(wizardData.uses_business_hours),
+    // 1.0.3 — null = the business-wide buffer. Not used by events (no
+    // generated times), harmless to send.
+    buffer_before_minutes: wizardData.buffer_before_minutes ?? null,
+    buffer_after_minutes: wizardData.buffer_after_minutes ?? null,
   };
   // Event's duration comes from each occurrence (Dates step); the field
   // is hidden for it — don't send a value the owner never saw.

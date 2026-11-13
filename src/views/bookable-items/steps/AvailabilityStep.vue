@@ -61,6 +61,29 @@
         </div>
         <ByzoWeeklyScheduleGrid v-else v-model="schedules" />
 
+        <!-- 1.0.3: this item's own buffer, e.g. 10 minutes to reset a room.
+             Empty = the business-wide buffer (a gap after, none before). -->
+        <div class="mt-6 border-t border-border pt-4">
+          <p class="text-sm font-medium">{{ __('Buffer time', 'bookyzo') }} <span class="font-normal text-muted-foreground">{{ __('(optional)', 'bookyzo') }}</span></p>
+          <p class="text-sm text-muted-foreground">{{ __('Free time kept before and after each booking, so the next one can\'t start straight away. Leave empty to use your business-wide buffer.', 'bookyzo') }}</p>
+          <div class="mt-3 flex flex-wrap items-end gap-3">
+            <div class="flex flex-col gap-1.5">
+              <Label for="wizard-buffer-before">{{ __('Before each booking', 'bookyzo') }}</Label>
+              <div class="flex items-center gap-2">
+                <Input id="wizard-buffer-before" v-model="bufferBefore" type="number" min="0" max="1440" step="1" class="h-10 w-24" />
+                <span class="text-sm text-muted-foreground">{{ __('minutes', 'bookyzo') }}</span>
+              </div>
+            </div>
+            <div class="flex flex-col gap-1.5">
+              <Label for="wizard-buffer-after">{{ __('After each booking', 'bookyzo') }}</Label>
+              <div class="flex items-center gap-2">
+                <Input id="wizard-buffer-after" v-model="bufferAfter" type="number" min="0" max="1440" step="1" class="h-10 w-24" />
+                <span class="text-sm text-muted-foreground">{{ __('minutes', 'bookyzo') }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
         <!-- Date exceptions (a holiday, or one-off hours for a specific
              date). Optional, and hidden during onboarding (`compact`). -->
         <div v-if="!compact" class="mt-6 border-t border-border pt-4">
@@ -157,6 +180,25 @@ const schedules = ref(
 );
 
 const usesBusinessHours = ref(Boolean(props.initial?.uses_business_hours));
+
+// '' = not set (the business-wide buffer applies); a number otherwise.
+function bufferInitial(value) {
+  return value === null || value === undefined || value === '' ? '' : String(value);
+}
+const bufferBefore = ref(bufferInitial(props.initial?.buffer_before_minutes));
+const bufferAfter = ref(bufferInitial(props.initial?.buffer_after_minutes));
+
+function bufferValue(raw) {
+  const text = String(raw ?? '').trim();
+  return text === '' ? null : Number(text);
+}
+
+function bufferError(raw) {
+  const value = bufferValue(raw);
+  return value === null || (Number.isInteger(value) && value >= 0 && value <= 1440)
+    ? ''
+    : i18n.__('Buffer time must be a whole number of minutes from 0 to 1440, or empty.', 'bookyzo');
+}
 
 const exceptions = ref(Array.isArray(props.initial?.exceptions) ? props.initial.exceptions.map((x) => ({ ...x })) : []);
 const exceptionDraft = ref({ date: '', is_closed: true, start_time: props.defaultStartTime, end_time: props.defaultEndTime });
@@ -271,10 +313,18 @@ function continueStep() {
     return;
   }
 
+  const bufferProblem = bufferError(bufferBefore.value) || bufferError(bufferAfter.value);
+  if (bufferProblem) {
+    error.value = bufferProblem;
+    return;
+  }
+
   emit('next', {
     schedules: schedules.value.map((s) => ({ ...s })),
     exceptions: exceptions.value.map((x) => ({ ...x })),
     uses_business_hours: usesBusinessHours.value,
+    buffer_before_minutes: bufferValue(bufferBefore.value),
+    buffer_after_minutes: bufferValue(bufferAfter.value),
   });
 }
 </script>
