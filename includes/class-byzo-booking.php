@@ -1970,6 +1970,52 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * Extra links an add-on offers a customer for one booking (1.0.3), e.g.
+	 * saving it somewhere. Free has none of its own; it only asks, cleans
+	 * what comes back, and shows it where the customer sees their booking:
+	 * the widget's confirmation screen, the booking emails and the account
+	 * page. Data only, never HTML: each is rendered by Free as a plain,
+	 * escaped link. Empty (and nothing rendered) without an add-on.
+	 *
+	 * @param int    $booking_id
+	 * @param string $context 'confirmation' | 'email' | 'account'.
+	 * @param array  $args    Extra detail for the filter, e.g. the email event.
+	 * @return array<int,array{id:string,label:string,url:string}>
+	 */
+	public static function extra_actions( $booking_id, $context, $args = array() ) {
+		/**
+		 * Filters the extra links shown to a customer for one booking.
+		 *
+		 * @param array  $actions    List of [ 'id' => string, 'label' => string, 'url' => string ].
+		 * @param int    $booking_id
+		 * @param string $context    Where it's shown: 'confirmation' (booking widget),
+		 *                           'email' (customer booking emails) or 'account'
+		 *                           (the customer's account page).
+		 * @param array  $args       For 'email': [ 'event' => template id ].
+		 */
+		$raw = apply_filters( 'byzo_booking_extra_actions', array(), (int) $booking_id, (string) $context, (array) $args );
+
+		$actions = array();
+		foreach ( (array) $raw as $action ) {
+			if ( ! is_array( $action ) ) {
+				continue;
+			}
+			$label = sanitize_text_field( (string) ( $action['label'] ?? '' ) );
+			$url   = esc_url_raw( (string) ( $action['url'] ?? '' ), array( 'https', 'http' ) );
+			if ( '' === $label || '' === $url ) {
+				continue;
+			}
+			$actions[] = array(
+				'id'    => sanitize_key( (string) ( $action['id'] ?? '' ) ),
+				'label' => $label,
+				'url'   => $url,
+			);
+		}
+
+		return $actions;
+	}
+
+	/**
 	 * The booking's free-cancellation terms (1.0.3), the one place every
 	 * check reads them from: the guest and account cancel, rescheduling by
 	 * the customer, the manage page, {cancel_link}/{cancellation_deadline}

@@ -49,6 +49,11 @@
     <p v-if="invoiceUrl" class="location">
       <a :href="invoiceUrl" target="_blank" rel="noopener noreferrer">{{ __('Download invoice (PDF)', 'bookyzo') }}</a>
     </p>
+    <!-- An add-on's extra links for this booking (1.0.3), handed over as
+         data (label + URL) by the server; nothing here without one. -->
+    <div v-if="extraActions.length" class="extra-actions">
+      <a v-for="action in extraActions" :key="action.id || action.url" :href="action.url" class="extra-action" target="_blank" rel="noopener noreferrer">{{ action.label }}</a>
+    </div>
     <div v-if="booking?.slot_start_gmt" class="add-to-calendar">
       <a :href="googleCalendarUrl" target="_blank" rel="noopener noreferrer">{{ __('Add to Google Calendar', 'bookyzo') }}</a>
       <span class="sep">·</span>
@@ -74,6 +79,7 @@ const props = defineProps({
 });
 
 const copy = computed(() => copyFor(props.item?.type));
+const extraActions = computed(() => (Array.isArray(props.booking?.extra_actions) ? props.booking.extra_actions : []));
 
 const documents = (window.byzoWidget && window.byzoWidget.documents) || {};
 const restBase = (window.byzoWidget && window.byzoWidget.restUrl) || '/wp-json/bookyzo/v1';

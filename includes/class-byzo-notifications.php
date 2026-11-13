@@ -267,6 +267,15 @@ class BYZO_Notifications {
 			$body .= "\n\n" . sprintf( __( 'Free cancellation until %s.', 'bookyzo' ), $placeholders['{cancellation_deadline}'] );
 		}
 
+		// An add-on's extra links for this booking (1.0.3), as plain
+		// "Label: URL" lines. Nothing without one. Only in customer emails
+		// about the booking itself.
+		if ( in_array( $event, array( 'booking_created', 'booking_confirmed', 'booking_reminder' ), true ) && ! empty( $placeholders['{booking_id}'] ) ) {
+			foreach ( BYZO_Booking::extra_actions( (int) $placeholders['{booking_id}'], 'email', array( 'event' => $event ) ) as $action ) {
+				$body .= "\n\n" . $action['label'] . ': ' . $action['url'];
+			}
+		}
+
 		if ( 'booking_confirmed' !== $event ) {
 			return $body;
 		}

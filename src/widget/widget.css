@@ -975,3 +975,22 @@
 .bookyzo-widget .confirmation .account-note--error {
   color: var(--byzo-danger);
 }
+
+/* An add-on's extra links on the confirmation screen (1.0.3). */
+.bookyzo-widget .confirmation .extra-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px;
+  margin: 12px 0;
+}
+
+.bookyzo-widget .confirmation .extra-action {
+  display: inline-block;
+  padding: 8px 14px;
+  border: 1px solid var(--byzo-border, #e7e8ec);
+  border-radius: 8px;
+  font-size: 14px;
+  text-decoration: none;
+  color: var(--byzo-text, #1d2327);
+}

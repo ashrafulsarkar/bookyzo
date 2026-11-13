@@ -40,6 +40,16 @@
       <a v-if="qrTicketEnabled" :href="getTicketQrUrl(booking.id)" class="bookyzo-account__btn bookyzo-account__btn--link">
         {{ __('View ticket', 'bookyzo') }}
       </a>
+      <!-- An add-on's extra links for this booking (1.0.3), data from the
+           server rendered as plain links; nothing without one. -->
+      <a
+        v-for="action in (booking.extra_actions || [])"
+        :key="action.id || action.url"
+        :href="action.url"
+        class="bookyzo-account__btn bookyzo-account__btn--link"
+        target="_blank"
+        rel="noopener noreferrer"
+      >{{ action.label }}</a>
     </li>
   </ul>
 

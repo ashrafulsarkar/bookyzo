@@ -241,6 +241,14 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 
 		$result = BYZO_Booking::query( $args );
 
+		// A customer's own list (their account page) carries an add-on's
+		// extra links per booking (1.0.3). Admin and staff lists don't ask.
+		if ( isset( $args['customer_id'] ) && $args['customer_id'] ) {
+			foreach ( $result['items'] as $index => $row ) {
+				$result['items'][ $index ]['extra_actions'] = BYZO_Booking::extra_actions( $row['id'], 'account' );
+			}
+		}
+
 		$response = rest_ensure_response( $result['items'] );
 		$response->header( 'X-WP-Total', (string) $result['total'] );
 
@@ -290,6 +298,10 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 		// keeping it off other responses keeps the field's surface area
 		// matched to its actual use today.
 		$booking['manage_token'] = BYZO_Booking_Token::generate( $booking['id'], $booking['customer_email'] );
+
+		// An add-on's extra links for the confirmation screen (1.0.3); empty
+		// without one, and then the widget shows nothing.
+		$booking['extra_actions'] = BYZO_Booking::extra_actions( $booking['id'], 'confirmation' );
 
 		// Marketing consent (QA report 2026-09-22 §4.6) — stored on the
 		// customer row the booking just upserted, so it survives this
@@ -788,6 +800,11 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return $result;
 		}
 
-		return rest_ensure_response( BYZO_Booking::get( $booking['id'] ) );
+		$updated = BYZO_Booking::get( $booking['id'] );
+		// The booking may only now be confirmed, so the confirmation screen
+		// asks again for an add-on's links (1.0.3).
+		$updated['extra_actions'] = BYZO_Booking::extra_actions( $booking['id'], 'confirmation' );
+
+		return rest_ensure_response( $updated );
 	}
 }
