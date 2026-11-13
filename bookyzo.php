@@ -14,7 +14,7 @@
 
 defined( 'ABSPATH' ) || exit;
 
-define( 'BYZO_VERSION', '1.0.3' );
+define( 'BYZO_VERSION', get_file_data( __FILE__, array( 'Version' => 'Version' ) )['Version'] );
 define( 'BYZO_DB_VERSION', '3.6' );
 define( 'BYZO_PLUGIN_FILE', __FILE__ );
 define( 'BYZO_PLUGIN_DIR', plugin_dir_path( __FILE__ ) );

@@ -226,7 +226,7 @@ From the first real installs (PeepSo flagged the late-payment case). Free ships 
 9. ✅ **Pro: late cancellation keeps the deposit** — DONE 2026-11-13. `byzop_booking_policy` (Pro DB 2.8), `late_cancellation_refund` (ask / keep deposit / keep fee / refund in full) pre-selects the refund panel; money only moves on its own with `late_cancellation_auto`.
 10. ✅ **Pro: waitlist offers hold the place** — DONE 2026-11-13. Before: nothing was held during an offer. Now the place is claimed for `waitlist_offer_minutes` (default 60, Pro DB 2.9), booked through a hold-token link without a second claim, released exactly once; Free gained generic held-place seams.
 11. ⏳ **Pro: wallet passes (`BYZOP_Wallet`), Google Wallet + Apple Wallet, connected by each site owner** — design sent 2026-11-13, waiting for approval before any code. Build order after approval: (a) Wallet tab + secret storage + Google connection test, (b) Google event tickets, (c) Google appointments/slots/tables, (d) Apple connection test + .pkpass signing, (e) Apple web service (+ push, if approved).
-12. ⏳ **Pro: tests and release** — smoke tests for 8–10 done; version bump, changelog and the wallet tests wait for step 11.
+12. ✅ **Pro: tests and release** — DONE 2026-11-13 for steps 8–10: smoke tests green, Pro 1.1.0 (readme + changelog; `BYZOP_VERSION`/`BYZO_VERSION` now read from the plugin header). Wallet tests come with step 11.
 
 ---
 
