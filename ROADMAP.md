@@ -183,6 +183,31 @@ Per `FEATURES.md` Part C step 5 — do NOT start this until the Free plugin is l
 
 ---
 
+## Phase 2.5 — Pro integrations backlog (NEW 2026-11-04, planned, NOT started)
+
+Captured from the user's list. Nothing here is built yet. Start one only after Phase 2 real-install feedback, same rule as Phase 2 itself.
+
+**Already covered by Pro (do not rebuild):**
+- WhatsApp Cloud API notifications — Phase 2 step 7.
+- Google Calendar / Outlook two-way sync — Phase 2 step 9 (so "Outlook calendar" is done; only Outlook *email* is open).
+- Webhooks — Phase 2 step 15. Zapier and Make already work through "Webhooks by Zapier" / Make's webhook module.
+- Facebook Pixel / GA / GTM — Phase 2 step 15.
+
+**Open items:**
+1. **Google Meet link per booking** — create a Meet link through the Google Calendar API when a booking is confirmed, and store it in `bookable_items.meeting_link` / `{meeting_link}` (Phase 1.6 columns). Reuses step 9's Google OAuth; needs the extra Calendar scope. Depends on: step 9.
+2. **Zoom meeting per booking** — create a Zoom meeting through the Zoom API and store its join URL in the same `meeting_link` field. Bring-your-own Zoom app, same pattern as step 9. No new columns needed.
+3. **Microsoft Teams meeting per booking** — same as Zoom, through Microsoft Graph. Optional; can ship after Zoom.
+4. **Outlook email sending** — send notification emails through Microsoft 365 / Outlook (Graph API or SMTP OAuth), for sites whose mail is on Microsoft 365. Separate from calendar sync (step 9).
+5. **Mailchimp audience sync** — add a customer to a Mailchimp audience on booking, with an explicit opt-in checkbox on the form (GDPR), and optional tags per bookable item. Needs the Mailchimp API key or OAuth.
+6. **Zapier app listing** — publish Bookyzo as an official Zapier app (triggers: booking created, booking status changed) on top of the existing webhooks. Needs a Zapier Developer Platform listing; the webhook endpoint itself already exists.
+
+**Rules for every item above** (same as the rest of Pro):
+- Bring-your-own API app/OAuth client, as in step 9. Do not ship a shared key.
+- A Pro feature that Free lacks is hidden in Free, never shown as a disabled upsell (see "What NOT to do" above).
+- Each one needs its own entry in `FEATURES.md` B9 and the Integrations admin screen before it counts as done.
+
+---
+
 ## Phase 3 — ~~Second Booking Type~~ SUPERSEDED (2026-09-02)
 
 Folded into **Phase 1.5** — all four types go into Free before the first submission, so there is no "second type" release. The architectural observation recorded here (Table/Slot are cheap to add — same recurring-schedule model as Appointment; Event is the different one) held up in the gap analysis and shaped Phase 1.5's step order (Event's occurrence model is its own step 5; Table/Slot mostly ride the existing engine).

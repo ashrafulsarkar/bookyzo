@@ -1,0 +1,22 @@
+/*
+ * Black Friday admin notice (includes/class-byzo-sale-notice.php).
+ * Every rule is scoped to #byzo-bf-sale, so it can't restyle wp-admin. The
+ * id also outranks Bookyzo's own `.byzo-wp-notices > .notice` card styles
+ * on Bookyzo screens, where src/lib/wp-notices.js moves notices.
+ */
+#byzo-bf-sale{position:relative;display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;box-sizing:border-box;padding:20px 40px 20px 12px;border:1px solid #2a2a2a;border-left:4px solid #ffc83d;border-radius:8px;background:linear-gradient(100deg,#000,#1c1c1c);box-shadow:none;color:#fff;font-size:13px;line-height:1.4}
+#byzo-bf-sale .byzo-sale-tag{padding:3px 8px;border-radius:4px;background:#ffc83d24;color:#ffc83d;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;white-space:nowrap}
+#byzo-bf-sale .byzo-sale-text{flex:1 1 220px;margin:0;padding:0;color:#d4d4d4;font-size:13px;line-height:1.4}
+#byzo-bf-sale .byzo-sale-text strong{color:#fff;font-weight:800;margin-right:2px}
+#byzo-bf-sale .byzo-sale-countdown{display:flex;align-items:center;gap:6px;color:#d4d4d4;font-size:11px;white-space:nowrap}
+#byzo-bf-sale .byzo-sale-countdown .dashicons{font-size:16px;width:16px;height:16px;color:#ffc83d}
+#byzo-bf-sale .byzo-sale-unit b{display:inline-block;min-width:20px;margin-right:1px;color:#ffc83d;font-size:14px;font-weight:800;text-align:right;font-variant-numeric:tabular-nums}
+#byzo-bf-sale .byzo-sale-actions{display:flex;align-items:center;gap:8px}
+#byzo-bf-sale .byzo-sale-copy{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border:1px dashed #ffc83d;border-radius:6px;background:#ffffff14;color:#fff;font-size:12px;font-weight:700;letter-spacing:1px;cursor:pointer}
+#byzo-bf-sale .byzo-sale-copy:hover{background:#ffffff24}
+#byzo-bf-sale .byzo-sale-copy .dashicons{font-size:14px;width:14px;height:14px}
+#byzo-bf-sale .byzo-sale-upgrade{padding:5px 12px;border-radius:6px;background:#2563eb;color:#fff;text-decoration:none;font-size:12px;font-weight:700;white-space:nowrap}
+#byzo-bf-sale .byzo-sale-upgrade:hover{background:#1d4ed8;color:#fff}
+#byzo-bf-sale .byzo-sale-copy:focus-visible,#byzo-bf-sale .byzo-sale-upgrade:focus-visible{outline:2px solid #ffc83d;outline-offset:2px}
+#byzo-bf-sale .notice-dismiss{top:50%;right:1px;transform:translateY(-50%)}
+#byzo-bf-sale .notice-dismiss:before{color:#d4d4d4}

@@ -105,6 +105,7 @@ class BYZO_Plugin {
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-reports.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/rest/class-byzo-rest-reports-controller.php';
 		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-booking-cleanup.php';
+		require_once BYZO_PLUGIN_DIR . 'includes/class-byzo-sale-notice.php';
 	}
 
 	private function register_hooks() {
@@ -121,6 +122,7 @@ class BYZO_Plugin {
 		BYZO_Account_Widget::init();
 		BYZO_Notifications::init();
 		BYZO_Booking_Cleanup::init();
+		BYZO_Sale_Notice::init();
 
 		add_filter( 'byzo_rest_controllers', array( $this, 'register_core_rest_controllers' ) );
 		add_filter( 'plugin_action_links_' . BYZO_PLUGIN_BASENAME, array( $this, 'plugin_action_links' ) );

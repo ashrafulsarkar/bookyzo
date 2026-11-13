@@ -4,7 +4,7 @@ Tags: booking calendar, appointment booking, event booking, table reservation, s
 Requires at least: 6.3
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.0.3
+Stable tag: 1.0.4
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -265,6 +265,7 @@ The admin app, the booking widget and the account page are Vue apps, built with 
 * New: Online-payment holds are now a short, explicit window (default 15 minutes) and the unfinished Stripe payment is cancelled when it ends.
 * New: Buffer time can be set per bookable item.
 * New: Cancellation cut-off can be set per bookable item and is shown to customers before they book.
+* New: A dismissible Black Friday notice for administrators offers 60% off Bookyzo Pro with the coupon code BLACKFRIDAY, through 30 November 2026 (site timezone). It is not shown while Bookyzo Pro is active, and dismissing it hides it until the next day.
 
 = 1.0.2 - 04-11-2026 =
 * New: A **Get Pro** page compares the free plugin with Bookyzo Pro, linked from the Bookyzo menu and the Plugins screen while Pro isn't active. If Pro is installed but switched off, it offers to activate it instead.
