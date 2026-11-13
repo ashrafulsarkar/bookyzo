@@ -14,6 +14,10 @@ import './widget.css';
 const params = new URLSearchParams(window.location.search);
 const linkedItemId = Number(params.get('byzo_item')) || null;
 const linkedSlotId = Number(params.get('byzo_slot')) || null;
+// A link can also carry a hold (1.0.3): places an add-on keeps for this
+// visitor (byzo_hold + byzo_hold_token). Passed through as-is; the server
+// decides whether it is good.
+const linkedHold = Number(params.get('byzo_hold')) ? { id: Number(params.get('byzo_hold')), token: String(params.get('byzo_hold_token') || '') } : null;
 
 document.querySelectorAll('.bookyzo-widget-mount').forEach((el) => {
   const bookableItemId = el.dataset.bookableItemId ? Number(el.dataset.bookableItemId) : null;
@@ -23,6 +27,7 @@ document.querySelectorAll('.bookyzo-widget-mount').forEach((el) => {
     type: el.dataset.type || null,
     linkedItemId: linked ? linkedItemId : null,
     linkedSlotId: linked ? linkedSlotId : null,
+    linkedHold: linked ? linkedHold : null,
   };
   installI18n(createApp(BookingWidget, { config })).mount(el);
 });

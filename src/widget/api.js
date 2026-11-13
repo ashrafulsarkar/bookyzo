@@ -32,8 +32,10 @@ async function request(path, options = {}) {
 
 export const getPublicBookableItems = (type) => request(`/bookable-items/public${type ? `?type=${encodeURIComponent(type)}` : ''}`);
 // includeFull: full slots come back too (status "full"), for the waitlist.
-export const getSlots = (bookableItemId, includeFull = false) =>
-  request(`/slots?bookable_item_id=${bookableItemId}${includeFull ? '&include_full=1' : ''}`);
+// hold (1.0.3): { id, token } from a "your place is held" link, so the held
+// time is listed for this visitor.
+export const getSlots = (bookableItemId, includeFull = false, hold = null) =>
+  request(`/slots?bookable_item_id=${bookableItemId}${includeFull ? '&include_full=1' : ''}${hold ? `&hold_id=${encodeURIComponent(hold.id)}&hold_token=${encodeURIComponent(hold.token)}` : ''}`);
 
 // Services + "any available staff" (DETAILED-SPEC.md §3 B7, QA report
 // 2026-09-22 B9). /services/public is Pro's route — without Pro it 404s and

@@ -767,7 +767,7 @@ class BYZO_Booking {
 		self::release_expired_holds( array( 'slot_ids' => array( $validated['slot_id'] ) ) );
 
 		$slot = BYZO_Slot::get( $validated['slot_id'] );
-		if ( ! $slot || 'open' !== $slot['status'] ) {
+		if ( ! $slot || ( 'open' !== $slot['status'] && ! ( 'full' === $slot['status'] && self::has_valid_hold( $slot, $validated ) ) ) ) {
 			return new WP_Error( 'byzo_slot_unavailable', __( 'This time slot is no longer available.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
 
@@ -1097,6 +1097,66 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * Takes places on a slot for someone who will book them shortly, with
+	 * the same atomic claim a booking uses (1.0.3) — e.g. an add-on holding
+	 * a freed place for the person it offered it to. The places stay taken
+	 * until release_held_places() gives them back, or a booking made with
+	 * the hold uses them (see the byzo_booking_consume_hold filter).
+	 *
+	 * @param int $slot_id
+	 * @param int $party_size Places to hold (a table always takes the whole slot).
+	 * @return bool False when the slot is no longer open or the party doesn't fit.
+	 */
+	public static function hold_places( $slot_id, $party_size ) {
+		$slot = BYZO_Slot::get( (int) $slot_id );
+		if ( ! $slot ) {
+			return false;
+		}
+
+		return self::claim_slot_capacity( (int) $slot_id, max( 1, (int) $party_size ), BYZO_Bookable_Item::get( $slot['bookable_item_id'] ) );
+	}
+
+	/**
+	 * Gives back places taken with hold_places(). The caller makes sure it
+	 * releases each hold once.
+	 *
+	 * @param int $slot_id
+	 * @param int $party_size
+	 */
+	public static function release_held_places( $slot_id, $party_size ) {
+		$slot = BYZO_Slot::get( (int) $slot_id );
+		if ( $slot ) {
+			self::release_slot_capacity( (int) $slot_id, max( 1, (int) $party_size ), BYZO_Bookable_Item::get( $slot['bookable_item_id'] ) );
+		}
+	}
+
+	/**
+	 * Whether this booking request carries a hold an add-on vouches for on
+	 * this slot (1.0.3). Read-only: nothing is used up here.
+	 *
+	 * @param array $slot
+	 * @param array $validated validate_for_create()'s result.
+	 */
+	private static function has_valid_hold( $slot, $validated ) {
+		if ( empty( $validated['hold']['id'] ) ) {
+			return false;
+		}
+
+		/**
+		 * Filters whether a booking request's hold (hold_id + hold_token,
+		 * e.g. from a "your place is held" link) is valid for this slot and
+		 * party size. Free never holds places itself; an add-on that did
+		 * (BYZO_Booking::hold_places()) answers. Must not change anything.
+		 *
+		 * @param bool  $valid      Default false.
+		 * @param array $slot
+		 * @param int   $party_size
+		 * @param array $hold       [ 'id' => int, 'token' => string ].
+		 */
+		return true === apply_filters( 'byzo_booking_hold_is_valid', false, $slot, (int) $validated['party_size'], $validated['hold'] );
+	}
+
+	/**
 	 * Gives back what claim_slot_capacity() took: party_size places, or —
 	 * for claims_whole_slot() items — the whole table again, i.e. its seat
 	 * count (never more, so a booking whose party_size was later raised by
@@ -1144,7 +1204,9 @@ class BYZO_Booking {
 	 * @return int|WP_Error New booking ID, or WP_Error — byzo_slot_full/byzo_slot_unavailable specifically mean THIS slot didn't work (the caller may have another candidate to try), anything else is a real failure.
 	 */
 	private static function attempt_create_on_slot( $slot, $validated, $service_id ) {
-		if ( ! $slot || 'open' !== $slot['status'] ) {
+		// A slot whose last place is held for this very customer reads as
+		// full; their hold still lets them book it (1.0.3).
+		if ( ! $slot || ( 'open' !== $slot['status'] && ! ( 'full' === $slot['status'] && self::has_valid_hold( $slot, $validated ) ) ) ) {
 			return new WP_Error( 'byzo_slot_unavailable', __( 'This time slot is no longer available.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
 
@@ -1244,7 +1306,28 @@ class BYZO_Booking {
 			}
 		}
 
-		if ( ! self::claim_slot_capacity( $slot['id'], $party_size, $slot_item ) ) {
+		// Places already held for this customer (1.0.3) are used instead of
+		// claiming new ones, so a held place is never counted twice. The
+		// add-on uses the hold up atomically; if it can't (expired a moment
+		// ago, used already), this falls back to a normal claim.
+		$used_hold = false;
+		if ( self::has_valid_hold( $slot, $validated ) ) {
+			/**
+			 * Filters whether this booking uses up places held for it. The
+			 * add-on that held them consumes the hold atomically (once) and
+			 * returns true; the places are then this booking's, with no new
+			 * claim. If the booking then fails to save, Free gives the
+			 * places back to the slot.
+			 *
+			 * @param bool  $used       Default false.
+			 * @param array $slot
+			 * @param int   $party_size
+			 * @param array $hold       [ 'id' => int, 'token' => string ].
+			 */
+			$used_hold = true === apply_filters( 'byzo_booking_consume_hold', false, $slot, $party_size, $validated['hold'] );
+		}
+
+		if ( ! $used_hold && ! self::claim_slot_capacity( $slot['id'], $party_size, $slot_item ) ) {
 			return new WP_Error( 'byzo_slot_full', __( 'This time slot was just booked by someone else. Please pick another time.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
 
@@ -2647,6 +2730,13 @@ class BYZO_Booking {
 			// byzo_claim_ticket_tier, same "id in, server resolves the rest"
 			// shape as addon_ids above.
 			'ticket_tier_id' => ! empty( $data['ticket_tier_id'] ) ? absint( $data['ticket_tier_id'] ) : null,
+			// hold_id/hold_token (1.0.3) — places an add-on held for this
+			// customer (a "your place is held" link). Free only passes them
+			// on; whether they are good is the add-on's answer.
+			'hold'           => array(
+				'id'    => ! empty( $data['hold_id'] ) ? absint( $data['hold_id'] ) : 0,
+				'token' => isset( $data['hold_token'] ) ? substr( sanitize_text_field( (string) $data['hold_token'] ), 0, 64 ) : '',
+			),
 		);
 	}
 

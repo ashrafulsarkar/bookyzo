@@ -166,6 +166,8 @@ const props = defineProps({
   item: { type: Object, required: true },
   // A time picked by a link (?byzo_slot=), selected once the times load.
   preselectSlotId: { type: Number, default: null },
+  // Places held for this visitor by a link (1.0.3): { id, token } or null.
+  hold: { type: Object, default: null },
 });
 const emit = defineEmits(['selected', 'back']);
 
@@ -450,7 +452,7 @@ onMounted(async () => {
     allSlots.value = onLocalClock(
       props.item.service_id && !props.item.staff_id
         ? onePerStartTime(await getSlotsForService(props.item.service_id))
-        : await getSlots(props.item.id, waitlistOn.value)
+        : await getSlots(props.item.id, waitlistOn.value, props.hold)
     );
   } catch (e) {
     error.value = e.message;

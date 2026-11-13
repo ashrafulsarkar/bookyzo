@@ -8,7 +8,7 @@
     <!-- step 1.5: who, after a Pro service was picked (QA report 2026-09-22
          B9) — part of the first dot, like the payment detour below. -->
     <StepStaff v-else-if="step === 1.5" :service="selectedService" :items="publicItems" @selected="onItemSelected" @back="step = 1" />
-    <StepSlot v-else-if="step === 2" :item="selectedItem" :preselect-slot-id="linkedSlotFor(selectedItem)" @selected="onSlotSelected" @back="step = selectedItem.service_id ? 1.5 : 1" />
+    <StepSlot v-else-if="step === 2" :item="selectedItem" :preselect-slot-id="linkedSlotFor(selectedItem)" :hold="holdFor(selectedItem)" @selected="onSlotSelected" @back="step = selectedItem.service_id ? 1.5 : 1" />
     <StepDetails
       v-else-if="step === 3"
       :item="selectedItem"
@@ -86,6 +86,11 @@ function linkedSlotFor(item) {
   return props.config.linkedSlotId;
 }
 
+// Places held for this visitor by a link (1.0.3), for its own item only.
+function holdFor(item) {
+  return item && props.config.linkedHold && item.id === props.config.linkedItemId ? props.config.linkedHold : null;
+}
+
 function onServiceSelected(service, items) {
   selectedService.value = service;
   publicItems.value = items;
@@ -139,6 +144,8 @@ async function onDetailsSubmit(form) {
         ? { service_id: selectedItem.value.service_id, start_datetime: selectedSlot.value.site_start_datetime || selectedSlot.value.start_datetime }
         : { slot_id: selectedSlot.value.id, service_id: selectedItem.value.service_id || undefined }),
       party_size: form.party_size,
+      // A held place (1.0.3) is booked with its hold, so it isn't claimed twice.
+      ...(selectedSlot.value.held_for_you && holdFor(selectedItem.value) ? { hold_id: holdFor(selectedItem.value).id, hold_token: holdFor(selectedItem.value).token } : {}),
       customer_name: form.name,
       customer_email: form.email,
       customer_phone: form.phone,

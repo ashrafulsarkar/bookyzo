@@ -115,6 +115,47 @@ class BYZO_REST_Slots_Controller extends BYZO_REST_Controller {
 			return $slots;
 		}
 
+		// A time whose places are held for this visitor (1.0.3, a "your place
+		// is held" link with hold_id + hold_token) is listed for them as
+		// bookable, with just the held places, even though it reads full to
+		// everyone else. Free holds nothing itself; an add-on answers.
+		$hold_id = absint( $request->get_param( 'hold_id' ) );
+		if ( $hold_id ) {
+			/**
+			 * Filters which of this item's slots are held for the visitor
+			 * carrying this hold, and how many places each.
+			 *
+			 * @param array<int,int> $held    slot_id => places.
+			 * @param int            $item_id
+			 * @param array          $hold    [ 'id' => int, 'token' => string ].
+			 */
+			$held = (array) apply_filters( 'byzo_slots_held_for_visitor', array(), (int) $item['id'], array( 'id' => $hold_id, 'token' => substr( sanitize_text_field( (string) $request->get_param( 'hold_token' ) ), 0, 64 ) ) );
+			$listed = array();
+			foreach ( $slots as $index => $slot ) {
+				$listed[ (int) $slot['id'] ] = $index;
+			}
+			foreach ( $held as $slot_id => $places ) {
+				$slot = BYZO_Slot::get( (int) $slot_id );
+				if ( ! $slot || (int) $slot['bookable_item_id'] !== (int) $item['id'] || 'blocked' === $slot['status'] ) {
+					continue;
+				}
+				$slot['status']             = 'open';
+				$slot['capacity_remaining'] = max( 1, (int) $places );
+				$slot['held_for_you']       = true;
+				if ( isset( $listed[ (int) $slot_id ] ) ) {
+					$slots[ $listed[ (int) $slot_id ] ] = $slot;
+				} else {
+					$slots[] = $slot;
+				}
+			}
+			usort(
+				$slots,
+				static function ( $a, $b ) {
+					return strcmp( $a['start_datetime'], $b['start_datetime'] );
+				}
+			);
+		}
+
 		return rest_ensure_response( $slots );
 	}
 }
