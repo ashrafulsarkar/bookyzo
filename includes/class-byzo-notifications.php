@@ -147,6 +147,10 @@ class BYZO_Notifications {
 			'{customer_email}'       => $booking['customer_email'],
 			'{customer_phone}'       => (string) $booking['customer_phone'],
 			'{total}'                => self::format_total( $booking ),
+			// Added 2026-11-13 (1.0.3) for the late-payment emails: what a
+			// gateway actually took, and its own reference for it.
+			'{amount_paid}'          => self::format_money( $booking['amount_paid'] ),
+			'{payment_reference}'    => (string) $booking['payment_reference'],
 			'{admin_booking_link}'   => BYZO_Booking::admin_url( $booking['id'] ),
 			'{start_time}'           => self::format_start_time( $booking['slot_start'], $item ),
 			'{business_name}'        => $settings['business_name'],
@@ -179,6 +183,28 @@ class BYZO_Notifications {
 		$amount   = number_format( (float) $booking['payment_amount'], 2 );
 
 		return $currency . ' ' . $amount;
+	}
+
+	/**
+	 * @param float|null $amount
+	 * @return string "USD 12.00", or '' for no amount.
+	 */
+	private static function format_money( $amount ) {
+		return null === $amount ? '' : BYZO_Settings::get()['currency'] . ' ' . number_format( (float) $amount, 2 );
+	}
+
+	/**
+	 * A payment arrived after its booking's hold expired and the place was
+	 * gone (1.0.3): tell the admin a refund is due and the customer that
+	 * it's coming. Both always go out, whatever the confirmation-email
+	 * switches say — money is involved. The caller only runs this once per
+	 * payment (BYZO_Booking::apply_online_payment() skips a replay).
+	 *
+	 * @param int $booking_id
+	 */
+	public static function send_late_payment_refund_due( $booking_id ) {
+		self::send( 'late_payment_refund_due_admin', $booking_id, get_option( 'admin_email' ) );
+		self::send( 'late_payment_refund_due_customer', $booking_id );
 	}
 
 	private static function document_link( $booking, $item, $document ) {

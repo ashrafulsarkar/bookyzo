@@ -19,7 +19,10 @@ class BYZO_Email_Templates {
 	// admin (get_option('admin_email')) rather than the customer, gated by
 	// byzo_settings.send_admin_notification instead of
 	// send_confirmation_email (see BYZO_Notifications).
-	const EVENTS = array( 'booking_created', 'booking_confirmed', 'booking_cancelled', 'booking_reminder', 'admin_new_booking' );
+	// The two late_payment_* templates (1.0.3) go out when a payment arrives
+	// after its booking's hold expired and the place was taken: one to the
+	// admin (always — money has to go back), one to the customer.
+	const EVENTS = array( 'booking_created', 'booking_confirmed', 'booking_cancelled', 'booking_reminder', 'admin_new_booking', 'late_payment_refund_due_admin', 'late_payment_refund_due_customer' );
 
 	public static function get() {
 		$defaults = self::defaults();
@@ -87,6 +90,14 @@ class BYZO_Email_Templates {
 			'admin_new_booking' => array(
 				'subject' => __( 'New booking received', 'bookyzo' ),
 				'body'    => __( "Hi,\n\n{customer_name} just booked {bookable_item_name} for {start_time}.\n\nBooking #{booking_id}\nHow many: {party_size}\nTotal: {total}\nEmail: {customer_email}\nPhone: {customer_phone}\n\nOpen it in Bookyzo: {admin_booking_link}", 'bookyzo' ),
+			),
+			'late_payment_refund_due_admin'    => array(
+				'subject' => __( 'Refund needed: payment arrived after booking #{booking_id} was released', 'bookyzo' ),
+				'body'    => __( "Hi,\n\n{customer_name} paid {amount_paid} for {bookable_item_name} on {start_time} (booking #{booking_id}), but the payment arrived after the booking had already been cancelled, and the place is no longer free.\n\nThe booking is marked \"Refund due\". Please refund the payment with your payment provider (reference: {payment_reference}), then mark it refunded in Bookyzo.\n\nEmail: {customer_email}\nPhone: {customer_phone}\n\nOpen it in Bookyzo: {admin_booking_link}", 'bookyzo' ),
+			),
+			'late_payment_refund_due_customer' => array(
+				'subject' => __( 'Your payment for {bookable_item_name} will be refunded', 'bookyzo' ),
+				'body'    => __( "Hi {customer_name},\n\nThank you for your payment of {amount_paid} for {bookable_item_name} on {start_time} (booking #{booking_id}).\n\nUnfortunately it reached us after the time to complete the booking had run out, and that place has since been taken, so we can't keep this booking. Your payment will be refunded in full.\n\nWe're sorry for the trouble. If you'd like to book another time, just reply to this email.\n\n{business_name}", 'bookyzo' ),
 			),
 		);
 	}

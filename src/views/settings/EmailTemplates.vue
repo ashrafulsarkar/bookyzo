@@ -39,6 +39,7 @@
                 <code>{booking_id}</code> <code>{party_size}</code> <code>{total}</code>
                 <code>{customer_email}</code> <code>{customer_phone}</code> <code>{admin_booking_link}</code>
                 <code>{location}</code> <code>{meeting_link}</code>
+                <code>{amount_paid}</code> <code>{payment_reference}</code>
                 <template v-if="documents.ticket"> <code>{ticket_link}</code></template>
                 <template v-if="documents.invoice"> <code>{invoice_link}</code></template>
               </p>
@@ -84,6 +85,10 @@ const events = [
   // new booking comes in" toggle (Settings / the setup wizard), separate
   // from the 4 customer-facing ones above.
   { id: 'admin_new_booking', label: i18n.__('New booking alert (to you)', 'bookyzo'), description: i18n.__('Sent to your site admin email whenever a new booking comes in.', 'bookyzo') },
+  // 1.0.3 — a payment that arrived after its booking's hold expired, when
+  // the place had already been taken. Always sent, whatever the toggles say.
+  { id: 'late_payment_refund_due_admin', label: i18n.__('Late payment, refund needed (to you)', 'bookyzo'), description: i18n.__('Sent to your site admin email when a payment arrives after its booking was released and the place is gone, so the money has to go back.', 'bookyzo') },
+  { id: 'late_payment_refund_due_customer', label: i18n.__('Late payment, refund coming (to the customer)', 'bookyzo'), description: i18n.__('Sent to the customer in the same case, telling them their payment will be refunded.', 'bookyzo') },
 ];
 
 const templates = ref({});

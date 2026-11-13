@@ -1,5 +1,13 @@
 <template>
-  <div class="confirmation">
+  <!-- 1.0.3: the payment went through after the time to finish it had run
+       out, and the place had been taken meanwhile. Nothing is booked; the
+       customer is told the money comes back (they get an email too). -->
+  <div v-if="booking?.payment_status === 'refund_due'" class="confirmation">
+    <h2>{{ __('Your payment arrived too late for this time', 'bookyzo') }}</h2>
+    <p>{{ __('The time to finish paying ran out and the place was given to someone else, so this booking couldn\'t be kept. Your payment will be refunded in full.', 'bookyzo') }}</p>
+    <p>{{ sprintf(/*! translators: %s: customer email address. */ __('We\'ve sent the details to %s. You\'re welcome to pick another time.', 'bookyzo'), booking?.customer_email) }}</p>
+  </div>
+  <div v-else class="confirmation">
     <div class="check">✓</div>
     <h2>{{ copy.confirmHeading }}</h2>
     <p v-if="booking?.status === 'confirmed'">{{ sprintf(/*! translators: %s: customer email address. */ __('A confirmation has been sent to %s.', 'bookyzo'), booking?.customer_email) }}</p>

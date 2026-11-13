@@ -47,7 +47,7 @@
             <span class="font-medium">{{ formatTotal(booking.payment_amount) }}</span>
             <span
               class="text-xs font-medium capitalize"
-              :style="{ color: booking.payment_status === 'unpaid' ? 'var(--byzo-warning)' : 'var(--byzo-success)' }"
+              :style="{ color: booking.payment_status === 'unpaid' ? 'var(--byzo-warning)' : booking.payment_status === 'refund_due' ? 'var(--byzo-danger)' : 'var(--byzo-success)' }"
             >
               {{ statusLabel(booking.payment_status) }}
             </span>

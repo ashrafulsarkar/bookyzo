@@ -55,6 +55,7 @@ class BYZO_Booking_Export {
 			'to'               => isset( $raw['to'] ) ? sanitize_text_field( wp_unslash( $raw['to'] ) ) : '',
 			'bookable_item_id' => isset( $raw['bookable_item_id'] ) ? absint( $raw['bookable_item_id'] ) : 0,
 			'status'           => isset( $raw['status'] ) ? sanitize_text_field( wp_unslash( $raw['status'] ) ) : '',
+			'payment_status'   => isset( $raw['payment_status'] ) ? sanitize_text_field( wp_unslash( $raw['payment_status'] ) ) : '',
 			'per_page'         => 100,
 			'page'             => 1,
 		);

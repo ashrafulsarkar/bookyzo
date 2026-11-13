@@ -14,7 +14,10 @@ class BYZO_Booking {
 
 	// not_required: the total came to nothing (a code covered it all), so
 	// there's nothing to collect (QA report 2026-09-26 M6).
-	const VALID_PAYMENT_STATUSES = array( 'unpaid', 'paid_manual', 'paid_online', 'refunded', 'not_required' );
+	// refund_due (1.0.3): money arrived for a booking that can't take place
+	// any more (a payment that landed after its hold expired and the place
+	// was gone). It has to go back; the admin and the customer are told.
+	const VALID_PAYMENT_STATUSES = array( 'unpaid', 'paid_manual', 'paid_online', 'refunded', 'not_required', 'refund_due' );
 
 	/**
 	 * Allowed status transitions. pending is the only entry state (set by
@@ -116,6 +119,7 @@ class BYZO_Booking {
 			'location_id'      => 0,
 			'type'             => '',
 			'status'           => '',
+			'payment_status'   => '',
 			'customer_id'      => 0,
 			'per_page'         => 20,
 			'page'             => 1,
@@ -178,6 +182,16 @@ class BYZO_Booking {
 				foreach ( $statuses as $status ) {
 					$params[] = $status;
 				}
+			}
+		}
+
+		// Payment status, same comma-list shape as status (1.0.3, so the
+		// Bookings screen can show every booking that needs a refund).
+		if ( ! empty( $args['payment_status'] ) ) {
+			$payment_statuses = array_values( array_intersect( array_map( 'trim', explode( ',', $args['payment_status'] ) ), self::VALID_PAYMENT_STATUSES ) );
+			if ( $payment_statuses ) {
+				$where[] = 'b.payment_status IN (' . implode( ',', array_fill( 0, count( $payment_statuses ), '%s' ) ) . ')';
+				$params  = array_merge( $params, $payment_statuses );
 			}
 		}
 
@@ -1596,6 +1610,166 @@ class BYZO_Booking {
 		 * @param int $booking_id
 		 */
 		do_action( 'byzo_booking_hold_expired', $id );
+
+		return true;
+	}
+
+	/**
+	 * The one place a gateway reports "this booking was paid online"
+	 * (1.0.3): the Stripe webhook, the widget's confirm-payment call, and an
+	 * add-on's own gateway (PayPal) all come through here, so a late
+	 * payment is handled the same way whichever arrives.
+	 *
+	 * - Pending: recorded, paid_online, confirmed (as before).
+	 * - Already confirmed/completed: recorded, paid_online.
+	 * - Cancelled because its hold expired: the place is claimed again if it
+	 *   is still free and the time hasn't passed. Then the booking is
+	 *   reinstated (confirmed), paid_online, and the customer gets the
+	 *   confirmation. Otherwise it becomes refund_due.
+	 * - Any other cancelled/rejected/no-show booking: refund_due. The money
+	 *   arrived for something that is not happening.
+	 *
+	 * refund_due records the payment, emails the admin and the customer,
+	 * and fires byzo_late_payment_refund_due for a refund add-on.
+	 *
+	 * Replaying the same payment (a webhook retry, or the webhook and the
+	 * widget both reporting it) is a no-op: no second email, no second
+	 * reinstatement. One booking's payment is handled one request at a time.
+	 *
+	 * @param int        $id        Booking id.
+	 * @param string     $reference The gateway's transaction id (PaymentIntent, PayPal capture).
+	 * @param float|null $amount    What was charged.
+	 * @return string|WP_Error The outcome: confirmed | paid | reinstated | refund_due | duplicate.
+	 */
+	public static function apply_online_payment( $id, $reference, $amount ) {
+		global $wpdb;
+
+		$lock = 'byzo_pay_' . md5( $wpdb->prefix . (int) $id );
+		if ( '1' !== (string) $wpdb->get_var( $wpdb->prepare( 'SELECT GET_LOCK(%s, 10)', $lock ) ) ) { // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- a lock, not data.
+			return new WP_Error( 'byzo_payment_busy', __( 'This payment is being recorded right now. Please try again.', 'bookyzo' ), array( 'status' => 503 ) );
+		}
+
+		try {
+			return self::apply_online_payment_locked( (int) $id, (string) $reference, $amount );
+		} finally {
+			$wpdb->query( $wpdb->prepare( 'SELECT RELEASE_LOCK(%s)', $lock ) ); // phpcs:ignore WordPress.DB.DirectDatabaseQuery.DirectQuery, WordPress.DB.DirectDatabaseQuery.NoCaching -- a lock, not data.
+		}
+	}
+
+	/**
+	 * apply_online_payment()'s work, run while holding the booking's lock.
+	 *
+	 * @return string|WP_Error
+	 */
+	private static function apply_online_payment_locked( $id, $reference, $amount ) {
+		$booking = self::get( $id );
+		if ( ! $booking ) {
+			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
+		}
+
+		// Already handled this exact payment.
+		if ( '' !== $reference && $reference === (string) $booking['payment_reference'] && in_array( $booking['payment_status'], array( 'paid_online', 'refund_due', 'refunded' ), true ) ) {
+			return 'duplicate';
+		}
+
+		if ( in_array( $booking['status'], array( 'pending', 'confirmed', 'completed' ), true ) ) {
+			self::record_payment( $id, $reference, $amount );
+			self::set_payment_status( $id, 'paid_online' );
+
+			if ( 'pending' === $booking['status'] ) {
+				// A 409 means something else moved it on at this moment
+				// (an admin confirmed it): the payment is recorded either way.
+				$confirmed = self::update_status( $id, 'confirmed' );
+
+				return true === $confirmed ? 'confirmed' : 'paid';
+			}
+
+			return 'paid';
+		}
+
+		if ( 'cancelled' === $booking['status'] && 'hold_expired' === $booking['cancel_reason'] && self::reinstate_after_hold_expiry( $booking ) ) {
+			self::record_payment( $id, $reference, $amount );
+			self::set_payment_status( $id, 'paid_online' );
+
+			// The same event every confirmation fires, so the customer gets
+			// the usual "booking confirmed" email and add-ons (calendar sync,
+			// webhooks) see the booking come back.
+			do_action( 'byzo_booking_status_changed', $id, 'confirmed', 'cancelled' );
+
+			/**
+			 * Fires after a booking cancelled by hold expiry was brought back
+			 * because its payment arrived late and the place was still free.
+			 *
+			 * @param int $booking_id
+			 */
+			do_action( 'byzo_booking_reinstated', $id );
+
+			return 'reinstated';
+		}
+
+		self::record_payment( $id, $reference, $amount );
+		$set = self::set_payment_status( $id, 'refund_due' );
+		if ( is_wp_error( $set ) ) {
+			return $set;
+		}
+
+		BYZO_Notifications::send_late_payment_refund_due( $id );
+
+		/**
+		 * Fires when money arrived for a booking that can't take place (its
+		 * hold expired and the place was taken, or it was cancelled). Free
+		 * only records it and emails both sides; a refund add-on pays it
+		 * back.
+		 *
+		 * @param int $booking_id
+		 */
+		do_action( 'byzo_late_payment_refund_due', $id );
+
+		return 'refund_due';
+	}
+
+	/**
+	 * The only way out of `cancelled` (1.0.3): a booking cancelled because
+	 * its hold ran out, whose payment then arrived. Takes the place again
+	 * with the same atomic claim a new booking uses, then flips the row back
+	 * to confirmed only if it is still that same hold-expired cancellation.
+	 * Anything failing gives the claim back.
+	 *
+	 * Doesn't fire byzo_booking_status_changed; the caller does, once the
+	 * payment is recorded.
+	 *
+	 * @param array $booking A get() row.
+	 * @return bool
+	 */
+	private static function reinstate_after_hold_expiry( $booking ) {
+		global $wpdb;
+
+		if ( ! $booking['slot_id'] || ! $booking['slot_start'] || $booking['slot_start'] <= current_time( 'mysql' ) ) {
+			return false;
+		}
+
+		$item = BYZO_Bookable_Item::get( $booking['bookable_item_id'] );
+		if ( ! $item || 'archived' === $item['status'] ) {
+			return false;
+		}
+
+		if ( ! self::claim_slot_capacity( $booking['slot_id'], $booking['party_size'], $item ) ) {
+			return false;
+		}
+
+		if ( $booking['ticket_tier_id'] && false === apply_filters( 'byzo_claim_ticket_tier', null, $booking['ticket_tier_id'], $booking['party_size'] ) ) {
+			self::release_slot_capacity( $booking['slot_id'], $booking['party_size'], $item );
+			return false;
+		}
+
+		$table = self::table();
+		$now   = current_time( 'mysql' );
+		$done  = $wpdb->query( $wpdb->prepare( "UPDATE {$table} SET status = 'confirmed', cancelled_at = NULL, cancel_reason = NULL, hold_expires_at = NULL, updated_at = %s WHERE id = %d AND status = 'cancelled' AND cancel_reason = 'hold_expired'", $now, (int) $booking['id'] ) ); // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+
+		if ( 1 !== (int) $done ) {
+			self::release_booking_capacity( $booking );
+			return false;
+		}
 
 		return true;
 	}

@@ -28,7 +28,7 @@
          during this step, with the final dot lighting only once payment is
          done/skipped and confirmation is reached — no dedicated extra dot
          needed for what's an optional detour, not a required step. -->
-    <StepPayment v-else-if="step === 3.5" :booking="createdBooking" @paid="step = 4" @skip="step = 4" />
+    <StepPayment v-else-if="step === 3.5" :booking="createdBooking" @paid="onPaid" @skip="step = 4" />
     <!-- step 3.6: WooCommerce Bridge checkout hand-off (DETAILED-SPEC.md
          §3 B9) — takes priority over Stripe's own 3.5 step when the
          selected item has wc_checkout_enabled; the two are mutually
@@ -90,6 +90,16 @@ function onServiceSelected(service, items) {
   selectedService.value = service;
   publicItems.value = items;
   step.value = 1.5;
+}
+
+// The server's view of the booking after payment (1.0.3): confirmed, or
+// marked for refund when the time to pay ran out and the place was gone.
+// Merged so the manage_token from creation is kept.
+function onPaid(updated) {
+  if (updated && updated.id === createdBooking.value?.id) {
+    createdBooking.value = { ...createdBooking.value, ...updated };
+  }
+  step.value = 4;
 }
 
 function onItemSelected(item, wasAutoSkipped) {

@@ -47,7 +47,14 @@ class BYZO_REST_Stripe_Webhook_Controller extends BYZO_REST_Controller {
 		}
 
 		if ( 'payment_intent.succeeded' === $event['type'] ) {
-			$this->handle_payment_succeeded( $event );
+			$result = $this->handle_payment_succeeded( $event );
+
+			// Only "try again later" goes back to Stripe as a failure (it
+			// retries non-2xx), e.g. the same booking's payment being
+			// recorded by the widget at this very moment.
+			if ( is_wp_error( $result ) && 'byzo_payment_busy' === $result->get_error_code() ) {
+				return $result;
+			}
 		}
 
 		// Any other event type is acknowledged (200) but ignored — Stripe
@@ -56,8 +63,12 @@ class BYZO_REST_Stripe_Webhook_Controller extends BYZO_REST_Controller {
 		return rest_ensure_response( array( 'received' => true ) );
 	}
 
+	/**
+	 * @return true|WP_Error
+	 */
 	private function handle_payment_succeeded( $event ) {
-		$metadata = $event['data']['object']['metadata'] ?? array();
+		$object   = $event['data']['object'] ?? array();
+		$metadata = $object['metadata'] ?? array();
 
 		/**
 		 * Any succeeded PaymentIntent, for payments that aren't bookings —
@@ -66,51 +77,48 @@ class BYZO_REST_Stripe_Webhook_Controller extends BYZO_REST_Controller {
 		 *
 		 * @param array $intent The PaymentIntent object.
 		 */
-		do_action( 'byzo_stripe_payment_succeeded', $event['data']['object'] );
+		do_action( 'byzo_stripe_payment_succeeded', $object );
 
 		// Phase 2 step 14 (DETAILED-SPEC.md §3 B6, cart checkout) — a
 		// PaymentIntent Pro created for a cart carries `cart_id` instead
-		// of a single `booking_id`; every booking sharing that cart_id
-		// gets marked paid together, same as the one-booking path below
-		// just looped. Free itself never creates a cart_id PaymentIntent
-		// (no cart UI exists there), so this branch is simply unreachable
-		// without Pro.
+		// of a single `booking_id`; every booking sharing that cart_id is
+		// handled the same way the one-booking path below handles its one
+		// (1.0.3: including a cart whose hold ran out, booking by booking).
+		// Free itself never creates a cart_id PaymentIntent (no cart UI
+		// exists there), so this branch is simply unreachable without Pro.
 		if ( ! empty( $metadata['cart_id'] ) ) {
+			$busy = null;
 			foreach ( BYZO_Booking::get_by_cart_id( $metadata['cart_id'] ) as $booking ) {
 				// One intent paid for the whole cart; each booking keeps the
 				// intent id and its own share, so it can be refunded alone.
-				BYZO_Booking::record_payment( $booking['id'], $event['data']['object']['id'] ?? '', BYZO_Booking::online_charge_amount( $booking ) );
-				$this->mark_booking_paid( $booking );
+				$result = BYZO_Booking::apply_online_payment( $booking['id'], $object['id'] ?? '', BYZO_Booking::online_charge_amount( $booking ) );
+				if ( is_wp_error( $result ) && 'byzo_payment_busy' === $result->get_error_code() ) {
+					$busy = $result;
+				}
 			}
-			return;
+			return $busy ? $busy : true;
 		}
 
 		$booking_id = $metadata['booking_id'] ?? null;
 		if ( ! $booking_id ) {
-			return;
+			return true;
 		}
 
 		$booking = BYZO_Booking::get( (int) $booking_id );
 		if ( ! $booking ) {
-			return;
+			return true;
 		}
 
-		$object = $event['data']['object'];
-		BYZO_Booking::record_payment( $booking['id'], $object['id'] ?? '', isset( $object['amount_received'] ) ? BYZO_Stripe::from_minor_units( (int) $object['amount_received'] ) : BYZO_Booking::online_charge_amount( $booking ) );
-		$this->mark_booking_paid( $booking );
-	}
+		// Pending, cancelled by an expired hold, or already cancelled:
+		// apply_online_payment() decides (confirm, take the place back, or
+		// mark it for refund). It no longer just marks a cancelled booking
+		// paid with nobody told.
+		$result = BYZO_Booking::apply_online_payment(
+			$booking['id'],
+			$object['id'] ?? '',
+			isset( $object['amount_received'] ) ? BYZO_Stripe::from_minor_units( (int) $object['amount_received'] ) : BYZO_Booking::online_charge_amount( $booking )
+		);
 
-	private function mark_booking_paid( $booking ) {
-		BYZO_Booking::set_payment_status( $booking['id'], 'paid_online' );
-
-		// Reuses update_status()'s own transition guard rather than a
-		// direct status write — if the booking is already confirmed (or
-		// otherwise not in a state where ->confirmed is legal, e.g. it
-		// was cancelled after payment was initiated), this is a no-op
-		// WP_Error the webhook doesn't need to surface as a failure; the
-		// payment itself still succeeded and was recorded above.
-		if ( 'pending' === $booking['status'] ) {
-			BYZO_Booking::update_status( $booking['id'], 'confirmed' );
-		}
+		return is_wp_error( $result ) ? $result : true;
 	}
 }

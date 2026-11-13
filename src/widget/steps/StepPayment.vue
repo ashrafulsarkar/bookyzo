@@ -124,8 +124,12 @@ async function pay() {
     // payment error: the money has already been taken, so blocking the
     // confirmation screen would be worse than a booking the webhook or
     // the site owner reconciles later.
+    // 1.0.3: the answer says how it ended (confirmed, or — when the time to
+    // pay had run out and the place was gone — marked for refund), so the
+    // confirmation screen can tell the customer the truth.
+    let updated = null;
     try {
-      await confirmBookingPayment(
+      updated = await confirmBookingPayment(
         props.booking.id,
         props.booking.manage_token,
         result.paymentIntent.id
@@ -134,7 +138,7 @@ async function pay() {
       // Intentionally swallowed — see above.
     }
 
-    emit('paid');
+    emit('paid', updated);
   } catch (e) {
     payError.value = e.message;
   } finally {

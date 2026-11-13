@@ -37,6 +37,8 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 						// active bookable item of this type at once.
 						'type'             => array( 'type' => 'string' ),
 						'status'           => array( 'type' => 'string' ),
+						// 1.0.3 — e.g. refund_due.
+						'payment_status'   => array( 'type' => 'string' ),
 						// Free-text customer search (QA report 2026-09-22 §4.10).
 						'search'           => array( 'type' => 'string' ),
 						'per_page'         => array( 'type' => 'integer', 'default' => 20 ),
@@ -207,6 +209,7 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			'location_id'      => $request->get_param( 'location_id' ),
 			'type'             => $request->get_param( 'type' ),
 			'status'           => $request->get_param( 'status' ),
+			'payment_status'   => $request->get_param( 'payment_status' ),
 			'search'           => $request->get_param( 'search' ),
 			'per_page'         => $request->get_param( 'per_page' ),
 			'page'             => $request->get_param( 'page' ),
@@ -606,6 +609,23 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
+		// 1.0.3: no new card payment for a booking that can't take one any
+		// more. A hold that has just run out is released first, so a
+		// customer who comes back to the form after it does is told so
+		// before being charged, rather than paying for a released place.
+		if ( $booking['slot_id'] ) {
+			BYZO_Booking::release_expired_holds( array( 'slot_ids' => array( $booking['slot_id'] ) ) );
+			$booking = BYZO_Booking::get( $id );
+		}
+
+		if ( 'cancelled' === $booking['status'] && 'hold_expired' === $booking['cancel_reason'] ) {
+			return new WP_Error( 'byzo_hold_expired', __( 'The time to finish this payment ran out, so the booking was released. Please book again.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
+
+		if ( ! in_array( $booking['status'], array( 'pending', 'confirmed' ), true ) || 'unpaid' !== $booking['payment_status'] ) {
+			return new WP_Error( 'byzo_not_payable', __( 'This booking has nothing left to pay online.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
+
 		$result = BYZO_Stripe::create_payment_intent( $booking );
 
 		if ( is_wp_error( $result ) ) {
@@ -770,13 +790,13 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return new WP_Error( 'byzo_payment_not_succeeded', __( 'That payment has not completed.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
-		BYZO_Booking::record_payment( $booking['id'], $intent['id'] ?? '', isset( $intent['amount_received'] ) ? BYZO_Stripe::from_minor_units( (int) $intent['amount_received'] ) : BYZO_Booking::online_charge_amount( $booking ) );
-		BYZO_Booking::set_payment_status( $booking['id'], 'paid_online' );
+		// Same handling as the webhook (1.0.3): whichever arrives first
+		// decides, the second is a no-op. A payment that lands after the
+		// hold expired takes the place back or is marked for refund.
+		$result = BYZO_Booking::apply_online_payment( $booking['id'], $intent['id'] ?? '', isset( $intent['amount_received'] ) ? BYZO_Stripe::from_minor_units( (int) $intent['amount_received'] ) : BYZO_Booking::online_charge_amount( $booking ) );
 
-		// Same transition guard the webhook uses — a booking already moved
-		// on (confirmed by an admin, or cancelled) is left alone.
-		if ( 'pending' === $booking['status'] ) {
-			BYZO_Booking::update_status( $booking['id'], 'confirmed' );
+		if ( is_wp_error( $result ) ) {
+			return $result;
 		}
 
 		return rest_ensure_response( BYZO_Booking::get( $booking['id'] ) );

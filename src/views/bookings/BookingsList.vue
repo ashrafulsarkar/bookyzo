@@ -92,6 +92,16 @@
             </SelectContent>
           </Select>
         </div>
+        <div class="flex flex-col gap-1.5">
+          <Label class="text-xs font-medium text-muted-foreground">{{ __('Payment', 'bookyzo') }}</Label>
+          <Select v-model="filters.payment_status">
+            <SelectTrigger class="h-10 w-40"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="__all__">{{ __('All', 'bookyzo') }}</SelectItem>
+              <SelectItem v-for="status in paymentStatuses" :key="status" :value="status">{{ statusLabel(status) }}</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         <Button
           variant="ghost"
           size="sm"
@@ -189,6 +199,8 @@
                 <!-- Set by a refund add-on when the customer cancels a paid
                      booking (QA report §6.2.7); Free never sets it. -->
                 <span v-if="booking.refund_status === 'requested'" class="mt-1 block text-[11px] font-medium text-amber-700">{{ __('Refund requested', 'bookyzo') }}</span>
+                <!-- 1.0.3: paid after its hold expired and the place was gone. -->
+                <span v-if="booking.payment_status === 'refund_due'" class="mt-1 block text-[11px] font-medium text-red-700">{{ __('Refund due', 'bookyzo') }}</span>
               </TableCell>
             </TableRow>
           </TableBody>
@@ -238,6 +250,7 @@ import { useClientPagination } from '@/composables/useClientPagination';
 import { extraBookingBulkActions as bulkActions, extraLocations as locations } from '@/lib/admin-extensions';
 
 const statuses = ['pending', 'confirmed', 'completed', 'cancelled', 'no_show', 'rejected'];
+const paymentStatuses = ['unpaid', 'paid_manual', 'paid_online', 'refund_due', 'refunded', 'not_required'];
 
 const items = ref([]);
 const bookings = ref([]);
@@ -251,6 +264,7 @@ const filters = reactive({
   bookable_item_id: '__all__',
   location_id: '__all__',
   status: '__all__',
+  payment_status: '__all__',
 });
 
 const { page: currentPage, total: totalCount, totalPages, pageItems: paginatedBookings, pageSize, reset: resetPage } =
@@ -313,6 +327,7 @@ async function loadBookings() {
     if (filters.bookable_item_id !== '__all__') params.set('bookable_item_id', filters.bookable_item_id);
     if (filters.location_id !== '__all__') params.set('location_id', filters.location_id);
     if (filters.status !== '__all__') params.set('status', filters.status);
+    if (filters.payment_status !== '__all__') params.set('payment_status', filters.payment_status);
     if (filters.search.trim()) params.set('search', filters.search.trim());
     bookings.value = await api.get(`/bookings?${params.toString()}`);
   } catch (e) {
@@ -323,7 +338,7 @@ async function loadBookings() {
 }
 
 const hasActiveFilters = computed(() =>
-  Boolean(filters.from || filters.to || filters.bookable_item_id !== '__all__' || filters.location_id !== '__all__' || filters.status !== '__all__')
+  Boolean(filters.from || filters.to || filters.bookable_item_id !== '__all__' || filters.location_id !== '__all__' || filters.status !== '__all__' || filters.payment_status !== '__all__')
 );
 
 function clearFilters() {
@@ -332,6 +347,7 @@ function clearFilters() {
   filters.bookable_item_id = '__all__';
   filters.location_id = '__all__';
   filters.status = '__all__';
+  filters.payment_status = '__all__';
 }
 
 // The From/To filters swapped a native `<input type="date">` — its
@@ -394,6 +410,7 @@ const exportUrl = computed(() => {
   if (filters.to) params.set('to', filters.to);
   if (filters.bookable_item_id !== '__all__') params.set('bookable_item_id', filters.bookable_item_id);
   if (filters.status !== '__all__') params.set('status', filters.status);
+  if (filters.payment_status !== '__all__') params.set('payment_status', filters.payment_status);
   return `${base}?${params.toString()}`;
 });
 
