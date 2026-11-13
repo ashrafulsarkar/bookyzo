@@ -60,6 +60,8 @@ The free version should be genuinely usable for a small single-location business
 - Buffer time between bookings
 - Automatic slot generation (rolling window, background cron)
 
+- **Per-item buffer time — DONE 2026-11-13 (1.0.3):** a bookable item can keep its own gap before and after each booking (Availability step); empty = the business-wide buffer. Changing it rebuilds the item's unbooked future times; booked times stay and nothing new overlaps them.
+
 ### A4. Booking Management
 - Unified calendar view (day/week/month, **plus agenda — added 2026-09-05, Phase 1.6**: a 4th mode, a flat chronological list, useful once a business has more than a handful of bookings on a given day)
 - Manual booking creation/edit from admin (for phone/walk-in bookings)
@@ -69,6 +71,10 @@ The free version should be genuinely usable for a small single-location business
 - **Drag-and-drop reschedule on the calendar (reclassified from Pro's B3 2026-09-12, Phase 2 step 11):** drag a booking block on the calendar grid to a different day/time — the same unrestricted reschedule action above, just triggered by a drag gesture instead of the detail view's dropdown. Originally scoped as Pro in B3, but the underlying endpoint has been fully free since it shipped (Phase 1.6) with no capability check — gating only the drag *gesture* while the dropdown stays free would be a UI-trigger distinction with no real backend difference behind it, not a genuine limit (see `DETAILED-SPEC.md` §3 B3's note).
 - Basic booking list with filters (date, status, bookable item)
 - Single cancellation policy (fixed time-limit rule)
+
+- **Safe status changes — DONE 2026-11-13 (1.0.3):** every status, reschedule and payment-status change is a compare-and-swap, so two changes at the same moment (an automatic cancellation and a payment) can't release a place twice; the loser gets a 409.
+- **Cancellation cut-off per bookable item — DONE 2026-11-13 (1.0.3):** an item can set its own free-cancellation cut-off (empty = business-wide). Rescheduling by the customer (guest link or account) follows the same cut-off. Past it, the manage page and the account page say since when and how to reach the business (admin email + optional business phone).
+- **Refund due — DONE 2026-11-13 (1.0.3):** a new payment status for money that arrived for a booking that can't go ahead; filter on the Bookings screen.
 
 ### A5. Customer-Facing Booking Widget
 - Gutenberg block + shortcode for the booking form
@@ -85,6 +91,9 @@ The free version should be genuinely usable for a small single-location business
 - Translation-ready (WPML / Loco Translate compatible, ships with a .pot file) — this covers UI strings; translating the site owner's own service/category/bookable item *content* per visitor language is a Pro feature (B11)
   - **Vue screens translatable too — DONE 2026-09-25 (QA report §6.2.1):** the booking widget, the package store, the customer account page and every admin screen (Free and Pro) now go through WordPress translations, so a translation on translate.wordpress.org (or in Loco Translate) covers them, not just the PHP text. Dates, times, weekday names and amounts follow the site's language too (the admin's own language in wp-admin). Status words (`no_show`, `paid_manual`…) are shown as words instead of raw keys.
 
+- **Free cancellation shown before booking — DONE 2026-11-13 (1.0.3):** the booking form, the confirmation screen and the account page say "Free cancellation until ..." (or that the time can't be cancelled online).
+- **Extension point for an add-on's per-booking links — DONE 2026-11-13 (1.0.3):** `byzo_booking_extra_actions` (confirmation screen, booking emails, account page). Data only, rendered by Free as plain links; nothing without an add-on.
+
 ### A6. Notifications
 - Email confirmation on booking
 - Email reminder (single, fixed timing — e.g. 24h before)
@@ -94,12 +103,17 @@ The free version should be genuinely usable for a small single-location business
 - **"Add to calendar" link (Google / Outlook / .ics) on the booking confirmation** — moved here from Pro on 2026-09-03: Bookly, Booking Calendar, and Amelia all give this away free, so gating a single per-booking calendar link isn't a real limit
 - **New placeholders (added 2026-09-05, Phase 1.6):** `{location}` and `{meeting_link}` (A2), usable in any template alongside the existing `{start_time}`/etc.
 
+- **Late-payment emails and placeholders — DONE 2026-11-13 (1.0.3):** two new editable templates (refund needed, to you; refund coming, to the customer), and `{cancellation_deadline}`, `{amount_paid}`, `{payment_reference}` placeholders.
+
 ### A7. Payments
 - Manual/offline payment option (cash, bank transfer — mark as paid manually)
 - One payment gateway integration (Stripe, pick one for Free) — a paid booking is marked paid and confirmed automatically whether or not Stripe's webhook can reach the site (fixed 2026-09-11: the widget confirms with the server too, and the server re-checks the payment with Stripe before believing it), so local, staging, and firewalled installs don't leave paid bookings stuck as pending
 - No deposits/partial payments on Free (Pro feature)
 - Optional flat tax/VAT rate, applied site-wide to every booking (single percentage — per-service/per-region rules are Pro, see B6)
 - **Gateway architecture (added 2026-09-06):** Payments settings is a registry-driven list of on/off blocks, one per available gateway (a toggle per method, not a tab picker) — Free's registry only ever contains Stripe, extended by Pro (see B6) without any Free-side change.
+
+- **Short online-payment hold — DONE 2026-11-13 (1.0.3):** starting an online payment holds the place for `online_payment_hold_minutes` (default 15; 0 = `pending_booking_hold_hours`). When it runs out the booking is cancelled and the unfinished Stripe payment cancelled. Pay-in-person and approval-pending bookings are still never auto-cancelled.
+- **Late payments — DONE 2026-11-13 (1.0.3):** a payment that arrives after the hold expired takes the place back if it's free (booking confirmed again) or becomes "Refund due" with an email to both sides. Replays are no-ops. All gateways go through one path.
 
 ### A8. Dashboard
 
@@ -169,6 +183,8 @@ Pro should unlock everything a growing/multi-location business actually needs �
 
 ### B2. Advanced Availability
 - ~~Multiple shifts per day (e.g. lunch + dinner service windows)~~ — **moved to Free 2026-09-28** (WP.org review).
+- **Waitlist offers hold the place — DONE 2026-11-13:** the freed place is held for the person offered it for `waitlist_offer_minutes` (default 60, Waitlist screen); their link books the held place, and it goes to the next in line when the offer is missed, removed or left.
+
 - Per-staff individual schedules that differ from the business default
 - Custom availability rules per bookable item (overrides)
 - Recurring bookings (weekly class, monthly appointment series)
@@ -211,6 +227,8 @@ Pro should unlock everything a growing/multi-location business actually needs �
 - Per-service or per-region tax/VAT rules, with the rate broken out on the invoice (Free covers one flat site-wide rate, see A7)
 - **Add-ons / extra services — DONE 2026-09-12, Phase 2 step 17:** optional priced extras a customer attaches to a booking (e.g. "+30 minutes," "gift wrap," "extra guest"), each with its own price, added to `payment_amount` (and taxed) alongside the base price — `wp_byzo_addons`, new "Add-ons & Fees" admin screen, selectable checkboxes on the booking widget with a live-updating total.
 - **Flat booking/service fee — DONE 2026-09-12, Phase 2 step 17:** an additional fixed charge on top of price, separate from tax, broken out as its own invoice line — a per-bookable-item flat amount, once per booking (not multiplied by party size), same "Add-ons & Fees" screen.
+
+- **Refund modes for late payments and late cancellations — DONE 2026-11-13 (Pro → Refunds):** a late payment waits for the owner's approval (default) or is refunded in full automatically; a late cancellation pre-selects keep deposit / keep booking fee / refund in full / ask me, and only acts on its own if the owner ticks "Do this automatically". PayPal orders whose hold expired are never captured unless the place is still free.
 
 ### B7. Type-Specific Pro Modules
 
