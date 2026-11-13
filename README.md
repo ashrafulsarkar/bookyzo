@@ -216,7 +216,7 @@ Strings in the Vue apps go through `wp.i18n`. Templates call `__()`, `_n()`, `_x
 
 Publishing a GitHub release deploys that version to WordPress.org through [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml):
 
-1. Bump the version in three places so they match: the `Version:` header and `BYZO_VERSION` in `bookyzo.php`, and `Stable tag:` in `readme.txt`. Add a changelog entry to `readme.txt`.
+1. Bump the version in two places so they match: the `Version:` header in `bookyzo.php` (`BYZO_VERSION` reads it) and `Stable tag:` in `readme.txt`. Add a changelog entry to `readme.txt`.
 2. Commit and push to `main`.
 3. Create a release with a tag of the same version (`1.2.0` or `v1.2.0`) and publish it.
 

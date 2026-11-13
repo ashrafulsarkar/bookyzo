@@ -39,7 +39,13 @@ jobs:
         run: |
           TAG="${GITHUB_REF_NAME#v}"
           HEADER=$(sed -n 's/^[[:space:]]*\*[[:space:]]*Version:[[:space:]]*//p' bookyzo.php | head -n1 | tr -d '[:space:]')
-          CONSTANT=$(sed -n "s/^define( 'BYZO_VERSION', '\([^']*\)' );/\1/p" bookyzo.php | head -n1 | tr -d '[:space:]')
+          # BYZO_VERSION normally reads the Version header via get_file_data(),
+          # so it always matches; a hardcoded define() is still checked.
+          if grep -q "^define( 'BYZO_VERSION', get_file_data( __FILE__" bookyzo.php; then
+            CONSTANT="$HEADER"
+          else
+            CONSTANT=$(sed -n "s/^define( 'BYZO_VERSION', '\([^']*\)' );/\1/p" bookyzo.php | head -n1 | tr -d '[:space:]')
+          fi
           STABLE=$(sed -n 's/^Stable tag:[[:space:]]*//p' readme.txt | head -n1 | tr -d '[:space:]')
           echo "Tag: $TAG | Version header: $HEADER | BYZO_VERSION: $CONSTANT | Stable tag: $STABLE"
           if [ "$TAG" != "$HEADER" ] || [ "$TAG" != "$CONSTANT" ] || [ "$TAG" != "$STABLE" ]; then
