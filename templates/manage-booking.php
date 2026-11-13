@@ -13,8 +13,8 @@
  * way to. It now shows the booking in full on every state that has one,
  * with the business's own name and contact details underneath.
  *
- * @var string      $state      'confirm' | 'cancelled' | 'error'
- * @var string      $message    Shown for the 'error' state.
+ * @var string      $state      'confirm' | 'cancelled' | 'too_late' | 'error'
+ * @var string      $message    Shown for the 'error' and 'too_late' states.
  * @var array|null  $booking    The booking row, if the token verified.
  * @var array|null  $item       The bookable item, if the token verified.
  * @var int         $booking_id
@@ -27,6 +27,9 @@ defined( 'ABSPATH' ) || exit;
 $byzo_settings      = BYZO_Settings::get();
 $byzo_business_name = $byzo_settings['business_name'];
 $byzo_contact_email = get_option( 'admin_email' );
+
+$byzo_business_phone = trim( (string) $byzo_settings['business_phone'] );
+$byzo_deadline       = $booking ? BYZO_Booking::format_deadline( $booking ) : '';
 
 $byzo_details = array();
 if ( $booking ) {
@@ -67,6 +70,18 @@ if ( $booking ) {
 
 		<?php elseif ( 'confirm' === $state ) : ?>
 			<h1><?php esc_html_e( 'Cancel this booking?', 'bookyzo' ); ?></h1>
+			<?php if ( '' !== $byzo_deadline ) : ?>
+				<p>
+					<?php
+					/* translators: %s: date and time until which the booking can be cancelled or changed for free */
+					echo esc_html( sprintf( __( 'Free cancellation until %s. You can also change the time until then.', 'bookyzo' ), $byzo_deadline ) );
+					?>
+				</p>
+			<?php endif; ?>
+
+		<?php elseif ( 'too_late' === $state ) : ?>
+			<h1><?php esc_html_e( 'Too late to cancel online', 'bookyzo' ); ?></h1>
+			<p><?php echo esc_html( $message ); ?></p>
 
 		<?php else : ?>
 			<h1><?php esc_html_e( 'Unable to cancel', 'bookyzo' ); ?></h1>
@@ -111,12 +126,22 @@ if ( $booking ) {
 
 		<p class="byzo-manage-contact">
 			<?php
-			printf(
-				/* translators: 1: contact email link, 2: link to the site */
-				esc_html__( 'Questions? Email %1$s or visit %2$s.', 'bookyzo' ),
-				'<a href="mailto:' . esc_attr( $byzo_contact_email ) . '">' . esc_html( $byzo_contact_email ) . '</a>',
-				'<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html( $byzo_business_name ) . '</a>'
-			);
+			if ( '' !== $byzo_business_phone ) {
+				printf(
+					/* translators: 1: contact email link, 2: phone number link, 3: link to the site */
+					esc_html__( 'Questions? Email %1$s, call %2$s or visit %3$s.', 'bookyzo' ),
+					'<a href="mailto:' . esc_attr( $byzo_contact_email ) . '">' . esc_html( $byzo_contact_email ) . '</a>',
+					'<a href="tel:' . esc_attr( preg_replace( '/[^0-9+]/', '', $byzo_business_phone ) ) . '">' . esc_html( $byzo_business_phone ) . '</a>',
+					'<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html( $byzo_business_name ) . '</a>'
+				);
+			} else {
+				printf(
+					/* translators: 1: contact email link, 2: link to the site */
+					esc_html__( 'Questions? Email %1$s or visit %2$s.', 'bookyzo' ),
+					'<a href="mailto:' . esc_attr( $byzo_contact_email ) . '">' . esc_html( $byzo_contact_email ) . '</a>',
+					'<a href="' . esc_url( home_url( '/' ) ) . '">' . esc_html( $byzo_business_name ) . '</a>'
+				);
+			}
 			?>
 		</p>
 	</div>

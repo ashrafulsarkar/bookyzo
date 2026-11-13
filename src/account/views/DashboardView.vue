@@ -10,6 +10,12 @@
       <div class="bookyzo-account__booking-meta">
         <template v-if="booking.slot_start">{{ formatDate(booking.local_slot_start || booking.slot_start) }} · </template>{{ statusLabel(booking.status) }}
       </div>
+      <!-- Free cancellation (1.0.3): until when, or — once that has passed —
+           how to reach the business instead of a button that would fail. -->
+      <div v-if="booking.cancellation_open && booking.local_cancellation_deadline" class="bookyzo-account__booking-meta">
+        {{ sprintf(/*! translators: %s: date and time until which the booking can be cancelled for free. */ __('Free cancellation until %s', 'bookyzo'), formatDate(booking.local_cancellation_deadline)) }}
+      </div>
+      <div v-else-if="isActive(booking)" class="bookyzo-account__booking-meta">{{ tooLateText }}</div>
       <button
         v-if="canCancel(booking)"
         type="button"
@@ -57,7 +63,7 @@
 <script setup>
 import { statusLabel } from '@/lib/status';
 import { i18n, locale } from '@/lib/i18n';
-import { ref, onMounted } from 'vue';
+import { ref, computed, onMounted } from 'vue';
 import { getMyBookings, cancelMyBooking, getInvoiceUrl, getTicketQrUrl } from '../api';
 
 // Reschedule is deliberately not wired up here yet — it needs a slot
@@ -66,7 +72,7 @@ import { getMyBookings, cancelMyBooking, getInvoiceUrl, getTicketQrUrl } from '.
 // (PUT /bookings/{id}/reschedule, ownership-checked the same way cancel
 // is) is already widened per DETAILED-SPEC.md §A11, ready for whichever
 // future step builds that picker.
-defineProps({
+const props = defineProps({
   logoutUrl: { type: String, required: true },
   displayName: { type: String, default: '' },
   // Straight after creating the account — "Welcome back" read oddly there.
@@ -74,6 +80,8 @@ defineProps({
   pdfInvoiceEnabled: { type: Boolean, default: false },
   qrTicketEnabled: { type: Boolean, default: false },
   sections: { type: Array, default: () => [] },
+  // { business, email, phone } — who to contact once it's too late (1.0.3).
+  contact: { type: Object, default: () => ({}) },
 });
 
 const bookings     = ref([]);
@@ -91,9 +99,23 @@ onMounted(async () => {
   }
 });
 
-function canCancel(booking) {
+function isActive(booking) {
   return ['pending', 'confirmed'].includes(booking.status);
 }
+
+// Only while the free-cancellation deadline (the item's, or the
+// business-wide one) is still ahead; the server checks again anyway.
+function canCancel(booking) {
+  return isActive(booking) && Boolean(booking.cancellation_open);
+}
+
+const tooLateText = computed(() => {
+  const who = props.contact.business || '';
+  const how = props.contact.phone
+    ? i18n.sprintf(/*! translators: 1: email address, 2: phone number. */ i18n.__('%1$s or %2$s', 'bookyzo'), props.contact.email || '', props.contact.phone)
+    : props.contact.email || '';
+  return i18n.sprintf(/*! translators: 1: business name, 2: email address (and phone number). */ i18n.__('Too late to cancel or change online. Please contact %1$s at %2$s.', 'bookyzo'), who, how);
+});
 
 function formatDate(mysqlDateTime) {
   return new Date(mysqlDateTime.replace(' ', 'T')).toLocaleString(locale);

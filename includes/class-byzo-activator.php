@@ -86,6 +86,9 @@ class BYZO_Activator {
 		// (1.0.3, BYZO_DB_VERSION 3.4->3.5): this item's own gap before and
 		// after each booking. NULL = the business-wide setting, which is a
 		// gap after each booking (byzo_settings.buffer_minutes) and none before.
+		// `cancellation_hours` added the same day (BYZO_DB_VERSION 3.5->3.6):
+		// this item's own free-cancellation cut-off, in hours before the
+		// booking; NULL = byzo_settings.cancellation_hours.
 		$sql[] = "CREATE TABLE {$prefix}byzo_bookable_items (
 			id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
 			type VARCHAR(20) NOT NULL DEFAULT 'appointment',
@@ -98,6 +101,7 @@ class BYZO_Activator {
 			duration_minutes SMALLINT UNSIGNED NOT NULL DEFAULT 30,
 			buffer_before_minutes SMALLINT UNSIGNED NULL,
 			buffer_after_minutes SMALLINT UNSIGNED NULL,
+			cancellation_hours SMALLINT UNSIGNED NULL,
 			status VARCHAR(20) NOT NULL DEFAULT 'active',
 			location_id BIGINT UNSIGNED NULL,
 			location VARCHAR(255) NULL,

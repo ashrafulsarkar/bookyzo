@@ -1417,6 +1417,23 @@ class BYZO_Booking {
 			self::release_booking_capacity( $booking );
 		}
 
+		// A real cancellation (by the customer, the admin or an add-on; not
+		// an unpaid hold running out) is measured against the free-
+		// cancellation cut-off, before anything else hears about it (1.0.3).
+		if ( 'cancelled' === $new_status && 'hold_expired' !== ( $context['reason'] ?? '' ) ) {
+			/**
+			 * Fires once per cancellation with whether it came after the
+			 * free-cancellation deadline (the item's cut-off, or the
+			 * business-wide one). Free only works this out; what a late
+			 * cancellation costs is an add-on's business (keeping a deposit).
+			 * Fires before byzo_booking_status_changed.
+			 *
+			 * @param int  $booking_id
+			 * @param bool $is_late
+			 */
+			do_action( 'byzo_cancellation_policy_evaluated', $id, self::cancellation_policy( $booking )['is_late'] );
+		}
+
 		do_action( 'byzo_booking_status_changed', $id, $new_status, $booking['status'] );
 
 		return true;
@@ -1953,6 +1970,116 @@ class BYZO_Booking {
 	}
 
 	/**
+	 * The booking's free-cancellation terms (1.0.3), the one place every
+	 * check reads them from: the guest and account cancel, rescheduling by
+	 * the customer, the manage page, {cancel_link}/{cancellation_deadline}
+	 * and the booking form.
+	 *
+	 * @param array $booking A get() row.
+	 * @return array {
+	 *     @type int         $hours    The item's cut-off, or the business-wide one.
+	 *     @type string|null $deadline Site-local 'Y-m-d H:i:s' until which the customer can cancel
+	 *                                 or change it online; null when there is none (no online
+	 *                                 cancellation, or no time on record).
+	 *     @type bool        $is_late  True once the deadline has passed.
+	 *     @type bool        $online   Whether the customer can cancel or change it online at all.
+	 * }
+	 */
+	public static function cancellation_policy( $booking ) {
+		$hours    = BYZO_Bookable_Item::cancellation_hours( (int) $booking['bookable_item_id'] );
+		$deadline = null;
+
+		if ( $hours > 0 && ! empty( $booking['slot_start'] ) ) {
+			$deadline = ( new DateTime( $booking['slot_start'], wp_timezone() ) )->modify( '-' . $hours . ' hours' )->format( 'Y-m-d H:i:s' );
+		}
+
+		return array(
+			'hours'    => $hours,
+			'deadline' => $deadline,
+			'is_late'  => null !== $deadline && current_time( 'mysql' ) >= $deadline,
+			'online'   => $hours > 0,
+		);
+	}
+
+	/**
+	 * The free-cancellation deadline in words, on the booked item's own
+	 * clock and in the site's date/time format; '' when there is none.
+	 *
+	 * @param array $booking
+	 * @return string
+	 */
+	public static function format_deadline( $booking ) {
+		$deadline = self::cancellation_policy( $booking )['deadline'];
+		if ( ! $deadline ) {
+			return '';
+		}
+
+		$tz   = BYZO_Bookable_Item::timezone( (int) $booking['bookable_item_id'] );
+		$text = wp_date( get_option( 'date_format' ) . ' ' . get_option( 'time_format' ), ( new DateTime( $deadline, wp_timezone() ) )->getTimestamp(), $tz );
+
+		return $tz->getName() === wp_timezone()->getName() ? $text : $text . ' (' . ( new DateTime( $deadline, wp_timezone() ) )->setTimezone( $tz )->format( 'T' ) . ')';
+	}
+
+	/**
+	 * What a customer is told when it's too late (or not possible) to
+	 * cancel or change a booking online: since when, and how to reach the
+	 * business instead (its email, and its phone when one is set).
+	 *
+	 * @param array  $booking
+	 * @param string $what 'cancel' or 'change'.
+	 * @return string
+	 */
+	public static function too_late_message( $booking, $what = 'cancel' ) {
+		$settings = BYZO_Settings::get();
+		$policy   = self::cancellation_policy( $booking );
+		$contact  = get_option( 'admin_email' );
+		if ( '' !== trim( (string) $settings['business_phone'] ) ) {
+			/* translators: 1: email address, 2: phone number */
+			$contact = sprintf( __( '%1$s or %2$s', 'bookyzo' ), $contact, $settings['business_phone'] );
+		}
+
+		if ( $policy['deadline'] ) {
+			$when = self::format_deadline( $booking );
+
+			return 'change' === $what
+				/* translators: 1: date and time the free cancellation period ended, 2: business name, 3: email address (and phone number) */
+				? sprintf( __( 'This booking could be changed online until %1$s. To change it now, please contact %2$s at %3$s.', 'bookyzo' ), $when, $settings['business_name'], $contact )
+				/* translators: 1: date and time the free cancellation period ended, 2: business name, 3: email address (and phone number) */
+				: sprintf( __( 'Free cancellation for this booking ended on %1$s. To cancel it now, please contact %2$s at %3$s.', 'bookyzo' ), $when, $settings['business_name'], $contact );
+		}
+
+		return 'change' === $what
+			/* translators: 1: business name, 2: email address (and phone number) */
+			? sprintf( __( 'This booking can\'t be changed online. Please contact %1$s at %2$s.', 'bookyzo' ), $settings['business_name'], $contact )
+			/* translators: 1: business name, 2: email address (and phone number) */
+			: sprintf( __( 'This booking can\'t be cancelled online. Please contact %1$s at %2$s.', 'bookyzo' ), $settings['business_name'], $contact );
+	}
+
+	/**
+	 * A customer (guest link or their account) may move their booking to
+	 * another time for the SAME thing, only while they could still cancel
+	 * it — the same cut-off (1.0.3; before, only the guest link checked it,
+	 * and only against the business-wide value). Admins and staff keep the
+	 * unrestricted move.
+	 *
+	 * @param array $booking
+	 * @param array $new_slot A BYZO_Slot::get() row.
+	 * @return true|WP_Error
+	 */
+	public static function customer_reschedule_allowed( $booking, $new_slot ) {
+		if ( (int) $new_slot['bookable_item_id'] !== (int) $booking['bookable_item_id'] ) {
+			return new WP_Error( 'byzo_slot_unavailable', __( 'That time is for something else. Please pick one of the times listed.', 'bookyzo' ), array( 'status' => 400 ) );
+		}
+
+		$policy = self::cancellation_policy( $booking );
+		if ( ! $policy['online'] || ! $booking['slot_start'] || $policy['is_late'] ) {
+			return new WP_Error( 'byzo_too_late_to_change', self::too_late_message( $booking, 'change' ), array( 'status' => 403 ) );
+		}
+
+		return true;
+	}
+
+	/**
 	 * The cancellation-eligibility guard both cancel_via_token() and
 	 * cancel_as_customer() share once their own authorization check has
 	 * already passed — status/window rules are identical either way, only
@@ -1965,21 +2092,20 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_invalid_transition', __( 'This booking cannot be cancelled.', 'bookyzo' ), array( 'status' => 400 ) );
 		}
 
-		// byzo_settings.cancellation_hours: 0 disables self-service
-		// cancellation entirely; otherwise it's only allowed while the slot
-		// is still more than this many hours away.
-		$cancellation_hours = (int) BYZO_Settings::get()['cancellation_hours'];
-		if ( $cancellation_hours <= 0 ) {
-			return new WP_Error( 'byzo_cancellation_disabled', __( "Online cancellation isn't available for this booking — please contact us directly.", 'bookyzo' ), array( 'status' => 403 ) );
+		// The item's cut-off, or the business-wide cancellation_hours
+		// (1.0.3): 0 disables self-service cancellation entirely; otherwise
+		// it's only allowed until that many hours before the booking.
+		$policy = self::cancellation_policy( $booking );
+		if ( ! $policy['online'] ) {
+			return new WP_Error( 'byzo_cancellation_disabled', self::too_late_message( $booking, 'cancel' ), array( 'status' => 403 ) );
 		}
 
 		if ( empty( $booking['slot_start'] ) ) {
 			return new WP_Error( 'byzo_cannot_cancel', __( 'This booking can no longer be cancelled online.', 'bookyzo' ), array( 'status' => 403 ) );
 		}
 
-		$hours_until = ( ( new DateTime( $booking['slot_start'], wp_timezone() ) )->getTimestamp() - ( new DateTime( 'now', wp_timezone() ) )->getTimestamp() ) / HOUR_IN_SECONDS;
-		if ( $hours_until <= $cancellation_hours ) {
-			return new WP_Error( 'byzo_cancellation_window_passed', __( 'This booking is too close to cancel online — please contact us directly.', 'bookyzo' ), array( 'status' => 403 ) );
+		if ( $policy['is_late'] ) {
+			return new WP_Error( 'byzo_cancellation_window_passed', self::too_late_message( $booking, 'cancel' ), array( 'status' => 403 ) );
 		}
 
 		$result = self::update_status( $booking['id'], 'cancelled' );
@@ -2716,6 +2842,14 @@ class BYZO_Booking {
 		// 2026-09-26 §4.1); null when the item keeps the site timezone.
 		$tz                = BYZO_Bookable_Item::timezone( $row['bookable_item_id'] );
 		$row['local_zone'] = $row['slot_start'] && $tz->getName() !== wp_timezone()->getName() ? ( new DateTime( $row['slot_start'], wp_timezone() ) )->setTimezone( $tz )->format( 'T' ) : null;
+
+		// Free cancellation (1.0.3): until when (site time, and on the item's
+		// clock for showing to people), and whether it's still open now —
+		// for the confirmation screen and the customer's account page.
+		$policy                             = self::cancellation_policy( $row );
+		$row['cancellation_deadline']       = $policy['deadline'];
+		$row['local_cancellation_deadline'] = BYZO_Bookable_Item::to_local( $policy['deadline'], $row['bookable_item_id'] );
+		$row['cancellation_open']           = $policy['online'] && $policy['deadline'] && ! $policy['is_late'] && in_array( $row['status'], array( 'pending', 'confirmed' ), true );
 
 		return $row;
 	}

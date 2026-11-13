@@ -114,6 +114,14 @@
   color: var(--byzo-text);
 }
 
+/* "Free cancellation until ..." (1.0.3): the terms, stated quietly under
+   the summary on the details step and on the confirmation screen. */
+.bookyzo-widget .policy-note {
+  margin: -4px 0 16px;
+  font-size: 13px;
+  color: var(--byzo-text-muted, #6b7280);
+}
+
 .bookyzo-widget .summary--confirm {
   text-align: left;
   margin-top: 18px;

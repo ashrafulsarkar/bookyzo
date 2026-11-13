@@ -123,8 +123,13 @@ class BYZO_Notifications {
 		// own page re-checks everything again at click time regardless —
 		// this is purely about not printing a link that's already known
 		// to be dead at send time.
+		// 1.0.3: the item's own cut-off counts (BYZO_Booking::cancellation_policy()).
+		// The link opens the manage page whenever online cancellation exists
+		// for the booking — even past the deadline it shows the booking and
+		// how to reach the business.
 		$cancel_link = '';
-		if ( (int) $settings['cancellation_hours'] > 0 && in_array( $booking['status'], array( 'pending', 'confirmed' ), true ) ) {
+		$policy      = BYZO_Booking::cancellation_policy( $booking );
+		if ( $policy['online'] && in_array( $booking['status'], array( 'pending', 'confirmed' ), true ) ) {
 			$cancel_link = BYZO_Booking_Cancel::build_link( $booking['id'], $booking['customer_email'] );
 		}
 
@@ -155,6 +160,10 @@ class BYZO_Notifications {
 			'{start_time}'           => self::format_start_time( $booking['slot_start'], $item ),
 			'{business_name}'        => $settings['business_name'],
 			'{cancel_link}'          => $cancel_link,
+			// Added 2026-11-13 (1.0.3) — until when the customer can cancel
+			// or change it for free, on the item's clock; '' when there's no
+			// such deadline (a line using it is then left out, see send()).
+			'{cancellation_deadline}' => '' !== $cancel_link && ! $policy['is_late'] ? BYZO_Booking::format_deadline( $booking ) : '',
 			'{add_to_calendar_link}' => self::google_calendar_link( $booking, $item ),
 			// Added 2026-09-05 (Phase 1.6, FEATURES.md A2/A6) — blank when
 			// the bookable item hasn't set one, same as every other
@@ -183,6 +192,32 @@ class BYZO_Notifications {
 		$amount   = number_format( (float) $booking['payment_amount'], 2 );
 
 		return $currency . ' ' . $amount;
+	}
+
+	/**
+	 * Leaves out a template line built around a placeholder that has
+	 * nothing to say for this booking, so "Free cancellation until ." never
+	 * reaches an inbox (1.0.3). Only {cancellation_deadline} works this way;
+	 * every other placeholder keeps its line, as before.
+	 *
+	 * @param string $body         Template body, placeholders not yet replaced.
+	 * @param array  $placeholders
+	 * @return string
+	 */
+	private static function drop_empty_lines( $body, $placeholders ) {
+		if ( '' !== ( $placeholders['{cancellation_deadline}'] ?? '' ) || false === strpos( $body, '{cancellation_deadline}' ) ) {
+			return $body;
+		}
+
+		$lines = preg_split( '/\R/', $body );
+		$lines = array_filter(
+			$lines,
+			static function ( $line ) {
+				return false === strpos( $line, '{cancellation_deadline}' );
+			}
+		);
+
+		return implode( "\n", $lines );
 	}
 
 	/**
@@ -224,6 +259,14 @@ class BYZO_Notifications {
 	 * places {ticket_link}/{invoice_link} itself is left exactly as written.
 	 */
 	private static function append_document_links( $event, $template_body, $body, $placeholders ) {
+		// The free-cancellation deadline (1.0.3) reaches every customer's
+		// booking emails, also on a site whose saved templates predate the
+		// placeholder.
+		if ( in_array( $event, array( 'booking_created', 'booking_confirmed' ), true ) && '' !== $placeholders['{cancellation_deadline}'] && false === strpos( $template_body, '{cancellation_deadline}' ) ) {
+			/* translators: %s: date and time until which the booking can be cancelled or changed for free */
+			$body .= "\n\n" . sprintf( __( 'Free cancellation until %s.', 'bookyzo' ), $placeholders['{cancellation_deadline}'] );
+		}
+
 		if ( 'booking_confirmed' !== $event ) {
 			return $body;
 		}
@@ -272,7 +315,7 @@ class BYZO_Notifications {
 		$placeholders = self::build_placeholders( $booking );
 
 		$subject = strtr( $template['subject'], $placeholders );
-		$body    = self::append_document_links( $event, $template['body'], strtr( $template['body'], $placeholders ), $placeholders );
+		$body    = self::append_document_links( $event, $template['body'], strtr( self::drop_empty_lines( $template['body'], $placeholders ), $placeholders ), $placeholders );
 
 		$message = byzo_get_template( 'emails/notification.php', array( 'body' => $body ) );
 		if ( '' === $message ) {

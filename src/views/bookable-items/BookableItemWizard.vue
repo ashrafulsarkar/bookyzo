@@ -58,6 +58,7 @@
           :class="STEP_CARD_CLASS"
           :type="wizardData.type"
           :currency="currency"
+          show-cancellation
           :initial="wizardData"
           @next="onPricingNext"
           @back="step = 'availability'"
@@ -185,6 +186,7 @@ function emptyData() {
     uses_business_hours: false,
     buffer_before_minutes: null,
     buffer_after_minutes: null,
+    cancellation_hours: null,
     schedules: null,
     exceptions: null,
     occurrences: null,
@@ -331,6 +333,7 @@ async function loadItem(id) {
       uses_business_hours: Boolean(item.uses_business_hours),
       buffer_before_minutes: item.buffer_before_minutes ?? null,
       buffer_after_minutes: item.buffer_after_minutes ?? null,
+      cancellation_hours: item.cancellation_hours ?? null,
       price: item.price === null || item.price === undefined ? null : String(item.price),
       schedules,
       exceptions,
@@ -407,6 +410,8 @@ function buildPayload() {
     // generated times), harmless to send.
     buffer_before_minutes: wizardData.buffer_before_minutes ?? null,
     buffer_after_minutes: wizardData.buffer_after_minutes ?? null,
+    // 1.0.3 — null = the business-wide cancellation cut-off.
+    cancellation_hours: wizardData.cancellation_hours ?? null,
   };
   // Event's duration comes from each occurrence (Dates step); the field
   // is hidden for it — don't send a value the owner never saw.

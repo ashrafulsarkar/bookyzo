@@ -470,11 +470,12 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			}
 		}
 
-		// A guest may move their booking to another time for the SAME thing,
-		// and only while they could still cancel it — rescheduling into a
-		// different bookable item, or the hour before the appointment, isn't
-		// theirs to decide. Admins keep the unrestricted move.
-		if ( $by_token && ! current_user_can( 'manage_options' ) ) {
+		// A customer (guest link, or 1.0.3: their own account too) may move
+		// their booking to another time for the SAME thing, and only while
+		// they could still cancel it — rescheduling into a different
+		// bookable item, or past the cut-off, isn't theirs to decide.
+		// Admins and staff keep the unrestricted move.
+		if ( ! current_user_can( 'manage_options' ) && ( $by_token || ! BYZO_Staff::is_staff() ) ) {
 			$guest_check = $this->guest_reschedule_allowed( $id, absint( $body['slot_id'] ) );
 			if ( is_wp_error( $guest_check ) ) {
 				return $guest_check;
@@ -506,20 +507,8 @@ class BYZO_REST_Bookings_Controller extends BYZO_REST_Controller {
 			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
-		if ( (int) $new_slot['bookable_item_id'] !== (int) $booking['bookable_item_id'] ) {
-			return new WP_Error( 'byzo_slot_unavailable', __( 'That time is for something else. Please pick one of the times listed.', 'bookyzo' ), array( 'status' => 400 ) );
-		}
-
-		$hours = (int) BYZO_Settings::get()['cancellation_hours'];
-		$until = $booking['slot_start']
-			? ( ( new DateTime( $booking['slot_start'], wp_timezone() ) )->getTimestamp() - time() ) / HOUR_IN_SECONDS
-			: -1;
-
-		if ( $hours <= 0 || $until <= $hours ) {
-			return new WP_Error( 'byzo_too_late_to_change', __( 'This booking is too close to change online — please get in touch.', 'bookyzo' ), array( 'status' => 403 ) );
-		}
-
-		return true;
+		// Same cut-off as cancelling (the item's, or the business-wide one).
+		return BYZO_Booking::customer_reschedule_allowed( $booking, $new_slot );
 	}
 
 	/**

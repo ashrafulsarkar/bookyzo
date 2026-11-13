@@ -145,6 +145,7 @@ class BYZO_Bookable_Item {
 		$validated['updated_at'] = current_time( 'mysql' );
 
 		$updated = $wpdb->update( self::table(), $validated, array( 'id' => $id ) );
+		self::$cancellation_cache = array();
 
 		if ( false === $updated ) {
 			return new WP_Error( 'byzo_db_error', __( 'Could not update bookable item.', 'bookyzo' ) );
@@ -189,6 +190,33 @@ class BYZO_Bookable_Item {
 			'before' => null === ( $item['buffer_before_minutes'] ?? null ) ? 0 : max( 0, (int) $item['buffer_before_minutes'] ),
 			'after'  => null === ( $item['buffer_after_minutes'] ?? null ) ? $business : max( 0, (int) $item['buffer_after_minutes'] ),
 		);
+	}
+
+	/**
+	 * How many hours before a booking of this item customers can still
+	 * cancel it online (1.0.3): the item's own value when set, otherwise the
+	 * business-wide cancellation_hours. 0 = no online cancellation.
+	 *
+	 * @param array|int|null $item A get() row or an item id.
+	 * @return int
+	 */
+	public static function cancellation_hours( $item ) {
+		$id = is_array( $item ) ? (int) $item['id'] : (int) $item;
+		if ( ! array_key_exists( $id, self::$cancellation_cache ) ) {
+			$row = is_array( $item ) ? $item : ( $id ? self::get( $id ) : null );
+			self::$cancellation_cache[ $id ] = $row && null !== ( $row['cancellation_hours'] ?? null )
+				? max( 0, (int) $row['cancellation_hours'] )
+				: max( 0, (int) BYZO_Settings::get()['cancellation_hours'] );
+		}
+
+		return self::$cancellation_cache[ $id ];
+	}
+
+	/** @var array<int,int> Per-request cache for cancellation_hours(). */
+	private static $cancellation_cache = array();
+
+	public static function flush_cancellation_cache() {
+		self::$cancellation_cache = array();
 	}
 
 	/**
@@ -657,6 +685,20 @@ class BYZO_Bookable_Item {
 			$out[ $buffer_field ] = (int) $raw;
 		}
 
+		// This item's own free-cancellation cut-off in hours (1.0.3); null
+		// or '' = the business-wide cancellation_hours. 0 = customers can't
+		// cancel this item online. A year is the ceiling.
+		if ( array_key_exists( 'cancellation_hours', $data ) ) {
+			$raw = $data['cancellation_hours'];
+			if ( null === $raw || '' === $raw ) {
+				$out['cancellation_hours'] = null;
+			} elseif ( ! is_numeric( $raw ) || (float) $raw !== (float) (int) $raw || (int) $raw < 0 || (int) $raw > 8760 ) {
+				return new WP_Error( 'byzo_invalid_cancellation_hours', __( 'cancellation_hours must be a whole number of hours from 0 to 8760, or empty.', 'bookyzo' ), array( 'status' => 400 ) );
+			} else {
+				$out['cancellation_hours'] = (int) $raw;
+			}
+		}
+
 		return $out;
 	}
 
@@ -669,6 +711,7 @@ class BYZO_Bookable_Item {
 		$row['duration_minutes'] = (int) $row['duration_minutes'];
 		$row['buffer_before_minutes'] = isset( $row['buffer_before_minutes'] ) && null !== $row['buffer_before_minutes'] ? (int) $row['buffer_before_minutes'] : null;
 		$row['buffer_after_minutes']  = isset( $row['buffer_after_minutes'] ) && null !== $row['buffer_after_minutes'] ? (int) $row['buffer_after_minutes'] : null;
+		$row['cancellation_hours']    = isset( $row['cancellation_hours'] ) && null !== $row['cancellation_hours'] ? (int) $row['cancellation_hours'] : null;
 		$row['location_id'] = $row['location_id'] ? (int) $row['location_id'] : null;
 		$row['group_id']    = $row['group_id'] ? (int) $row['group_id'] : null;
 		$row['uses_business_hours'] = (bool) $row['uses_business_hours'];

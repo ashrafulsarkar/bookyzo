@@ -54,6 +54,10 @@
       </div>
     </div>
 
+    <!-- The cancellation terms, before they book (1.0.3): until when it can
+         be cancelled or changed for free, or that it can't be online. -->
+    <p v-if="cancellationNote" class="policy-note">{{ cancellationNote }}</p>
+
     <div v-if="showPartySize" class="field">
       <label for="bw-party-size">{{ partySizeLabel }}</label>
       <input id="bw-party-size" v-model.number="form.party_size" type="number" min="1" :max="partySizeMax" />
@@ -253,6 +257,28 @@ const whenLabel = computed(() => {
   if (!start) return '';
   const date = new Date(start.replace(' ', 'T'));
   return i18n.sprintf(/*! translators: 1: date, 2: time. */ i18n.__('%1$s at %2$s', 'bookyzo'), date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }), date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' }));
+});
+
+// The server works out the deadline on the item's own clock (the slot's
+// local_cancellation_deadline / cancellation_open); this only words it.
+const cancellationNote = computed(() => {
+  const deadline = props.slot?.local_cancellation_deadline;
+  if (deadline && props.slot.cancellation_open) {
+    const date = new Date(deadline.replace(' ', 'T'));
+    return i18n.sprintf(
+      /*! translators: 1: date, 2: time — until when the booking can be cancelled or changed for free. */
+      i18n.__('Free cancellation until %1$s at %2$s.', 'bookyzo'),
+      date.toLocaleDateString(locale, { weekday: 'short', month: 'short', day: 'numeric' }),
+      date.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })
+    );
+  }
+  if (deadline) {
+    return i18n.__('This time is too close to cancel or change online once booked.', 'bookyzo');
+  }
+  if (props.item && props.item.cancellation_hours === 0) {
+    return i18n.__('This booking can\'t be cancelled online once it\'s made.', 'bookyzo');
+  }
+  return '';
 });
 
 // Hidden when the type has no quantity concept (appointment, whose

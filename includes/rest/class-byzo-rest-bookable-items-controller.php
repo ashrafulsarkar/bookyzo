@@ -227,6 +227,11 @@ class BYZO_REST_Bookable_Items_Controller extends BYZO_REST_Controller {
 					// An event with no date left to sell stays out of the
 					// widget's list (QA report 2026-09-26 H3).
 					'has_upcoming_dates'  => 'event' !== $item['type'] || BYZO_Slot::has_upcoming( $item ),
+					// Hours before a booking it can still be cancelled or
+					// changed online (the item's own, or the business-wide
+					// one; 0 = not online), so the form can say "Free
+					// cancellation until ..." before anyone books (1.0.3).
+					'cancellation_hours'  => BYZO_Bookable_Item::cancellation_hours( $item ),
 				);
 			},
 			$result['items']

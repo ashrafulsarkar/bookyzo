@@ -144,7 +144,13 @@
                 <Input id="s-cancellation-hours" v-model.number="form.cancellation_hours" type="number" min="0" step="1" class="w-24" />
                 <span class="text-sm text-muted-foreground">{{ __('hours before the booking (0 = customers can\'t cancel online)', 'bookyzo') }}</span>
               </div>
-              <p class="text-xs text-muted-foreground">{{ __('Customers can cancel their own booking from the link in their confirmation email, as long as it\'s at least this many hours away.', 'bookyzo') }}</p>
+              <p class="text-xs text-muted-foreground">{{ __('Customers can cancel or change their own booking from the link in their confirmation email, as long as it\'s at least this many hours away. They see the deadline before they book. A bookable item can set its own cut-off instead.', 'bookyzo') }}</p>
+            </div>
+
+            <div class="flex flex-col gap-1.5">
+              <Label for="s-business-phone">{{ __('Phone for customers', 'bookyzo') }} <span class="font-normal text-muted-foreground">{{ __('(optional)', 'bookyzo') }}</span></Label>
+              <Input id="s-business-phone" v-model="form.business_phone" type="tel" maxlength="50" class="w-56" />
+              <p class="text-xs text-muted-foreground">{{ __('Shown with your admin email when it is too late for a customer to cancel or change a booking online.', 'bookyzo') }}</p>
             </div>
           </CardContent>
         </Card>
@@ -239,6 +245,7 @@ const form = ref({
   require_phone: false,
   auto_confirm: false,
   cancellation_hours: 24,
+  business_phone: '',
   send_confirmation_email: true,
   send_admin_notification: true,
   // Phase 1.7 step 7 (DETAILED-SPEC.md §A11) — the last piece of the

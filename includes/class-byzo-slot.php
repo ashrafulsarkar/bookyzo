@@ -484,6 +484,15 @@ class BYZO_Slot {
 		$row['timezone']             = BYZO_Bookable_Item::timezone( $row['bookable_item_id'] )->getName();
 		$row['local_start_datetime'] = BYZO_Bookable_Item::to_local( $row['start_datetime'], $row['bookable_item_id'] );
 		$row['local_end_datetime']   = BYZO_Bookable_Item::to_local( $row['end_datetime'], $row['bookable_item_id'] );
+
+		// Until when a booking of this time could be cancelled or changed
+		// for free (1.0.3), on the item's clock, and whether that is still
+		// ahead — so the booking form can say so before anyone books. Null
+		// when the item has no online cancellation.
+		$hours    = BYZO_Bookable_Item::cancellation_hours( $row['bookable_item_id'] );
+		$deadline = $hours > 0 ? ( new DateTime( $row['start_datetime'], wp_timezone() ) )->modify( '-' . $hours . ' hours' )->format( 'Y-m-d H:i:s' ) : null;
+		$row['local_cancellation_deadline'] = $deadline ? BYZO_Bookable_Item::to_local( $deadline, $row['bookable_item_id'] ) : null;
+		$row['cancellation_open']           = $deadline && current_time( 'mysql' ) < $deadline;
 		return $row;
 	}
 }

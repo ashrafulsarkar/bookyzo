@@ -183,6 +183,13 @@ class BYZO_Account_Widget {
 			// invoice link above.
 			'qrTicketEnabled'   => BYZO_Capabilities::qr_ticket_enabled(),
 			'sections'          => self::extra_sections(),
+			// Who to contact once it's too late to cancel or change a
+			// booking online (1.0.3).
+			'contact'           => array(
+				'business' => BYZO_Settings::get()['business_name'],
+				'email'    => get_option( 'admin_email' ),
+				'phone'    => BYZO_Settings::get()['business_phone'],
+			),
 		);
 	}
 

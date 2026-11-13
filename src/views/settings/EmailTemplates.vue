@@ -35,7 +35,7 @@
               <Textarea :id="`body-${event.id}`" v-model="templates[event.id].body" rows="14" class="resize-y font-mono" />
               <p class="text-xs text-muted-foreground">
                 {{ __('Placeholders:', 'bookyzo') }} <code>{customer_name}</code> <code>{bookable_item_name}</code> <code>{start_time}</code>
-                <code>{business_name}</code> <code>{cancel_link}</code> <code>{add_to_calendar_link}</code>
+                <code>{business_name}</code> <code>{cancel_link}</code> <code>{cancellation_deadline}</code> <code>{add_to_calendar_link}</code>
                 <code>{booking_id}</code> <code>{party_size}</code> <code>{total}</code>
                 <code>{customer_email}</code> <code>{customer_phone}</code> <code>{admin_booking_link}</code>
                 <code>{location}</code> <code>{meeting_link}</code>

@@ -40,6 +40,10 @@ class BYZO_Settings {
 			// more than this many hours away. Admin cancellation from the
 			// Bookings screen is never subject to this.
 			'cancellation_hours'      => 24,
+			// Added 2026-11-13 (1.0.3) — optional phone number customers are
+			// given when it is too late to cancel or change a booking online
+			// (with the admin email). Empty = not shown.
+			'business_phone'          => '',
 			// Added 2026-09-05 (Phase 1.5 step 9, DETAILED-SPEC.md §A7) — a
 			// flat site-wide percentage, 0 = no tax added. Per-bookable item
 			// overrides (`bookable_items.tax_rate_override`) are Pro-only
@@ -168,6 +172,10 @@ class BYZO_Settings {
 			$patch['cancellation_hours'] = max( 0, absint( $data['cancellation_hours'] ) );
 		}
 
+		if ( isset( $data['business_phone'] ) ) {
+			$patch['business_phone'] = substr( sanitize_text_field( $data['business_phone'] ), 0, 50 );
+		}
+
 		if ( isset( $data['tax_rate'] ) ) {
 			$tax_rate = (float) $data['tax_rate'];
 			if ( $tax_rate < 0 || $tax_rate > 100 ) {
@@ -201,6 +209,10 @@ class BYZO_Settings {
 
 		$updated = array_merge( $current, $patch );
 		update_option( 'byzo_settings', $updated );
+
+		if ( class_exists( 'BYZO_Bookable_Item' ) ) {
+			BYZO_Bookable_Item::flush_cancellation_cache();
+		}
 
 		return $updated;
 	}

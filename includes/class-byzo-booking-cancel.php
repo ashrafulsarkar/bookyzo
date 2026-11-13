@@ -83,13 +83,14 @@ class BYZO_Booking_Cancel {
 			} elseif ( ! in_array( $booking['status'], array( 'pending', 'confirmed' ), true ) ) {
 				$message = __( 'This booking can no longer be cancelled online.', 'bookyzo' );
 			} else {
-				$cancellation_hours = (int) BYZO_Settings::get()['cancellation_hours'];
-				$hours_until        = $booking['slot_start']
-					? ( ( new DateTime( $booking['slot_start'], wp_timezone() ) )->getTimestamp() - ( new DateTime( 'now', wp_timezone() ) )->getTimestamp() ) / HOUR_IN_SECONDS
-					: -1;
+				// The item's own cut-off or the business-wide one (1.0.3).
+				// Past it, the page says since when and how to reach the
+				// business instead of only "contact us".
+				$policy = BYZO_Booking::cancellation_policy( $booking );
 
-				if ( $cancellation_hours <= 0 || $hours_until <= $cancellation_hours ) {
-					$message = __( 'This booking is too close to cancel online — please contact us directly.', 'bookyzo' );
+				if ( ! $policy['online'] || ! $booking['slot_start'] || $policy['is_late'] ) {
+					$state   = 'too_late';
+					$message = BYZO_Booking::too_late_message( $booking, 'cancel' );
 				} else {
 					$state = 'confirm';
 				}

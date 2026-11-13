@@ -30,6 +30,11 @@
         <span class="summary-value">{{ item.location }}</span>
       </div>
     </div>
+    <!-- Until when they can cancel or change it for free (1.0.3); the
+         manage link is in their email. -->
+    <p v-if="booking?.cancellation_open && booking?.local_cancellation_deadline" class="policy-note">
+      {{ sprintf(/*! translators: 1: date, 2: time — until when the booking can be cancelled or changed for free. */ __('Free cancellation until %1$s at %2$s. The link to cancel or change it is in your email.', 'bookyzo'), formatDate(booking.local_cancellation_deadline), formatTime(booking.local_cancellation_deadline)) }}
+    </p>
 
     <p v-if="item?.meeting_link" class="location">
       <a :href="item.meeting_link" target="_blank" rel="noopener noreferrer">{{ __('Join meeting link', 'bookyzo') }}</a>

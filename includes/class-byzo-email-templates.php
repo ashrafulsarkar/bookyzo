@@ -73,11 +73,11 @@ class BYZO_Email_Templates {
 		return array(
 			'booking_created'   => array(
 				'subject' => __( 'Your booking request has been received', 'bookyzo' ),
-				'body'    => __( "Hi {customer_name},\n\nWe've received your booking request with {business_name} for {bookable_item_name} on {start_time}.\n\nBooking #{booking_id}\nHow many: {party_size}\nTotal: {total}\n{location}\n\nYou'll receive another email once it's confirmed.\n\nAdd to calendar: {add_to_calendar_link}\n\nNeed to cancel? {cancel_link}\n\nThanks,\n{business_name}", 'bookyzo' ),
+				'body'    => __( "Hi {customer_name},\n\nWe've received your booking request with {business_name} for {bookable_item_name} on {start_time}.\n\nBooking #{booking_id}\nHow many: {party_size}\nTotal: {total}\n{location}\n\nYou'll receive another email once it's confirmed.\n\nAdd to calendar: {add_to_calendar_link}\n\nFree cancellation until {cancellation_deadline}.\nNeed to cancel or change it? {cancel_link}\n\nThanks,\n{business_name}", 'bookyzo' ),
 			),
 			'booking_confirmed' => array(
 				'subject' => __( 'Your booking is confirmed', 'bookyzo' ),
-				'body'    => __( "Hi {customer_name},\n\nGood news — your booking with {business_name} for {bookable_item_name} on {start_time} is confirmed.\n\nBooking #{booking_id}\nHow many: {party_size}\nTotal: {total}\n{location}\n\nAdd to calendar: {add_to_calendar_link}\n\nNeed to cancel? {cancel_link}\n\nSee you then!\n{business_name}", 'bookyzo' ),
+				'body'    => __( "Hi {customer_name},\n\nGood news — your booking with {business_name} for {bookable_item_name} on {start_time} is confirmed.\n\nBooking #{booking_id}\nHow many: {party_size}\nTotal: {total}\n{location}\n\nAdd to calendar: {add_to_calendar_link}\n\nFree cancellation until {cancellation_deadline}.\nNeed to cancel or change it? {cancel_link}\n\nSee you then!\n{business_name}", 'bookyzo' ),
 			),
 			'booking_cancelled' => array(
 				'subject' => __( 'Your booking has been cancelled', 'bookyzo' ),
