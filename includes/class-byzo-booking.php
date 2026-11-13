@@ -1328,9 +1328,12 @@ class BYZO_Booking {
 	 * or no-show-ing a booking that held slot capacity releases it back
 	 * (capacity_remaining++, slot status back to 'open' if it was 'full').
 	 *
-	 * @return true|WP_Error
+	 * @param int    $id
+	 * @param string $new_status
+	 * @param array  $context    Optional, reserved for details of the change.
+	 * @return true|WP_Error A 409 `byzo_booking_conflict` when the booking changed under this call.
 	 */
-	public static function update_status( $id, $new_status ) {
+	public static function update_status( $id, $new_status, $context = array() ) {
 		global $wpdb;
 
 		$booking = self::get( $id );
@@ -1373,26 +1376,71 @@ class BYZO_Booking {
 			$updates['completed_at'] = current_time( 'mysql' );
 		}
 
-		$wpdb->update( self::table(), $updates, array( 'id' => $id ) );
+		// Compare-and-swap (1.0.3): the row only changes if it still has the
+		// status this request read a moment ago. Two changes to the same
+		// booking at once (the hold-expiry sweep and a payment webhook, an
+		// admin and the customer) used to both "succeed" and both release
+		// the place, leaving the slot with more room than it has. Now one
+		// wins and the other gets a 409 and does nothing else.
+		$changed = $wpdb->update( self::table(), $updates, array( 'id' => (int) $id, 'status' => $booking['status'] ) );
 
-		if ( $releases_capacity && $booking['slot_id'] ) {
-			// Credit the seat(s) — or the whole table — back.
-			self::release_slot_capacity( $booking['slot_id'], $booking['party_size'], BYZO_Bookable_Item::get( $booking['bookable_item_id'] ) );
+		if ( 1 !== (int) $changed ) {
+			return self::conflict_error();
+		}
 
-			// Ticket tiers (Phase 2 step 12 continued) — the symmetric
-			// release for byzo_claim_ticket_tier's atomic claim at create
-			// time; without this a tier's capacity_remaining would never
-			// recover after a cancellation, permanently under-selling it.
-			// Free never hooks this (no tier system exists there), so a
-			// direct booking triggers a no-op action.
-			if ( $booking['ticket_tier_id'] ) {
-				do_action( 'byzo_release_ticket_tier', $booking['ticket_tier_id'], $booking['party_size'] );
-			}
+		if ( $releases_capacity ) {
+			self::release_booking_capacity( $booking );
 		}
 
 		do_action( 'byzo_booking_status_changed', $id, $new_status, $booking['status'] );
 
 		return true;
+	}
+
+	/**
+	 * The 409 every compare-and-swap write returns when the booking changed
+	 * under it. Callers that act in the background (cron, webhooks) treat it
+	 * as "someone else already handled this" and carry on quietly.
+	 *
+	 * @return WP_Error
+	 */
+	private static function conflict_error() {
+		return new WP_Error( 'byzo_booking_conflict', __( 'This booking was changed by someone else a moment ago. Please reload it and try again.', 'bookyzo' ), array( 'status' => 409 ) );
+	}
+
+	/**
+	 * Whether $result is the compare-and-swap conflict above.
+	 *
+	 * @param mixed $result
+	 */
+	public static function is_conflict( $result ) {
+		return is_wp_error( $result ) && 'byzo_booking_conflict' === $result->get_error_code();
+	}
+
+	/**
+	 * Gives back everything a booking holds: its slot's place(s) and its
+	 * ticket tier. Only ever called by the request that won the status
+	 * compare-and-swap, so it runs once per booking.
+	 *
+	 * @param array $booking A get() row, as it was before the change.
+	 */
+	private static function release_booking_capacity( $booking ) {
+		if ( ! $booking['slot_id'] ) {
+			return;
+		}
+
+		// Credit the seat(s) — or the whole table — back.
+		self::release_slot_capacity( $booking['slot_id'], $booking['party_size'], BYZO_Bookable_Item::get( $booking['bookable_item_id'] ) );
+
+		// Ticket tiers (Phase 2 step 12 continued) — the symmetric
+		// release for byzo_claim_ticket_tier's atomic claim at create
+		// time; without this a tier's capacity_remaining would never
+		// recover after a cancellation, permanently under-selling it.
+		// Free never hooks this (no tier system exists there), so a
+		// direct booking triggers a no-op action.
+		if ( $booking['ticket_tier_id'] ) {
+			do_action( 'byzo_release_ticket_tier', $booking['ticket_tier_id'], $booking['party_size'] );
+		}
 	}
 
 	/**
@@ -1447,26 +1495,42 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_slot_full', __( 'This time slot was just booked by someone else. Please pick another time.', 'bookyzo' ), array( 'status' => 409 ) );
 		}
 
+		$old_slot_id = $booking['slot_id'];
+		$now         = current_time( 'mysql' );
+		$table       = self::table();
+
+		// Compare-and-swap (1.0.3): move the booking only if it is still on
+		// the slot this request read and still active. A second reschedule
+		// or a cancellation that got there first leaves 0 rows changed; the
+		// new slot's claim is then given back and nothing else happens, so
+		// the old slot is never credited twice.
+		// phpcs:disable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared -- table name and a fixed slot condition, not user input.
+		$slot_match = $old_slot_id ? 'slot_id = %d' : 'slot_id IS NULL';
+		$params     = array( (int) $new_slot_id, (int) $new_slot['bookable_item_id'], $now, $now, (int) $id );
+		if ( $old_slot_id ) {
+			$params[] = (int) $old_slot_id;
+		}
+		$moved = $wpdb->query(
+			$wpdb->prepare(
+				"UPDATE {$table} SET slot_id = %d, bookable_item_id = %d, rescheduled_at = %s, updated_at = %s WHERE id = %d AND {$slot_match} AND status IN ('pending','confirmed')",
+				$params
+			)
+		);
+		// phpcs:enable WordPress.DB.PreparedSQL.InterpolatedNotPrepared, WordPress.DB.PreparedSQL.NotPrepared
+
+		if ( 1 !== (int) $moved ) {
+			self::release_slot_capacity( $new_slot_id, $party_size, $new_slot_item );
+
+			return self::conflict_error();
+		}
+
 		// Release the old slot back — same CASE-guarded credit as
 		// update_status()'s cancel/no_show/rejected release, so a
 		// 'blocked' old slot (e.g. a blackout added after this booking was
 		// made) isn't silently reopened by this reschedule.
-		if ( $booking['slot_id'] ) {
-			self::release_slot_capacity( $booking['slot_id'], $party_size, BYZO_Bookable_Item::get( $booking['bookable_item_id'] ) );
+		if ( $old_slot_id ) {
+			self::release_slot_capacity( $old_slot_id, $party_size, BYZO_Bookable_Item::get( $booking['bookable_item_id'] ) );
 		}
-
-		$old_slot_id = $booking['slot_id'];
-
-		$wpdb->update(
-			self::table(),
-			array(
-				'slot_id'          => $new_slot_id,
-				'bookable_item_id' => $new_slot['bookable_item_id'],
-				'rescheduled_at'   => current_time( 'mysql' ),
-				'updated_at'       => current_time( 'mysql' ),
-			),
-			array( 'id' => $id )
-		);
 
 		/**
 		 * Fires after a booking is moved to a different slot. Not a status
@@ -1562,6 +1626,18 @@ class BYZO_Booking {
 		}
 
 		$result = self::update_status( $booking['id'], 'cancelled' );
+
+		// Something else changed the booking at the same moment (the hold
+		// expiry sweep, an admin). If it ended up cancelled anyway, that's
+		// what the customer asked for: say so instead of showing an error,
+		// but don't report it as their cancellation.
+		if ( self::is_conflict( $result ) ) {
+			$fresh = self::get( $booking['id'] );
+
+			return $fresh && 'cancelled' === $fresh['status']
+				? true
+				: new WP_Error( 'byzo_booking_conflict', __( 'This booking was just changed. Please reload the page to see where it stands.', 'bookyzo' ), array( 'status' => 409 ) );
+		}
 
 		if ( true === $result ) {
 			/**
@@ -1661,11 +1737,24 @@ class BYZO_Booking {
 			return new WP_Error( 'byzo_not_found', __( 'Booking not found.', 'bookyzo' ), array( 'status' => 404 ) );
 		}
 
-		$wpdb->update(
+		// Setting what is already there is a quiet no-op: a replayed webhook
+		// or the widget's confirm call arriving after the webhook doesn't
+		// fire byzo_booking_payment_status_changed a second time.
+		if ( $booking['payment_status'] === $payment_status ) {
+			return true;
+		}
+
+		// Compare-and-swap on the value just read (1.0.3), same reason as
+		// update_status(): of two writers racing, only one changes it.
+		$changed = $wpdb->update(
 			self::table(),
 			array( 'payment_status' => $payment_status, 'updated_at' => current_time( 'mysql' ) ),
-			array( 'id' => $id )
+			array( 'id' => (int) $id, 'payment_status' => $booking['payment_status'] )
 		);
+
+		if ( 1 !== (int) $changed ) {
+			return self::conflict_error();
+		}
 
 		do_action( 'byzo_booking_payment_status_changed', $id, $payment_status, $booking['payment_status'] );
 
